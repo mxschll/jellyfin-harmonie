@@ -29,14 +29,32 @@ fi
 echo "==> Installing to $PLUGIN_DIR"
 mkdir -p "$PLUGIN_DIR"
 cp Jellyfin.Plugin.Harmonie/bin/Release/net9.0/publish/Jellyfin.Plugin.Harmonie.* "$PLUGIN_DIR/"
+# Ship the catalog/dashboard thumbnail next to the DLL.
+cp Jellyfin.Plugin.Harmonie/thumb.png "$PLUGIN_DIR/"
 
-# Ensure the plugin is marked Active. Jellyfin disables a plugin if a
-# previous load failed; keeping the status forced to Active means a fresh
-# build always re-enables it.
-META="$PLUGIN_DIR/meta.json"
-if [[ -f "$META" ]] && grep -q '"status"' "$META"; then
-    /usr/bin/sed -i '' 's/"status":[[:space:]]*"Disabled"/"status": "Active"/' "$META"
-fi
+# Write a meta.json that mirrors the production zip layout. We always
+# overwrite — Jellyfin only re-reads it on plugin load anyway, and an
+# explicit Active status survives a previous load failure.
+cat > "$PLUGIN_DIR/meta.json" <<EOF
+{
+  "category": "Music",
+  "changelog": "",
+  "description": "Generate Jellyfin playlists from harmonie audio similarity.",
+  "guid": "485e9b6f-f623-4c97-9679-ad33c1db0d18",
+  "name": "Harmonie",
+  "overview": "Build playlists from harmonie audio similarity.",
+  "owner": "mxschll",
+  "targetAbi": "10.11.0.0",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.0000000Z)",
+  "version": "${PLUGIN_VERSION}",
+  "status": "Active",
+  "autoUpdate": false,
+  "imagePath": "thumb.png",
+  "assemblies": [
+    "Jellyfin.Plugin.Harmonie.dll"
+  ]
+}
+EOF
 
 echo "==> Starting Jellyfin..."
 open -a Jellyfin
