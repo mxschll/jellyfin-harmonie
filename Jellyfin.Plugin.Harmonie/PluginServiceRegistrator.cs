@@ -18,7 +18,15 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<StylePlaylistStateStore>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();
         serviceCollection.AddSingleton<StylePlaylistService>();
-        serviceCollection.AddHostedService<PlaylistAutoRefreshService>();
+
+        // Register PlaylistAutoRefreshService as a singleton AND as the
+        // hosted service backing it. Registering twice with the factory
+        // form ensures DetectReordersTask can resolve the concrete type
+        // while Jellyfin's hosting infrastructure still starts and
+        // stops it via IHostedService.
+        serviceCollection.AddSingleton<PlaylistAutoRefreshService>();
+        serviceCollection.AddHostedService(p => p.GetRequiredService<PlaylistAutoRefreshService>());
+
         serviceCollection.AddSingleton<CoverPainter>();
 
         // Register as IImageProvider so Jellyfin's ProviderManager finds

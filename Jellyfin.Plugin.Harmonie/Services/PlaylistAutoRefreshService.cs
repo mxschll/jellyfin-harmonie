@@ -20,25 +20,20 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 ///  1. Jellyfin's <see cref="ILibraryManager.ItemUpdated"/> event for
 ///     fast reaction to add/remove (and reorder, when the client sends
 ///     it as <c>MoveItemAsync</c>).
-///  2. A 30-second polling loop that snapshots each playlist's
-///     <c>LinkedChildren</c> order and triggers a refresh on any
-///     divergence. This is the backstop for clients that send reorders
-///     as a route Jellyfin doesn't surface as a single ItemUpdated
-///     event — drag-and-drop in the web UI, for example.
+///  2. The "Detect Smart Playlist Reorders" scheduled task, which
+///     periodically calls <see cref="CheckAllPlaylistsAsync"/>. It
+///     snapshots each playlist's <c>LinkedChildren</c> order and
+///     triggers a refresh on any divergence. This is the backstop for
+///     clients that send reorders as a route Jellyfin doesn't surface
+///     as a single ItemUpdated event — drag-and-drop in the web UI,
+///     for example.
 ///
 /// Both paths share the same scheduler, so duplicate triggers collapse
 /// into a single refresh.
 /// </summary>
-public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
+public sealed class PlaylistAutoRefreshService : IHostedService
 {
     private static readonly TimeSpan DebounceDelay = TimeSpan.FromSeconds(5);
-
-    /// <summary>
-    /// How often the polling backstop runs. 30s is fast enough to feel
-    /// responsive on a reorder while staying cheap for a typical
-    /// library size.
-    /// </summary>
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
 
     private readonly ILibraryManager _libraryManager;
     private readonly PrefixPlaylistService _prefixService;
@@ -49,8 +44,8 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
     private readonly Dictionary<Guid, CancellationTokenSource> _pending = new();
     private readonly object _pendingLock = new();
 
-    // Last-seen ordered child guids per playlist. Used by the poller
-    // to detect reorders that didn't surface as ItemUpdated events.
+    // Last-seen ordered child guids per playlist. Used by the polling
+    // task to detect reorders that didn't surface as ItemUpdated events.
     private readonly Dictionary<Guid, IReadOnlyList<Guid>> _lastSeenOrder = new();
     private readonly object _orderLock = new();
 
@@ -60,7 +55,6 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
     private readonly Dictionary<Guid, string> _lastSeenName = new();
     private readonly object _nameLock = new();
 
-    private Timer? _pollTimer;
     private bool _started;
 
     public PlaylistAutoRefreshService(
@@ -78,21 +72,12 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
         _libraryManager.ItemAdded += OnItemEvent;
         _libraryManager.ItemUpdated += OnItemEvent;
         _started = true;
-
-        // Prime the snapshot map: the first poll tick has nothing to
-        // diff against, so without priming it would treat every
-        // playlist as "changed" on first run.
-        PrimeSnapshots();
-
-        _pollTimer = new Timer(OnPollTick, state: null, PollInterval, PollInterval);
-
         _logger.LogInformation(
-            "Harmonie auto-refresh observer attached (events + {Interval}s poll backstop).",
-            PollInterval.TotalSeconds);
+            "Harmonie auto-refresh observer attached (event-driven; reorder polling runs as a scheduled task).");
         return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         if (_started)
         {
@@ -101,24 +86,8 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             _started = false;
         }
 
-        if (_pollTimer is { } timer)
-        {
-            await timer.DisposeAsync().ConfigureAwait(false);
-            _pollTimer = null;
-        }
-
         CancelAll();
-    }
-
-    public void Dispose()
-    {
-        // Synchronous Dispose path — use the sync timer dispose. Stop
-        // is the preferred shutdown path for IHostedService and uses
-        // the async one above.
-        _pollTimer?.Dispose();
-        _pollTimer = null;
-        CancelAll();
-        GC.SuppressFinalize(this);
+        return Task.CompletedTask;
     }
 
     // ---------------------------------------------------------------
@@ -174,19 +143,32 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
     // Polling backstop.
     // ---------------------------------------------------------------
 
-    private void OnPollTick(object? state)
+    /// <summary>
+    /// Walks every watched playlist, snapshots its child order, and
+    /// schedules a refresh on any playlist whose order changed since
+    /// the previous run. Exposed publicly so the
+    /// "Detect Smart Playlist Reorders" scheduled task can drive it.
+    /// </summary>
+    public Task CheckAllPlaylistsAsync(CancellationToken cancellationToken)
     {
         try
         {
             foreach (var playlist in EnumerateWatchedPlaylists())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 CheckPlaylistForChange(playlist);
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Auto-refresh poll tick failed.");
+            _logger.LogError(ex, "Reorder polling pass failed.");
         }
+
+        return Task.CompletedTask;
     }
 
     private void CheckPlaylistForChange(Playlist playlist)
@@ -222,25 +204,6 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             playlist.Name,
             current.Count);
         ScheduleRefresh(playlist.Id, playlist.Name, DebounceDelay);
-    }
-
-    private void PrimeSnapshots()
-    {
-        try
-        {
-            foreach (var playlist in EnumerateWatchedPlaylists())
-            {
-                var order = SnapshotChildren(playlist);
-                lock (_orderLock)
-                {
-                    _lastSeenOrder[playlist.Id] = order;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to prime auto-refresh snapshots.");
-        }
     }
 
     /// <summary>
