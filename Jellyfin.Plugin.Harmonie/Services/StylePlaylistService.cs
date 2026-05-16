@@ -84,6 +84,14 @@ public class StylePlaylistService
             return;
         }
 
+        if (!await _client.IsReachableAsync(ct).ConfigureAwait(false))
+        {
+            _logger.LogWarning(
+                "Harmonie is unreachable at {Url}; skipping style cluster playlist refresh.",
+                config.HarmonieUrl);
+            return;
+        }
+
         _libraryResolver.Build();
 
         foreach (var user in _userManager.Users)

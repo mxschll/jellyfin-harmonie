@@ -101,6 +101,19 @@ public class PrefixPlaylistService
             return;
         }
 
+        // Probe harmonie once. With the default localhost:8842 URL on a
+        // fresh install, this fails immediately and we skip the loop
+        // instead of generating one stack trace per playlist.
+        if (!await _client.IsReachableAsync(ct).ConfigureAwait(false))
+        {
+            _logger.LogWarning(
+                "Harmonie is unreachable at {Url}; skipping refresh of {Count} smart playlist(s). " +
+                "Open Plugins, Harmonie to set the URL and run Test connection.",
+                config.HarmonieUrl,
+                playlists.Count);
+            return;
+        }
+
         _logger.LogInformation("Found {Count} smart playlists to refresh.", playlists.Count);
         _libraryResolver.Build();
 
@@ -144,6 +157,18 @@ public class PrefixPlaylistService
         if (string.IsNullOrEmpty(playlist.Name)
             || PrefixPlaylistOptions.TryParse(playlist.Name) is null)
         {
+            return false;
+        }
+
+        // Single concise warning instead of a connection-refused stack
+        // trace from inside RefreshOneAsync. The auto-refresh service
+        // calls this on every edit so noise here matters.
+        if (!await _client.IsReachableAsync(ct).ConfigureAwait(false))
+        {
+            _logger.LogWarning(
+                "Harmonie is unreachable at {Url}; skipping refresh of {Name}.",
+                config.HarmonieUrl,
+                playlist.Name);
             return false;
         }
 

@@ -54,6 +54,43 @@ public class HarmonieClient
     }
 
     /// <summary>
+    /// Cheap connectivity probe against harmonie's <c>/health</c>
+    /// endpoint. Used by the refresh paths to avoid spamming logs
+    /// with stack traces when the service is unreachable (e.g. the
+    /// admin hasn't pointed the plugin at a running harmonie yet).
+    /// Returns false on any HTTP error, network failure, or timeout.
+    /// </summary>
+    public async Task<bool> IsReachableAsync(CancellationToken ct)
+    {
+        var config = HarmoniePlugin.Instance?.Configuration;
+        if (config is null || string.IsNullOrWhiteSpace(config.HarmonieUrl))
+        {
+            return false;
+        }
+
+        try
+        {
+            // /health is harmonie's liveness probe — never auth-required,
+            // returns within milliseconds. Use a short timeout so the
+            // scheduled task fails fast when nothing's listening.
+            using var req = new HttpRequestMessage(HttpMethod.Get, BuildUri(config.HarmonieUrl, "/health"));
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+            using var resp = await _httpClient.SendAsync(req, linkedCts.Token).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Timeout, not user cancellation.
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Fetches harmonie's <c>/api/v1/status</c> — service identity plus
     /// library counters in a single call. Cache-friendly on harmonie's
     /// side; counters update at ~1 minute granularity.
