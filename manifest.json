@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.15.1",
+        "changelog": " ### Features  - Simplify to radio and drift playlists, adapt to new harmonie api (9910c73)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.15/jellyfin-harmonie_0.1.15.1.zip",
+        "checksum": "5ad78f87f513072ec109f2a242546831",
+        "timestamp": "2026-05-16T11:46:57Z"
+      },
+      {
+        "version": "0.1.15.0",
+        "changelog": " ### Features  - Simplify to radio and drift playlists, adapt to new harmonie api (9910c73)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.15/jellyfin-harmonie_0.1.15.0.zip",
+        "checksum": "7e237d86223e8787b7e16397d72492bf",
+        "timestamp": "2026-05-16T11:46:57Z"
+      },
+      {
         "version": "0.1.14.1",
         "changelog": "Release v0.1.14.",
         "targetAbi": "10.11.0.0",
