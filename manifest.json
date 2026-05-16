@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/thumb.png",
     "versions": [
       {
+        "version": "0.1.10.1",
+        "changelog": " ###  Features  - Add plugin thumbnail image (f70d7d2)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.10/jellyfin-harmonie_0.1.10.1.zip",
+        "checksum": "69ba1d285446751e3d69d1a690ea4cb5",
+        "timestamp": "2026-05-16T10:41:23Z"
+      },
+      {
+        "version": "0.1.10.0",
+        "changelog": " ###  Features  - Add plugin thumbnail image (f70d7d2)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.10/jellyfin-harmonie_0.1.10.0.zip",
+        "checksum": "afd8034f4663a533d295cbe7659a94cb",
+        "timestamp": "2026-05-16T10:41:23Z"
+      },
+      {
         "version": "0.1.9.1",
         "changelog": " ###  CI  - Drop skip-ci token from manifest (6e06c2b)  ",
         "targetAbi": "10.11.0.0",
