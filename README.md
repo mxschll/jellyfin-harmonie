@@ -14,6 +14,10 @@ Spotify has Song Radio and Daily Mix. Plex has Sonic Sage. They listen to a trac
 
 Harmonie fills that gap. It's a Jellyfin plugin that fills playlists with similar music, using [harmonie](https://github.com/mxschll/harmonie) for the audio analysis. Name a playlist `[RADIO]` and the plugin fills it with tracks that sound like the ones at the top. Name it `[DRIFT]` and the playlist gradually walks away from the seed. Name it `[MIX]` and the plugin seeds from your listening history, with no input from you.
 
+<p align="center">
+  <img src="docs/playlists.png" alt="Harmonie playlists in the Jellyfin web UI" width="720" />
+</p>
+
 ## Install
 
 The plugin needs a running [harmonie](https://github.com/mxschll/harmonie) service to talk to. Install harmonie first, then the plugin.
