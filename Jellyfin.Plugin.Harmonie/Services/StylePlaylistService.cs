@@ -41,15 +41,6 @@ public class StylePlaylistService
     // gets mushy) and each candidate costs one HTTP resolve.
     private const int SeedAnalysisCap = 50;
 
-    // Minimum probability for a track's top-1 style to count. Filters
-    // tracks the classifier was unsure about.
-    private const double MinStyleProbability = 0.2;
-
-    // The style filter applied to harmonie's similar-mode call when
-    // building each cluster. Tracks below this probability for the
-    // requested style are excluded from the candidate pool.
-    private const double FilterStyleMin = 0.2;
-
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
     private readonly ListenHistoryProvider _listenHistory;
@@ -163,33 +154,34 @@ public class StylePlaylistService
             return;
         }
 
-        // 3. Aggregate top styles.
-        var topStyles = StyleAggregator.ComputeTopStyles(
-            resolved,
-            config.StylePlaylistCount,
-            MinStyleProbability);
-        if (topStyles.Count == 0)
+        // 3. K-means cluster the tracks by their style probability
+        //    vectors. Each cluster becomes one playlist.
+        var vectors = resolved.Select(r => StyleVector.FromStyles(r.Styles)).ToList();
+        var clusters = StyleClusterer.Cluster(vectors, config.StylePlaylistCount);
+        if (clusters.Count == 0)
         {
             _logger.LogInformation(
-                "Style playlists: no styles cleared the {Threshold} probability threshold for {User}.",
-                MinStyleProbability,
+                "Style playlists: no usable style information in {User}'s recent tracks (need at least one track with classifier output).",
                 user.Username);
             return;
         }
 
         _logger.LogInformation(
-            "Style playlists for {User}: top styles = {Styles}",
+            "Style playlists for {User}: {Count} cluster(s) = {Labels}",
             user.Username,
-            string.Join(", ", topStyles.Select(s => $"{s.Style}({s.TrackCount})")));
+            clusters.Count,
+            string.Join(", ", clusters.Select(c => $"{c.Label}({c.MemberIndices.Count})")));
 
-        // 4. Walk the slot list, updating titles and contents.
+        // 4. Walk the slot list, updating titles and contents. Each
+        //    cluster's seeds are its own member tracks — that's what
+        //    "this cluster" actually means musically.
         var state = _stateStore.Get(user.Id);
-        for (var i = 0; i < topStyles.Count; i++)
+        for (var i = 0; i < clusters.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
-            var topStyle = topStyles[i];
+            var cluster = clusters[i];
             var slot = state.Slots.FirstOrDefault(s => s.Slot == i);
-            slot = await EnsureSlotPlaylistAsync(user, i, slot, topStyle.Style, ct).ConfigureAwait(false);
+            slot = await EnsureSlotPlaylistAsync(user, i, slot, cluster.Label, ct).ConfigureAwait(false);
             if (slot is null)
             {
                 continue;
@@ -199,11 +191,25 @@ public class StylePlaylistService
             state.Slots.RemoveAll(s => s.Slot == i);
             state.Slots.Add(slot);
 
-            await FillSlotAsync(user, slot, harmonieSeedIds, config, pathMapper, ct).ConfigureAwait(false);
+            // Cluster-specific seeds: harmonie ids for the members of
+            // this cluster, in the order they came from listen history
+            // (top-played first), capped to harmonie's sweet spot.
+            var clusterSeedIds = new List<long>();
+            foreach (var idx in cluster.MemberIndices)
+            {
+                clusterSeedIds.Add(harmonieSeedIds[idx]);
+                if (clusterSeedIds.Count >= 15)
+                {
+                    break;
+                }
+            }
+
+            await FillSlotAsync(user, slot, clusterSeedIds, config, pathMapper, ct).ConfigureAwait(false);
         }
 
-        // 5. Trim excess slots (user reduced StylePlaylistCount).
-        await TrimExcessSlotsAsync(state, topStyles.Count).ConfigureAwait(false);
+        // 5. Trim excess slots — either StylePlaylistCount was reduced
+        //    or fewer clusters were produced than requested.
+        await TrimExcessSlotsAsync(state, clusters.Count).ConfigureAwait(false);
 
         state.LastRefreshedUtc = DateTimeOffset.UtcNow;
         state.Slots = state.Slots.OrderBy(s => s.Slot).ToList();
@@ -214,16 +220,16 @@ public class StylePlaylistService
     /// Ensures slot <paramref name="slotIndex"/> has a Jellyfin
     /// playlist with the right title. Creates a new playlist if the
     /// slot is empty or the previous GUID no longer resolves
-    /// (e.g. user deleted it). Renames if the style changed.
+    /// (e.g. user deleted it). Renames if the cluster's label changed.
     /// </summary>
     private async Task<StylePlaylistSlot?> EnsureSlotPlaylistAsync(
         User user,
         int slotIndex,
         StylePlaylistSlot? slot,
-        string style,
+        string label,
         CancellationToken ct)
     {
-        var desiredTitle = FormatSlotTitle(style);
+        var desiredTitle = FormatSlotTitle(label);
 
         // If we have a slot, check that the playlist still exists.
         Playlist? playlist = null;
@@ -246,10 +252,10 @@ public class StylePlaylistService
             if (!Guid.TryParse(creation.Id, out var newId))
             {
                 _logger.LogWarning(
-                    "Style playlists: CreatePlaylist returned non-GUID id {Id} for slot {Slot} ({Style}); skipping.",
+                    "Style playlists: CreatePlaylist returned non-GUID id {Id} for slot {Slot} ({Label}); skipping.",
                     creation.Id,
                     slotIndex,
-                    style);
+                    label);
                 return null;
             }
 
@@ -257,11 +263,11 @@ public class StylePlaylistService
             {
                 Slot = slotIndex,
                 PlaylistGuid = newId.ToString("N"),
-                LastStyle = style,
+                LastStyle = label,
             };
         }
 
-        // Rename if the style has changed.
+        // Rename if the cluster's label has changed.
         if (!string.Equals(playlist.Name, desiredTitle, StringComparison.Ordinal))
         {
             await _playlistManager.UpdatePlaylist(new PlaylistUpdateRequest
@@ -275,7 +281,7 @@ public class StylePlaylistService
             {
                 Slot = slotIndex,
                 PlaylistGuid = slot!.PlaylistGuid,
-                LastStyle = style,
+                LastStyle = label,
             };
         }
 
@@ -284,18 +290,20 @@ public class StylePlaylistService
         {
             Slot = slotIndex,
             PlaylistGuid = slot!.PlaylistGuid,
-            LastStyle = style,
+            LastStyle = label,
         };
     }
 
     /// <summary>
     /// Replaces the contents of a slot's playlist with harmonie's
-    /// similar-mode response, filtered to the slot's style.
+    /// similar-mode response. The cluster's identity is carried by
+    /// the seeds (cluster members), so we don't need a style filter —
+    /// harmonie's similarity will hold the result close to that mood.
     /// </summary>
     private async Task FillSlotAsync(
         User user,
         StylePlaylistSlot slot,
-        List<long> harmonieSeedIds,
+        List<long> clusterSeedIds,
         PluginConfiguration config,
         PathMapper pathMapper,
         CancellationToken ct)
@@ -311,23 +319,26 @@ public class StylePlaylistService
             return;
         }
 
+        if (clusterSeedIds.Count == 0)
+        {
+            _logger.LogWarning(
+                "Style playlists: cluster '{Title}' has no harmonie-resolved seeds; skipping fill.",
+                playlist.Name);
+            return;
+        }
+
         var request = new SimilarPlaylistRequest
         {
-            Seeds = harmonieSeedIds,
+            Seeds = clusterSeedIds,
             N = config.StylePlaylistN,
-            Filter = new FilterParams
-            {
-                Style = new List<string> { slot.LastStyle },
-                StyleMin = FilterStyleMin,
-            },
         };
 
         var result = await _client.SimilarPlaylistAsync(request, ct).ConfigureAwait(false);
         if (result.Items.Count == 0)
         {
             _logger.LogWarning(
-                "Style playlists: harmonie returned no matches for {Style} ({User}).",
-                slot.LastStyle,
+                "Style playlists: harmonie returned no matches for '{Title}' ({User}).",
+                playlist.Name,
                 user.Username);
             return;
         }
@@ -392,6 +403,6 @@ public class StylePlaylistService
         return Task.CompletedTask;
     }
 
-    private static string FormatSlotTitle(string rawStyle) =>
-        $"[STYLE] {StyleAggregator.FormatStyleName(rawStyle)}";
+    private static string FormatSlotTitle(string label) =>
+        $"[STYLE] {label}";
 }
