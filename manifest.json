@@ -9,6 +9,22 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "0.1.9.1",
+        "changelog": " ###  CI  - Drop skip-ci token from manifest (6e06c2b)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.9/jellyfin-harmonie_0.1.9.1.zip",
+        "checksum": "85d5a7b72f8298666328e62fc1e6c9bd",
+        "timestamp": "2026-05-16T01:30:21Z"
+      },
+      {
+        "version": "0.1.9.0",
+        "changelog": " ###  CI  - Drop skip-ci token from manifest (6e06c2b)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.9/jellyfin-harmonie_0.1.9.0.zip",
+        "checksum": "797eceec2e51b1980cf85b6c9afe4bae",
+        "timestamp": "2026-05-16T01:30:21Z"
+      },
+      {
         "version": "0.1.7.1",
         "changelog": " ###  Tests  - Add unit tests for PrefixPlaylistOptions and PathMapper (8970023)  ",
         "targetAbi": "10.11.0.0",
