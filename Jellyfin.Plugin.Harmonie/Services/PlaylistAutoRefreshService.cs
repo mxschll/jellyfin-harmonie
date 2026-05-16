@@ -132,6 +132,17 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             return;
         }
 
+        // Skip events whose only reason is ImageUpdate. Those come from
+        // our own cover regeneration: when the playlist refresh queues
+        // an image refresh, Jellyfin saves the new image and fires
+        // ItemUpdated. Without this filter, that event would schedule
+        // another content refresh, which would queue another image
+        // refresh — an infinite loop.
+        if (e.UpdateReason == ItemUpdateType.ImageUpdate)
+        {
+            return;
+        }
+
         _logger.LogInformation(
             "Saw {Reason} for {Name} (id={Id}, children={Count})",
             e.UpdateReason,

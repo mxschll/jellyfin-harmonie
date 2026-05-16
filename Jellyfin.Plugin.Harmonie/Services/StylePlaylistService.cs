@@ -15,7 +15,9 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Playlists;
 using Microsoft.Extensions.Logging;
 
@@ -48,6 +50,8 @@ public class StylePlaylistService
     private readonly IPlaylistManager _playlistManager;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
+    private readonly IProviderManager _providerManager;
+    private readonly IFileSystem _fileSystem;
     private readonly ILogger<StylePlaylistService> _logger;
 
     public StylePlaylistService(
@@ -58,6 +62,8 @@ public class StylePlaylistService
         IPlaylistManager playlistManager,
         ILibraryManager libraryManager,
         IUserManager userManager,
+        IProviderManager providerManager,
+        IFileSystem fileSystem,
         ILogger<StylePlaylistService> logger)
     {
         _client = client;
@@ -67,6 +73,8 @@ public class StylePlaylistService
         _playlistManager = playlistManager;
         _libraryManager = libraryManager;
         _userManager = userManager;
+        _providerManager = providerManager;
+        _fileSystem = fileSystem;
         _logger = logger;
     }
 
@@ -388,6 +396,26 @@ public class StylePlaylistService
             playlist.Name,
             resolvedNew.Count,
             user.Username);
+
+        // Force the cover to regenerate. The label drives the cover
+        // colour and text, so a slot rename (when the user's top style
+        // shifts) needs the image to update too.
+        QueueCoverRefresh(playlist.Id);
+    }
+
+    /// <summary>
+    /// Queues an image-only refresh on a style playlist so the
+    /// <see cref="Cover.HarmoniePlaylistImageProvider"/> regenerates
+    /// the cover against the current title.
+    /// </summary>
+    private void QueueCoverRefresh(Guid playlistId)
+    {
+        var options = new MetadataRefreshOptions(new DirectoryService(_fileSystem))
+        {
+            ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+            ReplaceAllImages = true,
+        };
+        _providerManager.QueueRefresh(playlistId, options, RefreshPriority.Low);
     }
 
     private Task TrimExcessSlotsAsync(UserStylePlaylistState state, int keepCount)

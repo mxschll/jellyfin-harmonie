@@ -37,9 +37,29 @@
     <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
   </ItemGroup>
 
+  <!--
+    SkiaSharp is used to render the playlist cover images. Versions are
+    matched to the Jellyfin host's Directory.Packages.props per ABI; we
+    exclude runtime assets so the host's loaded copy is used at runtime
+    (same pattern as Jellyfin.Controller). No native libs ship with the
+    plugin.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="SkiaSharp" Version="2.88.9">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="SkiaSharp" Version="3.116.1">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Resources\Inter-Bold.ttf" />
+    <EmbeddedResource Include="Resources\Inter-Bold.ttf" />
   </ItemGroup>
 
   <!--

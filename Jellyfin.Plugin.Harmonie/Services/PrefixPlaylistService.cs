@@ -16,6 +16,8 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Harmonie.Services;
@@ -40,6 +42,8 @@ public class PrefixPlaylistService
     private readonly IPlaylistManager _playlistManager;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
+    private readonly IProviderManager _providerManager;
+    private readonly IFileSystem _fileSystem;
     private readonly ILogger<PrefixPlaylistService> _logger;
 
     // Playlist ids the plugin is currently refreshing. The auto-refresh
@@ -55,6 +59,8 @@ public class PrefixPlaylistService
         IPlaylistManager playlistManager,
         ILibraryManager libraryManager,
         IUserManager userManager,
+        IProviderManager providerManager,
+        IFileSystem fileSystem,
         ILogger<PrefixPlaylistService> logger)
     {
         _client = client;
@@ -63,6 +69,8 @@ public class PrefixPlaylistService
         _playlistManager = playlistManager;
         _libraryManager = libraryManager;
         _userManager = userManager;
+        _providerManager = providerManager;
+        _fileSystem = fileSystem;
         _logger = logger;
     }
 
@@ -356,6 +364,30 @@ public class PrefixPlaylistService
             seedIds.Count,
             resolvedNew.Count,
             harmonieResult.Items.Count);
+
+        // Force the cover image to regenerate against the current name.
+        // The cover depends on the playlist title + mode + style label,
+        // which all live in the name. Without this, renaming a smart
+        // playlist leaves the old cover cached in place.
+        QueueCoverRefresh(playlist.Id);
+    }
+
+    /// <summary>
+    /// Tells Jellyfin to re-run image providers on the playlist with
+    /// "replace existing image" set, which makes our
+    /// <see cref="Cover.HarmoniePlaylistImageProvider"/> re-render the
+    /// cover. The refresh is queued (background) — fire-and-forget.
+    /// </summary>
+    private void QueueCoverRefresh(Guid playlistId)
+    {
+        var options = new MetadataRefreshOptions(new DirectoryService(_fileSystem))
+        {
+            ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+            ReplaceAllImages = true,
+            // We only care about the image — leave metadata mode at
+            // default so we don't kick off unrelated work.
+        };
+        _providerManager.QueueRefresh(playlistId, options, RefreshPriority.Low);
     }
 
     /// <summary>
