@@ -20,11 +20,11 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
 /// Refreshes "prefix-mode" playlists: any Jellyfin playlist whose name starts
-/// with the configured prefix (default <c>[HRMNY]</c>).
+/// with the configured prefix (default <c>[HRMN]</c>).
 ///
 /// Three modes, picked from the playlist title:
 ///
-/// * <c>[HRMNY]</c>          — seed mode. The user-added tracks are seeds.
+/// * <c>[HRMN]</c>          — seed mode. The user-added tracks are seeds.
 /// * <c>[HRMNY drift]</c>    — drift mode. Exactly one user-added track.
 /// * <c>[HRMNY energy=N]</c> — energy mode. No seed required.
 ///
@@ -80,7 +80,7 @@ public class PrefixPlaylistService
     {
         var config = HarmoniePlugin.Instance?.Configuration
             ?? throw new InvalidOperationException("Plugin not initialized.");
-        var prefix = string.IsNullOrWhiteSpace(config.Prefix) ? "[HRMNY]" : config.Prefix;
+        var prefix = string.IsNullOrWhiteSpace(config.Prefix) ? "[HRMN]" : config.Prefix;
         var pathMapper = new PathMapper(config.PathMappings);
 
         var query = new InternalItemsQuery
@@ -133,7 +133,7 @@ public class PrefixPlaylistService
     {
         var config = HarmoniePlugin.Instance?.Configuration
             ?? throw new InvalidOperationException("Plugin not initialized.");
-        var prefix = string.IsNullOrWhiteSpace(config.Prefix) ? "[HRMNY]" : config.Prefix;
+        var prefix = string.IsNullOrWhiteSpace(config.Prefix) ? "[HRMN]" : config.Prefix;
         var pathMapper = new PathMapper(config.PathMappings);
 
         if (_libraryManager.GetItemById(playlistId) is not Playlist playlist)
@@ -180,7 +180,7 @@ public class PrefixPlaylistService
         // per-GUID state can carry items from a previous incarnation. If
         // most of those previously-added items are no longer present in the
         // playlist, the state is bogus — discard it. Without this check, a
-        // user creating a fresh `[HRMNY]` playlist whose seed happens to
+        // user creating a fresh `[HRMN]` playlist whose seed happens to
         // match an old plugin-added match would have its only seed
         // filtered out.
         if (lastAdded.Count > 0)

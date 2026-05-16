@@ -25,7 +25,7 @@ public class PluginConfiguration : BasePluginConfiguration
         HarmonieUrl = "http://localhost:8842";
         HarmonieApiKey = string.Empty;
         TimeoutSeconds = 30;
-        Prefix = "[HRMNY]";
+        Prefix = "[HRMN]";
         PathMappings = new Collection<PathMapping>();
     }
 
@@ -47,7 +47,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets the playlist-name prefix that flags a playlist as a
-    /// harmonie smart playlist. Defaults to <c>[HRMNY]</c>.
+    /// harmonie smart playlist. Defaults to <c>[HRMN]</c>.
     /// </summary>
     public string Prefix { get; set; }
 

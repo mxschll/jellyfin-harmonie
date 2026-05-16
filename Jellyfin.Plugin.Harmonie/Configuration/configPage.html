@@ -57,7 +57,7 @@
                         below is auto-extended by harmonie. Three modes,
                         chosen via the playlist title:
                         <ul style="margin-top: 0.5em;">
-                            <li><code>[HRMNY]</code> &mdash; seed mode. Add 1+ tracks; harmonie returns similar ones.</li>
+                            <li><code>[HRMN]</code> &mdash; seed mode. Add 1+ tracks; harmonie returns similar ones.</li>
                             <li><code>[HRMNY drift]</code> or <code>[HRMNY drift=10]</code> &mdash; drift mode. One seed; the playlist walks away from it. Optional chunk size.</li>
                             <li><code>[HRMNY energy=80]</code> &mdash; energy mode. No seed needed; harmonie picks tracks at that energy level (0&ndash;100, mapped to danceability) and shuffles them.</li>
                         </ul>
@@ -114,7 +114,7 @@
                             document.querySelector('#HarmonieUrl').value = config.HarmonieUrl || '';
                             document.querySelector('#HarmonieApiKey').value = config.HarmonieApiKey || '';
                             document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
-                            document.querySelector('#Prefix').value = config.Prefix || '[HRMNY]';
+                            document.querySelector('#Prefix').value = config.Prefix || '[HRMN]';
                             document.querySelector('#PathMappings').value =
                                 pathMappingsToText(config.PathMappings);
                             Dashboard.hideLoadingMsg();
@@ -130,7 +130,7 @@
                             config.HarmonieApiKey = document.querySelector('#HarmonieApiKey').value;
                             config.TimeoutSeconds =
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
-                            config.Prefix = document.querySelector('#Prefix').value || '[HRMNY]';
+                            config.Prefix = document.querySelector('#Prefix').value || '[HRMN]';
                             config.PathMappings =
                                 pathMappingsFromText(document.querySelector('#PathMappings').value);
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {

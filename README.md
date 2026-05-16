@@ -2,15 +2,15 @@
 
 A Jellyfin plugin that uses [harmonie](https://github.com/mxschll/harmonie) — an audio similarity service — to build dynamic playlists from your Jellyfin music library.
 
-You drive the plugin entirely through playlist titles and contents in the Jellyfin web UI. Name a playlist with a `[HRMNY]` prefix and the plugin will fill in the rest.
+You drive the plugin entirely through playlist titles and contents in the Jellyfin web UI. Name a playlist with a `[HRMN]` prefix and the plugin will fill in the rest.
 
 ## How it works
 
-There's one rule: any playlist whose name starts with the configured prefix (default `[HRMNY]`) is managed by the plugin. The mode is implicit in the title:
+There's one rule: any playlist whose name starts with the configured prefix (default `[HRMN]`) is managed by the plugin. The mode is implicit in the title:
 
 | Title                          | Mode  | What happens                                                                                          |
 | ------------------------------ | ----- | ----------------------------------------------------------------------------------------------------- |
-| `[HRMNY] Workout`              | seed  | Tracks you put in are seeds; harmonie returns similar tracks and the plugin appends them.            |
+| `[HRMN] Workout`              | seed  | Tracks you put in are seeds; harmonie returns similar tracks and the plugin appends them.            |
 | `[HRMNY drift] Long mix`       | drift | One seed only. Each new track's anchor is the previous one — the playlist walks away from the seed.  |
 | `[HRMNY drift=10] Long mix`    | drift | Same as drift, with chunk size 10 (larger = stay closer to the seed; smaller = drift faster).         |
 | `[HRMNY energy=80] Banger mix` | energy | No seed needed. Harmonie ranks the library by danceability around your energy value, then shuffles. |
@@ -28,7 +28,7 @@ So adding or removing seeds works naturally, and the playlist always equals `see
 
 Three triggers, in increasing levels of automation:
 
-1. **Auto** — when you add or remove a track in a `[HRMNY]` playlist, the plugin debounces for 5 seconds and then refreshes that playlist on its own. This is the normal way to use it.
+1. **Auto** — when you add or remove a track in a `[HRMN]` playlist, the plugin debounces for 5 seconds and then refreshes that playlist on its own. This is the normal way to use it.
 2. **Manual single** — `POST /Plugins/Harmonie/Playlists/{playlistId}/Refresh`. Useful for shortcuts and bookmarklets.
 3. **Manual all** — Plugins → Harmonie → "Refresh smart playlists now". Or use the daily scheduled task "Refresh Harmonie Playlists".
 
@@ -40,17 +40,17 @@ The easiest way is to add this repository to Jellyfin's plugin sources.
 2. **Repository URL**:
 
    ```
-   https://raw.githubusercontent.com/<your-github-user>/jellyfin-harmonie/main/manifest.json
+   https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/manifest.json
    ```
 
-   Replace `<your-github-user>` with the GitHub account that owns the fork/clone. The default Repository Name can be anything (e.g. "Harmonie").
+   Replace `mxschll` with the GitHub account that owns the fork/clone. The default Repository Name can be anything (e.g. "Harmonie").
 3. Save. Open Dashboard → Plugins → Catalog → and you'll see "Harmonie" under the Music category. Click Install.
 4. Restart Jellyfin when prompted.
 5. Open Plugins → Harmonie. Set the harmonie URL and API key. Click "Test connection".
 
 ### Manual install (no repo)
 
-Download the latest release ZIP from [Releases](https://github.com/<your-github-user>/jellyfin-harmonie/releases), extract it into:
+Download the latest release ZIP from [Releases](https://github.com/mxschll/jellyfin-harmonie/releases), extract it into:
 
 ```
 <jellyfin-data>/plugins/Jellyfin.Plugin.Harmonie_<version>/
@@ -113,24 +113,22 @@ All require an authenticated Jellyfin user. Mounted under `/Plugins/Harmonie`.
 
 ## Releasing
 
-Releases are automated via GitHub Actions. To cut a new version:
+Releases are fully automated. **Every push to `main` that touches the plugin source publishes a new release**, and Jellyfin instances pointed at the manifest will see it within their next plugin-catalog refresh.
 
-```bash
-git tag v0.1.1
-git push origin v0.1.1
-```
+The workflow at `.github/workflows/release.yml`:
 
-The workflow at `.github/workflows/release.yml` runs on tag push and:
+1. Builds the plugin for both target frameworks (net8.0 / net9.0).
+2. Packages each into a Jellyfin-compatible ZIP with a `meta.json` declaring the right `targetAbi`.
+3. Creates a GitHub Release named `v0.1.<run>` and attaches both ZIPs.
+4. Commits the updated `manifest.json` back to `main`.
 
-1. Builds the plugin with the tagged version.
-2. Packages the DLL and a generated `meta.json` into `jellyfin-harmonie_<version>.zip`.
-3. Computes the ZIP's MD5.
-4. Creates a GitHub Release and attaches the ZIP.
-5. Updates `manifest.json` on `main` with the new version entry pointing at the Release asset.
+The version is auto-derived: `<base>.<github_run_number>.<abi_slot>`, where the base is the `BASE_VERSION` env (`0.1` by default) and the ABI slot is `0` for 10.10 / `1` for 10.11. So a single source commit produces `0.1.42.0` and `0.1.42.1`.
 
-Within a few minutes, Jellyfin instances pointed at the manifest URL will see the new version in their plugin catalog (auto-update kicks in if enabled).
+If you only edit `README.md`, `manifest.json`, or the workflow's own auto-commit, no release fires — the path filter excludes those.
 
-Tag format is `vX.Y.Z` or `vX.Y.Z.W`. The workflow normalises to a 4-part Jellyfin version internally.
+To bump the major/minor (e.g. for a 0.2 release), edit `BASE_VERSION` in `release.yml` and push.
+
+You can also trigger a release manually from the Actions UI (`Run workflow` button) without changing any code.
 
 ## License
 

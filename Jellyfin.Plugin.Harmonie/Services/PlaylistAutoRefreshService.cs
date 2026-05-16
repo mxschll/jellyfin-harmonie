@@ -14,7 +14,7 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 /// Watches Jellyfin's <see cref="ILibraryManager.ItemUpdated"/> event for
 /// changes to playlists whose name starts with the configured prefix, and
 /// kicks off a debounced refresh. This is what lets the user just add songs
-/// to a <c>[HRMNY]</c> playlist and have the rest fill in by itself.
+/// to a <c>[HRMN]</c> playlist and have the rest fill in by itself.
 /// </summary>
 public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
 {
@@ -88,7 +88,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
         }
 
         var config = HarmoniePlugin.Instance?.Configuration;
-        var prefix = string.IsNullOrWhiteSpace(config?.Prefix) ? "[HRMNY]" : config.Prefix;
+        var prefix = string.IsNullOrWhiteSpace(config?.Prefix) ? "[HRMN]" : config.Prefix;
         if (string.IsNullOrEmpty(playlist.Name)
             || PrefixPlaylistOptions.TryParse(playlist.Name, prefix) is null)
         {

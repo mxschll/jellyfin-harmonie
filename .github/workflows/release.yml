@@ -1,15 +1,24 @@
 name: Release
 
-# Triggered by pushing a tag of the form v0.1.0 (or v0.1.0.0).
-# The workflow builds the plugin for both Jellyfin 10.10 (net8.0) and
-# 10.11 (net9.0), packages each into its own Jellyfin-compatible ZIP,
-# attaches both to a GitHub Release, computes their MD5s, and updates
-# manifest.json on main with two new version entries (one per ABI).
+# Auto-publish on every push to main that touches source code, plus a
+# manual trigger via the Actions UI. The path filter excludes the
+# workflow's own manifest auto-commits and pure docs commits, so they
+# don't kick off a release.
+#
+# Two ZIPs are built per release: one for Jellyfin 10.10 (net8.0) and
+# one for Jellyfin 10.11 (net9.0). Both attach to the same GitHub
+# Release; manifest.json carries one entry per ABI.
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - 'Jellyfin.Plugin.Harmonie/**'
+      - 'Jellyfin.Plugin.Harmonie.sln'
+      - 'Directory.Build.props'
+      - 'jellyfin.ruleset'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,9 +28,12 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # If you need to bump these, also bump conditional package refs in the csproj.
       ABI_NET8: "10.10.0.0"
       ABI_NET9: "10.11.0.0"
+      # Bump this whenever you want to roll the major/minor (e.g. when the
+      # plugin's behavior changes meaningfully). The patch slot is the
+      # GitHub Actions run number.
+      BASE_VERSION: "0.1"
 
     steps:
       - name: Checkout
@@ -37,24 +49,16 @@ jobs:
             8.0.x
             9.0.x
 
-      - name: Derive base version from tag
+      - name: Derive version
         id: version
         run: |
-          TAG=${GITHUB_REF##*/}                    # v0.1.0 or v0.1.0.0
-          BASE=${TAG#v}                            # 0.1.0  or 0.1.0.0
-          # Strip a 4th component if present so we can re-derive distinct
-          # 4-part versions per ABI.
-          BASE=$(echo "$BASE" | awk -F. '{ if (NF==4) print $1"."$2"."$3; else print $0 }')
-          # Pad to three components.
-          DOTS=$(echo "$BASE" | tr -cd '.' | wc -c)
-          if [ "$DOTS" -lt 2 ]; then
-            for _ in $(seq 0 $((1 - DOTS))); do BASE="${BASE}.0"; done
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "v_net8=${BASE}.0"  >> "$GITHUB_OUTPUT"  # 0.1.0.0 → Jellyfin 10.10
-          echo "v_net9=${BASE}.1"  >> "$GITHUB_OUTPUT"  # 0.1.0.1 → Jellyfin 10.11
-          echo "Resolved base $BASE → 10.10 build ${BASE}.0 / 10.11 build ${BASE}.1"
+          BASE="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"  # e.g. 0.1.42
+          TAG="v${BASE}"                              # e.g. v0.1.42
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+          echo "base=$BASE"        >> "$GITHUB_OUTPUT"
+          echo "v_net8=${BASE}.0"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.10
+          echo "v_net9=${BASE}.1"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.11
+          echo "Resolved tag $TAG → 10.10 build ${BASE}.0 / 10.11 build ${BASE}.1"
 
       - name: Build & package for Jellyfin 10.10 (net8.0)
         id: pkg8
@@ -162,7 +166,6 @@ jobs:
           TAG=${{ steps.version.outputs.tag }}
           TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          # Use the GitHub-rendered release notes as the changelog field.
           CHANGELOG=$(gh release view "$TAG" --json body --jq .body \
             | sed 's/"/\\"/g' | tr '\n' ' ' | head -c 1500 || true)
           if [ -z "$CHANGELOG" ]; then CHANGELOG="Release ${TAG}."; fi
@@ -206,8 +209,6 @@ jobs:
 
           new_versions = {e["version"] for e in new_entries}
           plugin["versions"] = [v for v in plugin["versions"] if v.get("version") not in new_versions]
-          # Insert both, newest target ABI first (Jellyfin tie-breaks on ordering rarely; we want
-          # the latest entry to surface at the top of the catalog UI).
           plugin["versions"] = new_entries + plugin["versions"]
 
           path.write_text(json.dumps(data, indent=2) + "\n")
@@ -219,6 +220,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "manifest.json unchanged."
           else
-            git commit -m "chore: update manifest for ${TAG}"
+            # [skip ci] is paranoia — the path filter on this workflow
+            # already excludes manifest.json, so this commit wouldn't
+            # trigger a second run anyway.
+            git commit -m "chore: update manifest for ${TAG} [skip ci]"
             git push origin main
           fi

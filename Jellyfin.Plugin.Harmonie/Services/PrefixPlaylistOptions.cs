@@ -28,7 +28,7 @@ public enum HarmonieMode
 }
 
 /// <summary>
-/// Parses a Jellyfin playlist name like <c>[HRMNY]</c>,
+/// Parses a Jellyfin playlist name like <c>[HRMN]</c>,
 /// <c>[HRMNY drift=10]</c>, or <c>[HRMNY energy=80 n=40]</c> into a strongly-
 /// typed options object. Returns null if the name doesn't open with the
 /// configured prefix.
