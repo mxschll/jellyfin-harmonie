@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services;
+using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,17 +25,20 @@ public class HarmonieController : ControllerBase
     private readonly HarmonieClient _client;
     private readonly PrefixPlaylistService _prefixService;
     private readonly StylePlaylistService _styleService;
+    private readonly ILibraryManager _libraryManager;
     private readonly ILogger<HarmonieController> _logger;
 
     public HarmonieController(
         HarmonieClient client,
         PrefixPlaylistService prefixService,
         StylePlaylistService styleService,
+        ILibraryManager libraryManager,
         ILogger<HarmonieController> logger)
     {
         _client = client;
         _prefixService = prefixService;
         _styleService = styleService;
+        _libraryManager = libraryManager;
         _logger = logger;
     }
 
@@ -138,5 +143,45 @@ public class HarmonieController : ControllerBase
             _logger.LogWarning(ex, "harmonie scan trigger failed");
             return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Returns the libraries known to harmonie and to Jellyfin so the
+    /// config page can suggest path mappings without the user having
+    /// to look them up manually.
+    /// </summary>
+    [HttpGet("PathSuggestions")]
+    public async Task<IActionResult> PathSuggestions(CancellationToken ct)
+    {
+        var harmonieLibraries = System.Array.Empty<string>();
+        try
+        {
+            var status = await _client.GetStatusAsync(ct).ConfigureAwait(false);
+            harmonieLibraries = status.Libraries?.ToArray() ?? System.Array.Empty<string>();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug(ex, "harmonie /status unreachable when building path suggestions.");
+        }
+
+        var jellyfinLibraries = _libraryManager.GetVirtualFolders()
+            .Where(vf =>
+                vf.CollectionType is null
+                || string.Equals(
+                    vf.CollectionType.Value.ToString(),
+                    "music",
+                    StringComparison.OrdinalIgnoreCase))
+            .Select(vf => new
+            {
+                name = vf.Name,
+                paths = vf.Locations ?? System.Array.Empty<string>(),
+            })
+            .ToList();
+
+        return Ok(new
+        {
+            harmonieLibraries,
+            jellyfinLibraries,
+        });
     }
 }

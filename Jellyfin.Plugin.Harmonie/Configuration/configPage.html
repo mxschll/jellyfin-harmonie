@@ -83,10 +83,13 @@
 
                     <h2>Path mappings</h2>
                     <div class="fieldDescription">
-                        Optional. Used as a last-resort fallback if a track can't be matched
-                        by tags. Translate the harmonie-side path prefix
-                        to the Jellyfin-side prefix. One per line, format:
-                        <code>/harmonie/path => /jellyfin/path</code>.
+                        Optional. Only needed when harmonie and Jellyfin see your music library at
+                        different filesystem paths &mdash; e.g. harmonie running in Docker mounts
+                        <code>/music</code> while Jellyfin sees the same files at
+                        <code>/Volumes/Audio</code>. The plugin uses these as a fallback when a
+                        track can't be matched by tags.
+                        Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
+                        Most users with simple setups need none.
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
@@ -96,6 +99,12 @@
                                   rows="4"
                                   style="width: 100%; font-family: monospace;"
                                   placeholder="/music => /media/Music"></textarea>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="button" id="SuggestPathMappings" class="raised emby-button">
+                            <span>Suggest from libraries</span>
+                        </button>
+                        <span id="SuggestPathMappingsResult" style="margin-left: 1em;"></span>
                     </div>
 
                     <h2>Smart playlists</h2>
@@ -493,6 +502,81 @@
                     .addEventListener('click', function () { triggerScan(false); });
                 document.querySelector('#TriggerScanForce')
                     .addEventListener('click', function () { triggerScan(true); });
+
+                function basename(p) {
+                    if (!p) return '';
+                    var trimmed = p.replace(/[\\/]+$/, '');
+                    var idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+                    return idx >= 0 ? trimmed.substring(idx + 1) : trimmed;
+                }
+
+                function suggestMappings(suggestions) {
+                    var harmonieLibs = suggestions.harmonieLibraries || [];
+                    var jfPaths = [];
+                    (suggestions.jellyfinLibraries || []).forEach(function (lib) {
+                        (lib.paths || []).forEach(function (p) { jfPaths.push(p); });
+                    });
+
+                    if (harmonieLibs.length === 0) {
+                        return {
+                            text: '',
+                            note: 'No libraries detected on harmonie. Configure HARMONIE_LIBRARIES on the harmonie service.'
+                        };
+                    }
+                    if (jfPaths.length === 0) {
+                        return {
+                            text: harmonieLibs.map(function (h) { return h + ' => '; }).join('\n'),
+                            note: 'No Jellyfin music libraries found. Add a music library in Jellyfin first.'
+                        };
+                    }
+
+                    var used = {};
+                    var lines = harmonieLibs.map(function (h, i) {
+                        var hBase = basename(h).toLowerCase();
+                        // 1. Match by basename.
+                        var match = jfPaths.find(function (j) {
+                            return !used[j] && basename(j).toLowerCase() === hBase;
+                        });
+                        // 2. Fall back to single-candidate pairing.
+                        if (!match && jfPaths.length === 1 && !used[jfPaths[0]]) {
+                            match = jfPaths[0];
+                        }
+                        // 3. Fall back to positional pairing.
+                        if (!match && i < jfPaths.length && !used[jfPaths[i]]) {
+                            match = jfPaths[i];
+                        }
+                        if (match) {
+                            used[match] = true;
+                            return h + ' => ' + match;
+                        }
+                        return h + ' => ';
+                    });
+                    return {
+                        text: lines.join('\n'),
+                        note: 'Filled ' + lines.filter(function (l) { return l.indexOf(' => ') > 0 && !l.endsWith(' => '); }).length
+                            + ' of ' + harmonieLibs.length + ' mapping(s). Review and adjust as needed.'
+                    };
+                }
+
+                document.querySelector('#SuggestPathMappings')
+                    .addEventListener('click', function () {
+                        var resultEl = document.querySelector('#SuggestPathMappingsResult');
+                        resultEl.textContent = 'Looking up libraries\u2026';
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/PathSuggestions'),
+                            dataType: 'json'
+                        }).then(function (suggestions) {
+                            var result = suggestMappings(suggestions);
+                            if (result.text) {
+                                document.querySelector('#PathMappings').value = result.text;
+                            }
+
+                            resultEl.textContent = result.note;
+                        }).catch(function (err) {
+                            resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                        });
+                    });
 
                 document.querySelector('#RefreshNow')
                     .addEventListener('click', function () {
