@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.47.1",
+        "changelog": " ### Features  - Rename style cluster playlists to Personal Mix (17d825f)  ### Refactor  - Extract PlaylistContentReplacer and CoverRefreshQueuer (45eb3bb)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.47/jellyfin-harmonie_0.1.47.1.zip",
+        "checksum": "68058405d88bdf4aac69d477011f1ada",
+        "timestamp": "2026-05-16T21:44:50Z"
+      },
+      {
+        "version": "0.1.47.0",
+        "changelog": " ### Features  - Rename style cluster playlists to Personal Mix (17d825f)  ### Refactor  - Extract PlaylistContentReplacer and CoverRefreshQueuer (45eb3bb)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.47/jellyfin-harmonie_0.1.47.0.zip",
+        "checksum": "ed39575d4afa9c27c51e690a2f1834c0",
+        "timestamp": "2026-05-16T21:44:50Z"
+      },
+      {
         "version": "0.1.46.1",
         "changelog": " ### Chores  - Default playlist lengths to 20 and enable style playlists (c58e8a2)  ### Features  - Move reorder polling backstop to a scheduled task (b967ec5)  ",
         "targetAbi": "10.11.0.0",
