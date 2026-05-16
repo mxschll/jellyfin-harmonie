@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.17.1",
+        "changelog": " ### Features  - Add mix playlists seeded from jellyfin listening history (8bc8c12)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.17/jellyfin-harmonie_0.1.17.1.zip",
+        "checksum": "1a0168f485c396ef2dd12ca6c186f598",
+        "timestamp": "2026-05-16T12:28:49Z"
+      },
+      {
+        "version": "0.1.17.0",
+        "changelog": " ### Features  - Add mix playlists seeded from jellyfin listening history (8bc8c12)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.17/jellyfin-harmonie_0.1.17.0.zip",
+        "checksum": "8146823fbfea08a1dd4490c93ce278c2",
+        "timestamp": "2026-05-16T12:28:49Z"
+      },
+      {
         "version": "0.1.16.1",
         "changelog": " ### Features  - Expose playlist generation defaults in plugin settings (003ba98)  ",
         "targetAbi": "10.11.0.0",
