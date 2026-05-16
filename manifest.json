@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.29.1",
+        "changelog": " ### Bug Fixes  - Optimistic scan state on trigger and drop the inline status text (fe7bb3e)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.29/jellyfin-harmonie_0.1.29.1.zip",
+        "checksum": "c1229fa8162a78ccaefd0eda771dd76e",
+        "timestamp": "2026-05-16T17:05:18Z"
+      },
+      {
+        "version": "0.1.29.0",
+        "changelog": " ### Bug Fixes  - Optimistic scan state on trigger and drop the inline status text (fe7bb3e)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.29/jellyfin-harmonie_0.1.29.0.zip",
+        "checksum": "526f9713efd403811c62f8df5f8c9e13",
+        "timestamp": "2026-05-16T17:05:18Z"
+      },
+      {
         "version": "0.1.28.1",
         "changelog": " ### Features  - Suggest path mappings from harmonie and jellyfin libraries (dc63e9e)  ",
         "targetAbi": "10.11.0.0",
