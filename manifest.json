@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.18.1",
+        "changelog": " ### Features  - Add per-user style cluster playlists with daily auto-refresh (9bedff2)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.18/jellyfin-harmonie_0.1.18.1.zip",
+        "checksum": "9e1546a00859518b4db3c59685b94d02",
+        "timestamp": "2026-05-16T12:43:30Z"
+      },
+      {
+        "version": "0.1.18.0",
+        "changelog": " ### Features  - Add per-user style cluster playlists with daily auto-refresh (9bedff2)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.18/jellyfin-harmonie_0.1.18.0.zip",
+        "checksum": "4fb2f6dc2a87b952ad42fe57ca27f4cc",
+        "timestamp": "2026-05-16T12:43:30Z"
+      },
+      {
         "version": "0.1.17.1",
         "changelog": " ### Features  - Add mix playlists seeded from jellyfin listening history (8bc8c12)  ",
         "targetAbi": "10.11.0.0",
