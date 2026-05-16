@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.11.1",
+        "changelog": " ###  Features  - Add catalog banner image (36ff314)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.11/jellyfin-harmonie_0.1.11.1.zip",
+        "checksum": "440103caed55409847c28739ec525b80",
+        "timestamp": "2026-05-16T11:06:17Z"
+      },
+      {
+        "version": "0.1.11.0",
+        "changelog": " ###  Features  - Add catalog banner image (36ff314)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.11/jellyfin-harmonie_0.1.11.0.zip",
+        "checksum": "c47eabbf0f85ee1ef93ebad46628aba8",
+        "timestamp": "2026-05-16T11:06:17Z"
+      },
+      {
         "version": "0.1.10.1",
         "changelog": " ###  Features  - Add plugin thumbnail image (f70d7d2)  ",
         "targetAbi": "10.11.0.0",
