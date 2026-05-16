@@ -47,15 +47,19 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Generate changelog from commits
-        id: changelog
-        uses: orhun/git-cliff-action@v3
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
         with:
-          config: cliff.toml
-          # --unreleased: only commits since the most recent tag.
+          tool: git-cliff
+
+      - name: Generate changelog from commits
+        run: |
+          # --unreleased: commits since the most recent tag.
           # --strip header: drop the "# Changelog" preamble.
-          args: --unreleased --strip header
-          output: CHANGELOG_LATEST.md
+          git-cliff --unreleased --strip header --output CHANGELOG_LATEST.md
+          echo "---changelog---"
+          cat CHANGELOG_LATEST.md
+          echo "--------------"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
