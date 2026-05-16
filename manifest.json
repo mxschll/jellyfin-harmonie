@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.23.1",
+        "changelog": " ### Bug Fixes  - Use itemid not libraryitemid when removing playlist entries (9703486)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.23/jellyfin-harmonie_0.1.23.1.zip",
+        "checksum": "d31ccab89273d434cb497b6d8e52f1c2",
+        "timestamp": "2026-05-16T13:45:20Z"
+      },
+      {
+        "version": "0.1.23.0",
+        "changelog": " ### Bug Fixes  - Use itemid not libraryitemid when removing playlist entries (9703486)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.23/jellyfin-harmonie_0.1.23.0.zip",
+        "checksum": "60139b2d5428ab25c40f8289e5992942",
+        "timestamp": "2026-05-16T13:45:20Z"
+      },
+      {
         "version": "0.1.22.1",
         "changelog": " ### Features  - Seed radio with first n tracks instead of lastadded filtering (55b6929)  ",
         "targetAbi": "10.11.0.0",
