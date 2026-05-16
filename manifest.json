@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.41.1",
+        "changelog": " ### Documentation  - Tighten settings page text, drop weasel words and dev jargon (a3e784a)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.41/jellyfin-harmonie_0.1.41.1.zip",
+        "checksum": "ff4607ce10cd0cd24f0adfd09139ac76",
+        "timestamp": "2026-05-16T18:53:39Z"
+      },
+      {
+        "version": "0.1.41.0",
+        "changelog": " ### Documentation  - Tighten settings page text, drop weasel words and dev jargon (a3e784a)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.41/jellyfin-harmonie_0.1.41.0.zip",
+        "checksum": "e3f8a70df757046cfe9ed48bd23cd589",
+        "timestamp": "2026-05-16T18:53:39Z"
+      },
+      {
         "version": "0.1.40.1",
         "changelog": " ### Bug Fixes  - Probe harmonie reachability before refresh to avoid log noise (e0160ae)  ",
         "targetAbi": "10.11.0.0",
