@@ -372,11 +372,7 @@
 
                 function renderScan(scan) {
                     document.querySelector('#ScanStatePanel').style.display = '';
-                    var stateText = document.querySelector('#ScanStateText');
-                    stateText.textContent = scan.state || '?';
-                    stateText.style.color = scan.state === 'error' ? '#c00'
-                        : scan.state === 'scanning' ? '#06c' : '';
-
+                    document.querySelector('#ScanStateText').textContent = scan.state || '?';
                     document.querySelector('#ScanPhaseText').textContent = scan.phase || 'idle';
 
                     document.querySelector('#ScanDiscovered').textContent = (scan.discovered || 0).toLocaleString();
@@ -422,6 +418,16 @@
                         }).then(function (scan) {
                             if (scan.state === 'scanning') {
                                 pollScanWhileRunning();
+                            } else {
+                                // Scan finished or errored. Update the
+                                // header message so the user sees that
+                                // polling stopped.
+                                var resultEl = document.querySelector('#ScanResult');
+                                if (scan.state === 'error') {
+                                    resultEl.textContent = 'Scan failed.';
+                                } else {
+                                    resultEl.textContent = 'Scan complete.';
+                                }
                             }
                         }).catch(function () {
                             // Stop polling on error; user can refresh manually.
@@ -473,12 +479,11 @@
                         dataType: 'json'
                     }).then(function (scan) {
                         renderScan(scan);
-                        if (scan.state === 'scanning') {
-                            resultEl.textContent = 'Scan running\u2026';
-                            pollScanWhileRunning();
-                        } else {
-                            resultEl.textContent = 'Trigger sent.';
-                        }
+                        resultEl.textContent = 'Scan running\u2026';
+                        // Always start polling — the POST snapshot can race
+                        // with harmonie flipping into the scanning state,
+                        // and we want live updates regardless.
+                        pollScanWhileRunning();
                     }).catch(function (err) {
                         resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
                     });
