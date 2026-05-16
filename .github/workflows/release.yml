@@ -97,7 +97,7 @@ jobs:
           ZIP="jellyfin-harmonie_${VERSION}.zip"
           mkdir -p "$STG"
           cp "$PUB/Jellyfin.Plugin.Harmonie.dll" "$STG/"
-          cp Jellyfin.Plugin.Harmonie/thumb.png "$STG/"
+          cp Jellyfin.Plugin.Harmonie/banner.png "$STG/"
           cat > "$STG/meta.json" <<EOF
           {
             "category": "Music",
@@ -112,13 +112,13 @@ jobs:
             "version": "${VERSION}",
             "status": "Active",
             "autoUpdate": true,
-            "imagePath": "thumb.png",
+            "imagePath": "banner.png",
             "assemblies": [
               "Jellyfin.Plugin.Harmonie.dll"
             ]
           }
           EOF
-          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll thumb.png meta.json)
+          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll banner.png meta.json)
           CHECKSUM=$(md5sum "$ZIP" | awk '{print $1}')
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -142,7 +142,7 @@ jobs:
           ZIP="jellyfin-harmonie_${VERSION}.zip"
           mkdir -p "$STG"
           cp "$PUB/Jellyfin.Plugin.Harmonie.dll" "$STG/"
-          cp Jellyfin.Plugin.Harmonie/thumb.png "$STG/"
+          cp Jellyfin.Plugin.Harmonie/banner.png "$STG/"
           cat > "$STG/meta.json" <<EOF
           {
             "category": "Music",
@@ -157,13 +157,13 @@ jobs:
             "version": "${VERSION}",
             "status": "Active",
             "autoUpdate": true,
-            "imagePath": "thumb.png",
+            "imagePath": "banner.png",
             "assemblies": [
               "Jellyfin.Plugin.Harmonie.dll"
             ]
           }
           EOF
-          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll thumb.png meta.json)
+          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll banner.png meta.json)
           CHECKSUM=$(md5sum "$ZIP" | awk '{print $1}')
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

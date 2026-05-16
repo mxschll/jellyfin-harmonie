@@ -43,13 +43,13 @@
   </ItemGroup>
 
   <!--
-    thumb.png is shipped as a sibling of the DLL (not embedded in it) and
+    banner.png is shipped as a sibling of the DLL (not embedded in it) and
     referenced from meta.json's `imagePath` field by the release workflow
     and the local install script. This is the supported mechanism in
     Jellyfin 10.10+; the older IHasThumbImage interface was removed.
   -->
   <ItemGroup>
-    <None Update="thumb.png">
+    <None Update="banner.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Jellyfin.Plugin.Harmonie/banner.png" width="480" alt="Harmonie" />
+  <img src="Jellyfin.Plugin.Harmonie/thumb.png" width="110" alt="Harmonie logo" />
 </p>
 
 <h1 align="center">Jellyfin Harmonie</h1>

@@ -29,8 +29,8 @@ fi
 echo "==> Installing to $PLUGIN_DIR"
 mkdir -p "$PLUGIN_DIR"
 cp Jellyfin.Plugin.Harmonie/bin/Release/net9.0/publish/Jellyfin.Plugin.Harmonie.* "$PLUGIN_DIR/"
-# Ship the catalog/dashboard thumbnail next to the DLL.
-cp Jellyfin.Plugin.Harmonie/thumb.png "$PLUGIN_DIR/"
+# Ship the catalog/dashboard banner next to the DLL.
+cp Jellyfin.Plugin.Harmonie/banner.png "$PLUGIN_DIR/"
 
 # Write a meta.json that mirrors the production zip layout. We always
 # overwrite — Jellyfin only re-reads it on plugin load anyway, and an
@@ -49,7 +49,7 @@ cat > "$PLUGIN_DIR/meta.json" <<EOF
   "version": "${PLUGIN_VERSION}",
   "status": "Active",
   "autoUpdate": false,
-  "imagePath": "thumb.png",
+  "imagePath": "banner.png",
   "assemblies": [
     "Jellyfin.Plugin.Harmonie.dll"
   ]
