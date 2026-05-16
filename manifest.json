@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.19.1",
+        "changelog": " ### Features  - Cluster style playlists with k-means and combined-style titles (550908e)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.19/jellyfin-harmonie_0.1.19.1.zip",
+        "checksum": "3ca73bbd37a1180b2cb806fe01742665",
+        "timestamp": "2026-05-16T13:06:30Z"
+      },
+      {
+        "version": "0.1.19.0",
+        "changelog": " ### Features  - Cluster style playlists with k-means and combined-style titles (550908e)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.19/jellyfin-harmonie_0.1.19.0.zip",
+        "checksum": "f26da8b3c862137dd70c08fddbf3c464",
+        "timestamp": "2026-05-16T13:06:30Z"
+      },
+      {
         "version": "0.1.18.1",
         "changelog": " ### Features  - Add per-user style cluster playlists with daily auto-refresh (9bedff2)  ",
         "targetAbi": "10.11.0.0",
