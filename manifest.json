@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.44.1",
+        "changelog": " ### Features  - Generated covers and backdrops for smart playlists (6dffc5b)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.44/jellyfin-harmonie_0.1.44.1.zip",
+        "checksum": "cbc666a382733e6e9a57a53383d88d94",
+        "timestamp": "2026-05-16T20:42:29Z"
+      },
+      {
+        "version": "0.1.44.0",
+        "changelog": " ### Features  - Generated covers and backdrops for smart playlists (6dffc5b)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.44/jellyfin-harmonie_0.1.44.0.zip",
+        "checksum": "23c0dd34ba221171a9a2094b659860d6",
+        "timestamp": "2026-05-16T20:42:29Z"
+      },
+      {
         "version": "0.1.43.1",
         "changelog": " ### Chores  - Remove dead state store, build.yaml, filter dto, and fix stale docs (4376d66)  ",
         "targetAbi": "10.11.0.0",
