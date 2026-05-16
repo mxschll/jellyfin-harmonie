@@ -6,7 +6,7 @@
     "overview": "Build playlists from harmonie audio similarity.",
     "owner": "mxschll",
     "category": "Music",
-    "imageUrl": "",
+    "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/thumb.png",
     "versions": [
       {
         "version": "0.1.9.1",
