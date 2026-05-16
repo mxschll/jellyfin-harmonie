@@ -6,139 +6,136 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
 /// What harmonie generation mode this prefix-flagged playlist is in.
+/// One mode per fixed prefix, no overlap.
 /// </summary>
 public enum HarmonieMode
 {
     /// <summary>
-    /// Default. Use the playlist's user-added tracks as seeds for a
-    /// similarity playlist. All other harmonie params default.
+    /// <c>[RADIO]</c>. The user-added tracks are seeds; harmonie fills in
+    /// similar tracks using its <c>similar</c> mode.
     /// </summary>
-    Seed,
+    Radio,
 
     /// <summary>
-    /// One seed, drifting walk. Optional chunk size (default 5).
+    /// <c>[DRIFT]</c>. Exactly one user-added seed; harmonie's <c>drift</c>
+    /// mode walks gradually away from it.
     /// </summary>
     Drift,
-
-    /// <summary>
-    /// No seeds. Descriptor-driven playlist using <c>target_danceability</c>
-    /// derived from the energy value.
-    /// </summary>
-    Energy,
 }
 
 /// <summary>
-/// Parses a Jellyfin playlist name like <c>[HRMN]</c>,
-/// <c>[HRMNY drift=10]</c>, or <c>[HRMNY energy=80 n=40]</c> into a strongly-
-/// typed options object. Returns null if the name doesn't open with the
-/// configured prefix.
+/// Parses a Jellyfin playlist name into a strongly-typed options object.
+/// The plugin manages two kinds of playlists, identified by a fixed
+/// prefix at the start of the name:
 ///
-/// Supported tokens (space-separated, inside the brackets):
-///   n=&lt;int&gt;          total playlist length (default 30)
-///   drift              drift mode, default chunk size 5
-///   drift=&lt;int&gt;       drift mode, explicit chunk size
-///   energy=&lt;0..100&gt;   energy mode (no seed); maps to target_danceability
+///   [RADIO] anything-after-the-prefix → similar-mode radio
+///   [DRIFT] anything-after-the-prefix → drifting walk
+///
+/// Both prefixes accept an optional <c>n=&lt;count&gt;</c> token inside the
+/// brackets to control playlist length, e.g. <c>[RADIO n=40] Workout</c>.
+/// Defaults: 20 tracks for radio, 30 for drift.
+///
+/// Returns null if the name doesn't open with one of the two prefixes.
 /// </summary>
 public class PrefixPlaylistOptions
 {
-    private static readonly Regex TokenPattern = new(
-        @"\[(?<prefix>[^\]\s]+)(?<rest>[^\]]*)\]",
+    /// <summary>
+    /// Fixed playlist prefix that selects similar-mode (track radio).
+    /// Case-insensitive.
+    /// </summary>
+    public const string RadioPrefix = "[RADIO]";
+
+    /// <summary>
+    /// Fixed playlist prefix that selects drift-mode (chunked walk).
+    /// Case-insensitive.
+    /// </summary>
+    public const string DriftPrefix = "[DRIFT]";
+
+    /// <summary>
+    /// Default number of tracks for radio mode. Matches harmonie's own
+    /// default for the <c>similar</c> endpoint.
+    /// </summary>
+    public const int RadioDefaultN = 20;
+
+    /// <summary>
+    /// Default number of tracks for drift mode. Drift benefits from a
+    /// longer playlist so the walk has room to evolve.
+    /// </summary>
+    public const int DriftDefaultN = 30;
+
+    private static readonly Regex BracketPattern = new(
+        @"^\[(?<word>[A-Za-z]+)(?<rest>[^\]]*)\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Mode this playlist runs in.
     /// </summary>
-    public HarmonieMode Mode { get; set; } = HarmonieMode.Seed;
+    public HarmonieMode Mode { get; set; }
 
     /// <summary>
     /// Total tracks in the resulting playlist.
     /// </summary>
-    public int N { get; set; } = 30;
+    public int N { get; set; }
 
     /// <summary>
-    /// In drift mode, tracks per anchor before re-anchoring on the last
-    /// selection. Ignored in other modes.
+    /// Parses a playlist name. Returns null if the name doesn't start
+    /// with <c>[RADIO]</c> or <c>[DRIFT]</c> (case-insensitive).
     /// </summary>
-    public int ChunkSize { get; set; } = 5;
-
-    /// <summary>
-    /// 0..100 energy value. Maps to harmonie's <c>target_danceability</c>
-    /// (energy/100 × 3.0). Only meaningful in <see cref="HarmonieMode.Energy"/>.
-    /// </summary>
-    public double Energy { get; set; }
-
-    /// <summary>
-    /// Returns harmonie's target_danceability for the parsed energy value.
-    /// </summary>
-    public double TargetDanceability =>
-        Math.Clamp(Energy, 0, 100) / 100.0 * 3.0;
-
-    public static PrefixPlaylistOptions? TryParse(string playlistName, string prefix)
+    public static PrefixPlaylistOptions? TryParse(string playlistName)
     {
-        if (string.IsNullOrEmpty(playlistName) || string.IsNullOrEmpty(prefix))
+        if (string.IsNullOrEmpty(playlistName))
         {
             return null;
         }
 
-        var match = TokenPattern.Match(playlistName);
-        if (!match.Success || match.Index != 0)
+        var match = BracketPattern.Match(playlistName);
+        if (!match.Success)
         {
             return null;
         }
 
-        var actualPrefix = "[" + match.Groups["prefix"].Value + "]";
-        if (!string.Equals(actualPrefix, prefix, StringComparison.OrdinalIgnoreCase))
+        var bracketWord = match.Groups["word"].Value;
+        HarmonieMode mode;
+        int defaultN;
+        if (string.Equals(bracketWord, "RADIO", StringComparison.OrdinalIgnoreCase))
+        {
+            mode = HarmonieMode.Radio;
+            defaultN = RadioDefaultN;
+        }
+        else if (string.Equals(bracketWord, "DRIFT", StringComparison.OrdinalIgnoreCase))
+        {
+            mode = HarmonieMode.Drift;
+            defaultN = DriftDefaultN;
+        }
+        else
         {
             return null;
         }
 
-        var options = new PrefixPlaylistOptions();
+        var options = new PrefixPlaylistOptions
+        {
+            Mode = mode,
+            N = defaultN,
+        };
+
+        // Tokens inside the brackets after the mode word. Currently only
+        // n=<int> is supported; unknown tokens are ignored so future
+        // additions don't break older plugin versions.
         var rest = match.Groups["rest"].Value;
-        if (string.IsNullOrWhiteSpace(rest))
+        if (!string.IsNullOrWhiteSpace(rest))
         {
-            return options;
-        }
-
-        foreach (var raw in rest.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var token = raw.Trim();
-            if (token.Length == 0)
+            foreach (var raw in rest.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             {
-                continue;
-            }
+                var eq = raw.IndexOf('=', StringComparison.Ordinal);
+                var key = (eq < 0 ? raw : raw[..eq]).ToLowerInvariant();
+                var value = eq < 0 ? null : raw[(eq + 1)..];
 
-            var eq = token.IndexOf('=', StringComparison.Ordinal);
-            var key = (eq < 0 ? token : token[..eq]).ToLowerInvariant();
-            var value = eq < 0 ? null : token[(eq + 1)..];
-
-            switch (key)
-            {
-                case "n":
-                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n is > 0 and <= 500)
-                    {
-                        options.N = n;
-                    }
-
-                    break;
-                case "drift":
-                    options.Mode = HarmonieMode.Drift;
-                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c) && c is > 0 and <= 100)
-                    {
-                        options.ChunkSize = c;
-                    }
-
-                    break;
-                case "energy":
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var e) && e is >= 0 and <= 100)
-                    {
-                        options.Mode = HarmonieMode.Energy;
-                        options.Energy = e;
-                    }
-
-                    break;
-                default:
-                    // Ignore unknown tokens.
-                    break;
+                if (key == "n"
+                    && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+                    && n is > 0 and <= 500)
+                {
+                    options.N = n;
+                }
             }
         }
 

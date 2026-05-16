@@ -25,7 +25,6 @@ public class PluginConfiguration : BasePluginConfiguration
         HarmonieUrl = "http://localhost:8842";
         HarmonieApiKey = string.Empty;
         TimeoutSeconds = 30;
-        Prefix = "[HRMN]";
         PathMappings = new Collection<PathMapping>();
     }
 
@@ -44,12 +43,6 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the HTTP timeout for harmonie calls.
     /// </summary>
     public int TimeoutSeconds { get; set; }
-
-    /// <summary>
-    /// Gets or sets the playlist-name prefix that flags a playlist as a
-    /// harmonie smart playlist. Defaults to <c>[HRMN]</c>.
-    /// </summary>
-    public string Prefix { get; set; }
 
     /// <summary>
     /// Gets or sets path-prefix mappings, applied as a last-resort fallback

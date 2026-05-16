@@ -12,9 +12,10 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
 /// Watches Jellyfin's <see cref="ILibraryManager.ItemUpdated"/> event for
-/// changes to playlists whose name starts with the configured prefix, and
-/// kicks off a debounced refresh. This is what lets the user just add songs
-/// to a <c>[HRMN]</c> playlist and have the rest fill in by itself.
+/// changes to playlists with one of the plugin's prefixes (<c>[RADIO]</c>
+/// or <c>[DRIFT]</c>) and kicks off a debounced refresh. This is what lets
+/// the user just add songs to a smart playlist and have the rest fill in
+/// by itself.
 /// </summary>
 public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
 {
@@ -87,17 +88,15 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             return;
         }
 
-        var config = HarmoniePlugin.Instance?.Configuration;
-        var prefix = string.IsNullOrWhiteSpace(config?.Prefix) ? "[HRMN]" : config.Prefix;
         if (string.IsNullOrEmpty(playlist.Name)
-            || PrefixPlaylistOptions.TryParse(playlist.Name, prefix) is null)
+            || PrefixPlaylistOptions.TryParse(playlist.Name) is null)
         {
             return;
         }
 
-        // Diagnostic: log every event we see for a HRMNY playlist so we can
-        // tell whether Jellyfin is actually firing ItemUpdated when the
-        // user adds a track.
+        // Diagnostic: log every event we see for a smart playlist so we
+        // can tell whether Jellyfin is actually firing ItemUpdated when
+        // the user adds a track.
         _logger.LogInformation(
             "Saw {Reason} for {Name} (id={Id}, children={Count})",
             e.UpdateReason,

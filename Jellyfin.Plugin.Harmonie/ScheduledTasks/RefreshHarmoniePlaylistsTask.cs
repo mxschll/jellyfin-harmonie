@@ -30,7 +30,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     public string Key => "HarmonieRefreshPlaylists";
 
     public string Description =>
-        "Rebuild every prefix-mode Harmonie playlist by querying the harmonie service.";
+        "Rebuild every [RADIO] and [DRIFT] Harmonie playlist by querying the harmonie service.";
 
     public string Category => "Harmonie";
 

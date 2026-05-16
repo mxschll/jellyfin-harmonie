@@ -51,21 +51,15 @@
                                   placeholder="/music => /media/Music"></textarea>
                     </div>
 
-                    <h2>Smart playlists by name prefix</h2>
+                    <h2>Smart playlists</h2>
                     <div class="fieldDescription">
-                        Any Jellyfin playlist whose name starts with the prefix
-                        below is auto-extended by harmonie. Three modes,
-                        chosen via the playlist title:
+                        The plugin watches for two kinds of playlist names. Add tracks to one and
+                        the rest fills in automatically.
                         <ul style="margin-top: 0.5em;">
-                            <li><code>[HRMN]</code> &mdash; seed mode. Add 1+ tracks; harmonie returns similar ones.</li>
-                            <li><code>[HRMNY drift]</code> or <code>[HRMNY drift=10]</code> &mdash; drift mode. One seed; the playlist walks away from it. Optional chunk size.</li>
-                            <li><code>[HRMNY energy=80]</code> &mdash; energy mode. No seed needed; harmonie picks tracks at that energy level (0&ndash;100, mapped to danceability) and shuffles them.</li>
+                            <li><code>[RADIO]</code> &mdash; track radio. Add one or more tracks and harmonie returns 20 similar ones.</li>
+                            <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates 30 tracks that gradually move away from it.</li>
                         </ul>
-                        Append <code>n=&lt;count&gt;</code> to set total playlist length, e.g. <code>[HRMNY drift n=40]</code>.
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="Prefix">Prefix</label>
-                        <input id="Prefix" name="Prefix" type="text" is="emby-input" />
+                        Append <code>n=&lt;count&gt;</code> to override length, e.g. <code>[DRIFT n=50] Long mix</code>.
                     </div>
 
                     <div>
@@ -114,7 +108,6 @@
                             document.querySelector('#HarmonieUrl').value = config.HarmonieUrl || '';
                             document.querySelector('#HarmonieApiKey').value = config.HarmonieApiKey || '';
                             document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
-                            document.querySelector('#Prefix').value = config.Prefix || '[HRMN]';
                             document.querySelector('#PathMappings').value =
                                 pathMappingsToText(config.PathMappings);
                             Dashboard.hideLoadingMsg();
@@ -130,7 +123,6 @@
                             config.HarmonieApiKey = document.querySelector('#HarmonieApiKey').value;
                             config.TimeoutSeconds =
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
-                            config.Prefix = document.querySelector('#Prefix').value || '[HRMN]';
                             config.PathMappings =
                                 pathMappingsFromText(document.querySelector('#PathMappings').value);
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
