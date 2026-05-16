@@ -245,9 +245,11 @@ jobs:
           if git diff --cached --quiet; then
             echo "manifest.json unchanged."
           else
-            # [skip ci] is paranoia — the path filter on this workflow
-            # already excludes manifest.json, so this commit wouldn't
-            # trigger a second run anyway.
-            git commit -m "chore: update manifest for ${TAG} [skip ci]"
+            # The release workflow's path filter excludes manifest.json,
+            # so committing here does not trigger another release. We
+            # leave [skip ci] off the message so the CI workflow still
+            # runs on this commit and the bot's commit shows up green
+            # in the commit list.
+            git commit -m "chore: update manifest for ${TAG}"
             git push origin main
           fi
