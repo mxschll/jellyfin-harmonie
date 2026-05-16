@@ -24,3 +24,6 @@ jobs:
 
       - name: Build (Release, no warnings as errors override)
         run: dotnet build Jellyfin.Plugin.Harmonie.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Jellyfin.Plugin.Harmonie.sln --configuration Release --no-build --verbosity normal
