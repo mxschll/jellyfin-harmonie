@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.37.1",
+        "changelog": " ### Chores  - Drop refresh smart playlists button and bulk refresh endpoint (d4b7fd5)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.37/jellyfin-harmonie_0.1.37.1.zip",
+        "checksum": "d7f8c7c815ba0363071adfe196fd1866",
+        "timestamp": "2026-05-16T17:36:31Z"
+      },
+      {
+        "version": "0.1.37.0",
+        "changelog": " ### Chores  - Drop refresh smart playlists button and bulk refresh endpoint (d4b7fd5)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.37/jellyfin-harmonie_0.1.37.0.zip",
+        "checksum": "80c8bbed5b06f18ed6c7ce8813abae14",
+        "timestamp": "2026-05-16T17:36:31Z"
+      },
+      {
         "version": "0.1.36.1",
         "changelog": " ### Bug Fixes  - Extract StatusTestRequest to its own file to satisfy analyzers (f03e6e8)  ### Features  - Refresh status uses unsaved form values via post status/test (b098069)  ",
         "targetAbi": "10.11.0.0",
