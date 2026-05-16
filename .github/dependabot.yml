@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Keep the Jellyfin SDK and other NuGet packages current.
+  - package-ecosystem: nuget
+    directory: "/Jellyfin.Plugin.Harmonie"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      jellyfin:
+        patterns:
+          - "Jellyfin.*"
+      analyzers:
+        patterns:
+          - "*Analyzer*"
+          - "StyleCop.*"
+
+  # Keep workflow Action versions current (e.g. actions/checkout@v4 → v5).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
