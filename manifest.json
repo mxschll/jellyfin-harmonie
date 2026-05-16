@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.45.1",
+        "changelog": " ### Features  - Skip debounce for renames so covers regenerate immediately (c31fdba)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.45/jellyfin-harmonie_0.1.45.1.zip",
+        "checksum": "8c69a4ad114d0d0da43f41a1002a5b27",
+        "timestamp": "2026-05-16T20:49:28Z"
+      },
+      {
+        "version": "0.1.45.0",
+        "changelog": " ### Features  - Skip debounce for renames so covers regenerate immediately (c31fdba)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.45/jellyfin-harmonie_0.1.45.0.zip",
+        "checksum": "09da977810f8686511bc2dd16fb5ca97",
+        "timestamp": "2026-05-16T20:49:28Z"
+      },
+      {
         "version": "0.1.44.1",
         "changelog": " ### Features  - Generated covers and backdrops for smart playlists (6dffc5b)  ",
         "targetAbi": "10.11.0.0",
