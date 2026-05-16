@@ -18,10 +18,15 @@ on:
       - 'Directory.Build.props'
       - 'jellyfin.ruleset'
       - '.github/workflows/release.yml'
+      - 'cliff.toml'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  # Opt in to Node 24 now to silence the upcoming deprecation warning.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   release:
@@ -41,6 +46,16 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+
+      - name: Generate changelog from commits
+        id: changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          # --unreleased: only commits since the most recent tag.
+          # --strip header: drop the "# Changelog" preamble.
+          args: --unreleased --strip header
+          output: CHANGELOG_LATEST.md
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -152,7 +167,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
-          generate_release_notes: true
+          body_path: CHANGELOG_LATEST.md
           files: |
             ${{ steps.pkg8.outputs.zip }}
             ${{ steps.pkg9.outputs.zip }}
@@ -166,9 +181,15 @@ jobs:
           TAG=${{ steps.version.outputs.tag }}
           TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-          CHANGELOG=$(gh release view "$TAG" --json body --jq .body \
-            | sed 's/"/\\"/g' | tr '\n' ' ' | head -c 1500 || true)
-          if [ -z "$CHANGELOG" ]; then CHANGELOG="Release ${TAG}."; fi
+          # Read git-cliff's grouped changelog and inline it into the
+          # manifest. Newlines collapsed and length capped so it stays
+          # readable as a one-liner in Jellyfin's catalog tooltip.
+          if [ -s CHANGELOG_LATEST.md ]; then
+            CHANGELOG=$(cat CHANGELOG_LATEST.md | sed 's/"/\\"/g' | tr '\n' ' ' | head -c 1500)
+          else
+            CHANGELOG="Release ${TAG}."
+          fi
+          if [ -z "$(echo -n "$CHANGELOG" | tr -d ' ')" ]; then CHANGELOG="Release ${TAG}."; fi
 
           export V8=${{ steps.pkg8.outputs.version }}
           export V9=${{ steps.pkg9.outputs.version }}
