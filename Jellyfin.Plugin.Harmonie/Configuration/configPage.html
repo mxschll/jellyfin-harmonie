@@ -108,15 +108,8 @@
 
                     <h2>Smart playlists</h2>
                     <div class="fieldDescription">
-                        The plugin watches for three kinds of playlist names. Add tracks to one and
-                        the rest fills in automatically.
-                        <ul style="margin-top: 0.5em;">
-                            <li><code>[RADIO]</code> &mdash; track radio. The first <em>N</em> tracks (set by "Radio seed count" below) are the seeds; the rest is plugin-managed. Reorder a track into the top N to make it a seed; the first track is the strongest anchor.</li>
-                            <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates tracks that gradually move away from it.</li>
-                            <li><code>[MIX]</code> &mdash; auto-generated from your Jellyfin listening history. You don't add tracks; the plugin does it on a schedule. Anything you add manually is wiped on the next refresh.</li>
-                        </ul>
-                        Append <code>n=&lt;count&gt;</code> to override length, e.g. <code>[DRIFT n=50] Long mix</code>.
-                        For <code>[MIX]</code>: append <code>days=N</code>, <code>top</code>, or <code>drift</code> to override the defaults below per playlist.
+                        The plugin watches playlist names with three prefixes &mdash; <code>[RADIO]</code>, <code>[DRIFT]</code>, and <code>[MIX]</code> &mdash; and fills them in automatically.
+                        See the <a href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
                     </div>
 
                     <h2>Playlist defaults</h2>
@@ -185,7 +178,7 @@
                         <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">Seed count cap</label>
                         <input id="DefaultMixSeedCap" name="DefaultMixSeedCap" type="number" is="emby-input" min="1" max="100" />
                         <div class="fieldDescription">
-                            Maximum number of seeds drawn from listening history. 5&ndash;15 is the sweet spot &mdash; too few clones one track, too many blurs the average. 1&ndash;100.
+                            Maximum number of seed tracks pulled from your listening history. Within the listening window above, the plugin takes the top N most recently played tracks (or the top N most played, when "Seed by top-played" is on). It's a deterministic top-N, not random. 5&ndash;15 is the sweet spot &mdash; too few clones one track, too many blurs the average. 1&ndash;100.
                         </div>
                     </div>
                     <label class="checkboxContainer">
