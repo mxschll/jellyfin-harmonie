@@ -43,8 +43,8 @@ public class UserStylePlaylistState
 }
 
 /// <summary>
-/// Persists per-user slot state for style cluster playlists. Mirrors
-/// the storage pattern of <see cref="HarmonieStateStore"/>.
+/// Persists per-user slot state for style cluster playlists.
+/// Single JSON file under the plugin's config dir, keyed by user GUID.
 /// </summary>
 public class StylePlaylistStateStore
 {

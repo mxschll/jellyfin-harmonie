@@ -63,20 +63,6 @@ public class SmoothTransitions
 }
 
 /// <summary>
-/// Subset of harmonie's <c>FilterBody</c>. Only the fields the plugin
-/// actually uses are modeled — currently style-driven filtering for
-/// the per-style cluster playlists.
-/// </summary>
-public class FilterParams
-{
-    [JsonPropertyName("style")]
-    public List<string>? Style { get; set; }
-
-    [JsonPropertyName("style_min")]
-    public double? StyleMin { get; set; }
-}
-
-/// <summary>
 /// One entry in a track's Discogs-400 style classification, returned
 /// by harmonie's <c>/tracks/resolve</c> and <c>/tracks/{id}</c>
 /// endpoints.
@@ -110,9 +96,6 @@ public class SimilarPlaylistRequest
 
     [JsonPropertyName("smooth_transitions")]
     public SmoothTransitions? SmoothTransitions { get; set; }
-
-    [JsonPropertyName("filter")]
-    public FilterParams? Filter { get; set; }
 }
 
 /// <summary>

@@ -21,20 +21,21 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
-/// Refreshes the plugin's smart playlists. Two kinds, identified by a
-/// fixed prefix on the playlist name:
+/// Refreshes the plugin's smart playlists. Three kinds, identified by
+/// a fixed prefix on the playlist name:
 ///
-///   [RADIO] Workout       — radio. User-added tracks are seeds.
-///   [DRIFT] Long mix      — drift. Single seed; the playlist walks away.
+///   [RADIO] Workout       — radio. The first N user-added tracks are seeds.
+///   [DRIFT] Long mix      — drift. The first user-added track is the seed.
+///   [MIX]   Today         — mix. Seeds are derived from listening history.
 ///
-/// On each refresh, items the plugin added on the previous run are
-/// dropped so we can recover the user's seed set.
+/// On each refresh, everything below the seed range is wiped and
+/// re-filled with harmonie matches. The user controls which tracks
+/// become seeds by reordering them into the top of the playlist.
 /// </summary>
 public class PrefixPlaylistService
 {
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
-    private readonly HarmonieStateStore _stateStore;
     private readonly ListenHistoryProvider _listenHistory;
     private readonly IPlaylistManager _playlistManager;
     private readonly ILibraryManager _libraryManager;
@@ -50,7 +51,6 @@ public class PrefixPlaylistService
     public PrefixPlaylistService(
         HarmonieClient client,
         LibraryResolver libraryResolver,
-        HarmonieStateStore stateStore,
         ListenHistoryProvider listenHistory,
         IPlaylistManager playlistManager,
         ILibraryManager libraryManager,
@@ -59,7 +59,6 @@ public class PrefixPlaylistService
     {
         _client = client;
         _libraryResolver = libraryResolver;
-        _stateStore = stateStore;
         _listenHistory = listenHistory;
         _playlistManager = playlistManager;
         _libraryManager = libraryManager;
@@ -349,18 +348,6 @@ public class PrefixPlaylistService
                 _refreshing.Remove(playlist.Id);
             }
         }
-
-        // Persist diagnostics. Seed extraction no longer relies on
-        // state — first-N reads from the playlist directly — so the
-        // stored ids are kept only to surface "what did the plugin do
-        // last" in logs.
-        var newState = new PrefixPlaylistState
-        {
-            LastAddedItemIds = resolvedNew.Select(g => g.ToString("N")).ToList(),
-            LastRefreshedUtc = DateTimeOffset.UtcNow,
-            LastSeedCount = seedIds.Count,
-        };
-        _stateStore.Set(playlist.Id, newState);
 
         _logger.LogInformation(
             "Refreshed playlist {Name} ({Mode}): {Seeds} seed(s) + {Added} match(es) (harmonie returned {Returned}).",

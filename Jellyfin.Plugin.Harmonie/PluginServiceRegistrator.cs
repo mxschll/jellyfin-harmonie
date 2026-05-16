@@ -11,7 +11,6 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddHttpClient<HarmonieClient>();
-        serviceCollection.AddSingleton<HarmonieStateStore>();
         serviceCollection.AddSingleton<LibraryResolver>();
         serviceCollection.AddSingleton<ListenHistoryProvider>();
         serviceCollection.AddSingleton<StylePlaylistStateStore>();
