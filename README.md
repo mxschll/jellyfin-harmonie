@@ -10,7 +10,7 @@ The plugin recognises three kinds of playlists by their name prefix:
 
 | Title                       | Mode  | Seeds                                    | What happens                                                                                            |
 | --------------------------- | ----- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `[RADIO] Workout`           | radio | the tracks you put in                    | harmonie returns similar tracks and the plugin appends them.                                            |
+| `[RADIO] Workout`           | radio | the tracks you put in                    | harmonie returns similar tracks and the plugin appends them. The first track in the playlist is treated as the anchor — moving a different track to position 0 shifts the result toward it. |
 | `[DRIFT] Long mix`          | drift | one track you put in                     | each new chunk's anchor is the previous one — the playlist walks gradually away.                       |
 | `[MIX] My Mix`              | mix   | your Jellyfin listening history          | seeds itself; you don't add tracks. Anything you do add is wiped on the next refresh.                  |
 

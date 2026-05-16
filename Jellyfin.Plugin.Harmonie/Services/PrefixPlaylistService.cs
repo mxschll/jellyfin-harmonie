@@ -287,10 +287,19 @@ public class PrefixPlaylistService
             var radioN = options.Mode == HarmonieMode.Mix
                 ? options.N ?? config.DefaultMixN
                 : options.N ?? config.DefaultRadioN;
+
+            // For Radio, give the first seed the most weight. Otherwise
+            // harmonie's centroid is order-invariant and reordering or
+            // swapping the first track has no effect on the matches.
+            // Linear decay: position i contributes (N - i) copies.
+            var weightedSeeds = options.Mode == HarmonieMode.Radio
+                ? WeightSeedsByPosition(harmonieSeedIds)
+                : harmonieSeedIds;
+
             harmonieResult = await _client.SimilarPlaylistAsync(
                 new SimilarPlaylistRequest
                 {
-                    Seeds = harmonieSeedIds,
+                    Seeds = weightedSeeds,
                     N = radioN,
                     SmoothTransitions = smoothTransitions,
                 },
@@ -451,6 +460,35 @@ public class PrefixPlaylistService
         }
 
         return harmonieIds;
+    }
+
+    /// <summary>
+    /// Reweights a seed list so harmonie's centroid leans toward the
+    /// first track. Position i contributes <c>(N - i)</c> copies (linear
+    /// decay), so the first seed dominates without erasing the others.
+    /// Without this, harmonie's similar mode treats all seeds equally
+    /// and reordering — including putting a different track first —
+    /// produces an identical centroid and identical matches.
+    /// </summary>
+    public static List<long> WeightSeedsByPosition(IReadOnlyList<long> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count <= 1)
+        {
+            return ids.ToList();
+        }
+
+        var weighted = new List<long>(ids.Count * (ids.Count + 1) / 2);
+        for (var i = 0; i < ids.Count; i++)
+        {
+            var copies = ids.Count - i;
+            for (var c = 0; c < copies; c++)
+            {
+                weighted.Add(ids[i]);
+            }
+        }
+
+        return weighted;
     }
 
     /// <summary>
