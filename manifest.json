@@ -9,6 +9,22 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "0.1.7.1",
+        "changelog": " ###  Tests  - Add unit tests for PrefixPlaylistOptions and PathMapper (8970023)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.7/jellyfin-harmonie_0.1.7.1.zip",
+        "checksum": "3463a88fc4a3dd7a11a59434164b69fe",
+        "timestamp": "2026-05-16T01:19:33Z"
+      },
+      {
+        "version": "0.1.7.0",
+        "changelog": " ###  Tests  - Add unit tests for PrefixPlaylistOptions and PathMapper (8970023)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.7/jellyfin-harmonie_0.1.7.0.zip",
+        "checksum": "d938d08912c19891550bf9baa03e1f8d",
+        "timestamp": "2026-05-16T01:19:33Z"
+      },
+      {
         "version": "0.1.6.1",
         "changelog": " ### Other  - Merge pull request #3 from mxschll/dependabot/github_actions/actions/checkout-6  chore(deps): bump actions/checkout from 4 to 6 (8cb0a13) - Merge pull request #2 from mxschll/dependabot/github_actions/softprops/action-gh-release-3  chore(deps): bump softprops/action-gh-release from 2 to 3 (b8dcbcf) - Merge pull request #1 from mxschll/dependabot/github_actions/actions/setup-dotnet-5  chore(deps): bump actions/setup-dotnet from 4 to 5 (c4f69fd)  ###  CI  - Switch git-cliff to taiki-e/install-action (Docker action was broken) (29c51aa)  ###  Chores  - Bump actions/checkout from 4 to 6 (49f6f61) - Bump softprops/action-gh-release from 2 to 3 (e5554c6) - Bump actions/setup-dotnet from 4 to 5 (d06c126)  ",
         "targetAbi": "10.11.0.0",
