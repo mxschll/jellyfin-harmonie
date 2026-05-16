@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.27.1",
+        "changelog": " ### Bug Fixes  - Stable column widths in status and scan tables (e080613)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.27/jellyfin-harmonie_0.1.27.1.zip",
+        "checksum": "4445a6f21116cf37088c847dcb0b826f",
+        "timestamp": "2026-05-16T16:55:51Z"
+      },
+      {
+        "version": "0.1.27.0",
+        "changelog": " ### Bug Fixes  - Stable column widths in status and scan tables (e080613)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.27/jellyfin-harmonie_0.1.27.0.zip",
+        "checksum": "8f2f80691ce5b35b57b1d6d71dfcc209",
+        "timestamp": "2026-05-16T16:55:51Z"
+      },
+      {
         "version": "0.1.26.1",
         "changelog": " ### Bug Fixes  - Always poll scan status after triggering and drop state color (297f2a7)  ",
         "targetAbi": "10.11.0.0",
