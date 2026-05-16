@@ -234,10 +234,6 @@
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
                         </button>
-                        <button is="emby-button" type="button" id="RefreshNow" class="raised block emby-button">
-                            <span>Refresh smart playlists now</span>
-                        </button>
-                        <span id="RefreshResult" style="margin-left: 1em;"></span>
                     </div>
                 </form>
             </div>
@@ -577,20 +573,6 @@
                             resultEl.textContent = result.note;
                         }).catch(function (err) {
                             resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
-                        });
-                    });
-
-                document.querySelector('#RefreshNow')
-                    .addEventListener('click', function () {
-                        var resultEl = document.querySelector('#RefreshResult');
-                        resultEl.textContent = 'Triggered.';
-                        ApiClient.fetch({
-                            type: 'POST',
-                            url: ApiClient.getUrl('Plugins/Harmonie/Refresh')
-                        }).then(function () {
-                            resultEl.textContent = 'Refresh started in the background. Check Dashboard logs.';
-                        }).catch(function (err) {
-                            resultEl.textContent = 'Failed to trigger refresh: ' + (err && err.statusText ? err.statusText : 'unknown error');
                         });
                     });
             })();

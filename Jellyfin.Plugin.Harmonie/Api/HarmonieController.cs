@@ -91,33 +91,6 @@ public class HarmonieController : ControllerBase
     }
 
     /// <summary>
-    /// Triggers a refresh of every prefix-mode playlist and every
-    /// per-user style playlist. Returns immediately; refresh runs in
-    /// the background.
-    /// </summary>
-    [HttpPost("Refresh")]
-    public IActionResult Refresh()
-    {
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _prefixService
-                    .RefreshAllAsync(progress: null, CancellationToken.None)
-                    .ConfigureAwait(false);
-                await _styleService
-                    .RefreshAllAsync(CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Background refresh failed");
-            }
-        });
-        return Accepted();
-    }
-
-    /// <summary>
     /// Refreshes a single prefix-mode playlist by id.
     /// </summary>
     [HttpPost("Playlists/{playlistId}/Refresh")]

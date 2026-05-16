@@ -56,7 +56,7 @@ Three triggers, in increasing levels of automation:
 
 1. **Auto** — when you add or remove a track in a smart playlist, the plugin debounces for 5 seconds and then refreshes that playlist on its own. This is the normal way to use it.
 2. **Manual single** — `POST /Plugins/Harmonie/Playlists/{playlistId}/Refresh`.
-3. **Manual all** — Plugins → Harmonie → "Refresh smart playlists now". Or use the daily scheduled task "Refresh Harmonie Playlists".
+3. **Manual all** — run the daily scheduled task "Refresh Harmonie Playlists" from Dashboard → Scheduled Tasks.
 
 ## Installation
 
@@ -123,7 +123,6 @@ All require an authenticated Jellyfin user. Mounted under `/Plugins/Harmonie`.
 | Method | Path                                       | Purpose                                                              |
 | ------ | ------------------------------------------ | -------------------------------------------------------------------- |
 | `GET`  | `/Status`                                  | Combined view of harmonie's `/info` and `/stats`. Used by the config page's "Test connection" button. |
-| `POST` | `/Refresh`                                 | Refresh every smart playlist. Returns immediately.                   |
 | `POST` | `/Playlists/{playlistId}/Refresh`          | Refresh a single smart playlist.                                     |
 
 ## Limitations
