@@ -56,7 +56,7 @@
                         The plugin watches for three kinds of playlist names. Add tracks to one and
                         the rest fills in automatically.
                         <ul style="margin-top: 0.5em;">
-                            <li><code>[RADIO]</code> &mdash; track radio. Add one or more tracks and harmonie returns similar ones. The first track is the anchor &mdash; reordering will shift the playlist toward whichever track is at position 0.</li>
+                            <li><code>[RADIO]</code> &mdash; track radio. The first <em>N</em> tracks (set by "Radio seed count" below) are the seeds; the rest is plugin-managed. Reorder a track into the top N to make it a seed; the first track is the strongest anchor.</li>
                             <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates tracks that gradually move away from it.</li>
                             <li><code>[MIX]</code> &mdash; auto-generated from your Jellyfin listening history. You don't add tracks; the plugin does it on a schedule. Anything you add manually is wiped on the next refresh.</li>
                         </ul>
@@ -67,6 +67,14 @@
                     <h2>Playlist defaults</h2>
                     <div class="fieldDescription">
                         Applied when a playlist title doesn't override them. Initial values match harmonie's own API defaults.
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="RadioSeedCount">Radio seed count</label>
+                        <input id="RadioSeedCount" name="RadioSeedCount" type="number" is="emby-input" min="1" max="20" />
+                        <div class="fieldDescription">
+                            For <code>[RADIO]</code> playlists: the first <em>N</em> tracks in the playlist are the seeds harmonie matches against. Anything below position N is plugin-managed and gets refreshed. Reorder a track into the top N to make it a seed. 1&ndash;20.
+                        </div>
                     </div>
 
                     <div class="inputContainer">
@@ -214,6 +222,7 @@
                             document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
                             document.querySelector('#PathMappings').value =
                                 pathMappingsToText(config.PathMappings);
+                            document.querySelector('#RadioSeedCount').value = config.RadioSeedCount || 5;
                             document.querySelector('#DefaultRadioN').value = config.DefaultRadioN || 20;
                             document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 30;
                             document.querySelector('#DefaultChunkSize').value = config.DefaultChunkSize || 5;
@@ -246,6 +255,8 @@
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
                             config.PathMappings =
                                 pathMappingsFromText(document.querySelector('#PathMappings').value);
+                            config.RadioSeedCount =
+                                parseInt(document.querySelector('#RadioSeedCount').value, 10) || 5;
                             config.DefaultRadioN =
                                 parseInt(document.querySelector('#DefaultRadioN').value, 10) || 20;
                             config.DefaultDriftN =

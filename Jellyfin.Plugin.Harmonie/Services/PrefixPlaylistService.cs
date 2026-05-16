@@ -172,38 +172,9 @@ public class PrefixPlaylistService
             return;
         }
 
-        // Load any state from the previous refresh — used by Radio/Drift
-        // to subtract plugin-added items from the seed list, and by all
-        // modes to record what to wipe next time.
-        var state = _stateStore.Get(playlist.Id) ?? new PrefixPlaylistState();
-        var lastAdded = new HashSet<string>(state.LastAddedItemIds, StringComparer.Ordinal);
-
-        // Stale-state detection: Jellyfin reuses a deleted playlist's
-        // GUID when a new playlist with the same path is created, so our
-        // per-GUID state can carry items from a previous incarnation. If
-        // most of those previously-added items are no longer present in
-        // the playlist, the state is bogus — discard it.
-        if (lastAdded.Count > 0)
-        {
-            var currentChildIds = playlist.LinkedChildren
-                .Where(c => c.ItemId is not null)
-                .Select(c => c.ItemId!.Value.ToString("N"))
-                .ToHashSet(StringComparer.Ordinal);
-            var overlap = lastAdded.Count(id => currentChildIds.Contains(id));
-            if (overlap * 2 < lastAdded.Count)
-            {
-                _logger.LogInformation(
-                    "Playlist {Name}: state looks stale ({Overlap}/{Total} previously-added items still present). Discarding cached state.",
-                    playlist.Name,
-                    overlap,
-                    lastAdded.Count);
-                lastAdded = new HashSet<string>(StringComparer.Ordinal);
-                state = new PrefixPlaylistState();
-            }
-        }
-
-        // Pick seeds. Mix mode pulls from listening history; Radio/Drift
-        // pull from the user-added subset of the playlist.
+        // Pick seeds. Radio: first N items in playlist order (user
+        // controls which by reordering). Drift: first item only.
+        // Mix: derived from listening history.
         List<Guid> seedIds;
         if (options.Mode == HarmonieMode.Mix)
         {
@@ -218,7 +189,8 @@ public class PrefixPlaylistService
         }
         else
         {
-            seedIds = ExtractSeedIds(playlist, lastAdded);
+            var seedCount = options.Mode == HarmonieMode.Drift ? 1 : config.RadioSeedCount;
+            seedIds = ExtractFirstNSeeds(playlist, seedCount);
 
             // Race-condition guard: when a brand-new playlist is created
             // with a track in the same UI gesture, Jellyfin's events can
@@ -234,7 +206,7 @@ public class PrefixPlaylistService
                 if (_libraryManager.GetItemById(playlist.Id) is Playlist refreshed)
                 {
                     playlist = refreshed;
-                    seedIds = ExtractSeedIds(playlist, lastAdded);
+                    seedIds = ExtractFirstNSeeds(playlist, seedCount);
                 }
             }
 
@@ -352,16 +324,13 @@ public class PrefixPlaylistService
             }
         }
 
-        // Persist state. For Mix mode the entire playlist is plugin-
-        // added, so on the next refresh nothing in LinkedChildren counts
-        // as a "user seed" — exactly the behaviour we want.
+        // Persist diagnostics. Seed extraction no longer relies on
+        // state — first-N reads from the playlist directly — so the
+        // stored ids are kept only to surface "what did the plugin do
+        // last" in logs.
         var newState = new PrefixPlaylistState
         {
-            LastAddedItemIds = (includeSeedsInPlaylist
-                ? resolvedNew
-                : seedIds.Concat(resolvedNew))
-                .Select(g => g.ToString("N"))
-                .ToList(),
+            LastAddedItemIds = resolvedNew.Select(g => g.ToString("N")).ToList(),
             LastRefreshedUtc = DateTimeOffset.UtcNow,
             LastSeedCount = seedIds.Count,
         };
@@ -556,12 +525,35 @@ public class PrefixPlaylistService
         return _userManager.Users.FirstOrDefault();
     }
 
-    private static List<Guid> ExtractSeedIds(Playlist playlist, HashSet<string> lastAdded) =>
-        playlist.LinkedChildren
-            .Where(c => c.ItemId is not null)
-            .Select(c => c.ItemId!.Value)
-            .Where(id => !lastAdded.Contains(id.ToString("N")))
-            .ToList();
+    /// <summary>
+    /// Returns the first <paramref name="count"/> linked-child ids of
+    /// the playlist, in playlist order. The user controls which tracks
+    /// become seeds by reordering: anything in the first N rows is a
+    /// seed; anything below is plugin-managed and gets refreshed.
+    /// </summary>
+    public static List<Guid> ExtractFirstNSeeds(Playlist playlist, int count)
+    {
+        ArgumentNullException.ThrowIfNull(playlist);
+        if (count <= 0 || playlist.LinkedChildren is null)
+        {
+            return new List<Guid>();
+        }
+
+        var result = new List<Guid>(Math.Min(count, playlist.LinkedChildren.Length));
+        foreach (var child in playlist.LinkedChildren)
+        {
+            if (child.ItemId is { } id)
+            {
+                result.Add(id);
+                if (result.Count >= count)
+                {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
 
     private static string? FirstArtist(Audio audio)
     {

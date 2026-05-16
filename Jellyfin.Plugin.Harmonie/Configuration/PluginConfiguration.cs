@@ -36,6 +36,11 @@ public class PluginConfiguration : BasePluginConfiguration
         BpmTolerance = null;
         KeyCompatible = false;
 
+        // For [RADIO]: how many tracks at the top of the playlist
+        // count as seeds. Anything below position N is treated as
+        // plugin-managed content and gets refreshed.
+        RadioSeedCount = 5;
+
         // Defaults for [MIX] playlists — seeds come from Jellyfin's
         // own listening history. Sweet spots from the harmonie docs:
         // 5–15 seeds, 7-day window, 30-track output.
@@ -106,6 +111,14 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Strict — tracks without key info are excluded.
     /// </summary>
     public bool KeyCompatible { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of tracks at the top of a <c>[RADIO]</c>
+    /// playlist that the plugin treats as the seed set on each refresh.
+    /// Reorder a track to within the first N to make it a seed; the
+    /// rest of the playlist is plugin-managed. 1–20.
+    /// </summary>
+    public int RadioSeedCount { get; set; }
 
     /// <summary>
     /// Gets or sets the default number of tracks for <c>[MIX]</c>

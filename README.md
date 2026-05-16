@@ -10,7 +10,7 @@ The plugin recognises three kinds of playlists by their name prefix:
 
 | Title                       | Mode  | Seeds                                    | What happens                                                                                            |
 | --------------------------- | ----- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `[RADIO] Workout`           | radio | the tracks you put in                    | harmonie returns similar tracks and the plugin appends them. The first track in the playlist is treated as the anchor — moving a different track to position 0 shifts the result toward it. |
+| `[RADIO] Workout`           | radio | the first **N** tracks in the playlist (set in plugin settings; default 5) | harmonie returns similar tracks and the plugin appends them after the seeds. The first track is the strongest anchor. To make any other track a seed, drag it into the top N. |
 | `[DRIFT] Long mix`          | drift | one track you put in                     | each new chunk's anchor is the previous one — the playlist walks gradually away.                       |
 | `[MIX] My Mix`              | mix   | your Jellyfin listening history          | seeds itself; you don't add tracks. Anything you do add is wiped on the next refresh.                  |
 
@@ -31,7 +31,7 @@ Examples:
 - `[MIX top days=30] Heavy Rotation` — your top-played tracks of the month
 - `[MIX drift] Stretch Mix` — gradually evolves from your recent plays
 
-For Radio and Drift, the plugin remembers which tracks it added on the last refresh (in a small JSON file in the plugin config dir) so it can tell seeds apart from previous matches. The playlist always equals `seeds + fresh harmonie matches`, in that order.
+For Radio and Drift, the plugin owns everything below the seeds. Each refresh reads the seeds from the top of the playlist (first N for radio, first 1 for drift), wipes the rest, and re-fills with fresh harmonie matches. Add a track and it lands at the bottom — drag it up to make it a seed. Remove the seed from the top and the next track in line becomes a seed.
 
 Mix is different: every refresh wipes the playlist and replaces it from scratch. The "seeds" are derived from your listening history — you never add them by hand.
 
