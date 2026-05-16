@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -488,8 +489,8 @@ public class PrefixPlaylistService
         CancellationToken ct)
     {
         var existingEntryIds = playlist.LinkedChildren
-            .Select(c => c.LibraryItemId)
-            .Where(s => !string.IsNullOrEmpty(s))
+            .Where(c => c.ItemId.HasValue)
+            .Select(c => c.ItemId!.Value.ToString("N", CultureInfo.InvariantCulture))
             .ToList();
         if (existingEntryIds.Count > 0)
         {

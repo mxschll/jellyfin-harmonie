@@ -358,8 +358,8 @@ public class StylePlaylistService
 
         // Wipe and refill.
         var existingEntryIds = playlist.LinkedChildren
-            .Select(c => c.LibraryItemId)
-            .Where(s => !string.IsNullOrEmpty(s))
+            .Where(c => c.ItemId.HasValue)
+            .Select(c => c.ItemId!.Value.ToString("N", System.Globalization.CultureInfo.InvariantCulture))
             .ToList();
         if (existingEntryIds.Count > 0)
         {
