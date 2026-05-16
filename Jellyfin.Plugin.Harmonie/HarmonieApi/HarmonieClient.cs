@@ -54,49 +54,62 @@ public class HarmonieClient
     }
 
     /// <summary>
-    /// Combines harmonie's <c>/api/v1/info</c> (static service info) and
-    /// <c>/api/v1/stats</c> (dynamic counters) into a single status
-    /// payload the plugin's UI shows on "Test connection".
+    /// Fetches harmonie's <c>/api/v1/status</c> — service identity plus
+    /// library counters in a single call. Cache-friendly on harmonie's
+    /// side; counters update at ~1 minute granularity.
     /// </summary>
     public async Task<HarmonieStatus> GetStatusAsync(CancellationToken ct)
     {
         var config = HarmoniePlugin.Instance?.Configuration
             ?? throw new InvalidOperationException("Plugin not initialized.");
 
-        ServiceInfo info;
-        using (var infoReq = NewRequest(HttpMethod.Get, "/api/v1/info", config))
-        using (var infoResp = await SendAsync(infoReq, config, ct).ConfigureAwait(false))
-        {
-            infoResp.EnsureSuccessStatusCode();
-            info = await infoResp.Content
-                .ReadFromJsonAsync<ServiceInfo>(JsonOptions, ct)
-                .ConfigureAwait(false) ?? new ServiceInfo();
-        }
+        using var req = NewRequest(HttpMethod.Get, "/api/v1/status", config);
+        using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<HarmonieStatus>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new HarmonieStatus();
+    }
 
-        long tracks = 0;
-        try
-        {
-            using var statsReq = NewRequest(HttpMethod.Get, "/api/v1/stats", config);
-            using var statsResp = await SendAsync(statsReq, config, ct).ConfigureAwait(false);
-            statsResp.EnsureSuccessStatusCode();
-            var stats = await statsResp.Content
-                .ReadFromJsonAsync<ServiceStats>(JsonOptions, ct)
-                .ConfigureAwait(false);
-            tracks = stats?.Tracks ?? 0;
-        }
-        catch (Exception ex)
-        {
-            // /stats is optional for the connection test — info is enough
-            // to prove reachability. Log and carry on.
-            _logger.LogDebug(ex, "harmonie /stats unreachable; reporting tracks=0.");
-        }
+    /// <summary>
+    /// Fetches harmonie's <c>/api/v1/scan</c> — the live scan state,
+    /// safe to poll while a scan is running.
+    /// </summary>
+    public async Task<ScanState> GetScanAsync(CancellationToken ct)
+    {
+        var config = HarmoniePlugin.Instance?.Configuration
+            ?? throw new InvalidOperationException("Plugin not initialized.");
 
-        return new HarmonieStatus
-        {
-            Version = info.Version,
-            Backend = info.Backend,
-            Tracks = tracks,
-        };
+        using var req = NewRequest(HttpMethod.Get, "/api/v1/scan", config);
+        using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<ScanState>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new ScanState();
+    }
+
+    /// <summary>
+    /// Triggers a scan via <c>POST /api/v1/scan</c>. If a scan is already
+    /// running this is a no-op and the returned state shows
+    /// <c>scanning</c>.
+    /// </summary>
+    /// <param name="force">
+    /// When true, harmonie re-extracts every track even if size+mtime
+    /// match the existing row.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<ScanState> TriggerScanAsync(bool force, CancellationToken ct)
+    {
+        var config = HarmoniePlugin.Instance?.Configuration
+            ?? throw new InvalidOperationException("Plugin not initialized.");
+
+        var path = force ? "/api/v1/scan?force=true" : "/api/v1/scan";
+        using var req = NewRequest(HttpMethod.Post, path, config);
+        using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<ScanState>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new ScanState();
     }
 
     /// <summary>

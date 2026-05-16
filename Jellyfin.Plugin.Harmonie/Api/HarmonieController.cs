@@ -97,4 +97,46 @@ public class HarmonieController : ControllerBase
 
         return Ok(new { status = "refreshed" });
     }
+
+    /// <summary>
+    /// Returns harmonie's current scan state. Safe to poll.
+    /// </summary>
+    [HttpGet("Scan")]
+    public async Task<ActionResult<ScanState>> Scan(CancellationToken ct)
+    {
+        try
+        {
+            var state = await _client.GetScanAsync(ct).ConfigureAwait(false);
+            return Ok(state);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "harmonie scan state check failed");
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Triggers a scan on harmonie. No-op if a scan is already running.
+    /// </summary>
+    /// <param name="force">
+    /// When true, harmonie re-extracts every track (even unchanged ones).
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    [HttpPost("Scan")]
+    public async Task<ActionResult<ScanState>> TriggerScan(
+        [FromQuery] bool force,
+        CancellationToken ct)
+    {
+        try
+        {
+            var state = await _client.TriggerScanAsync(force, ct).ConfigureAwait(false);
+            return Ok(state);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "harmonie scan trigger failed");
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+        }
+    }
 }

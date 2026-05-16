@@ -29,9 +29,59 @@
                     </div>
                     <div>
                         <button is="emby-button" type="button" id="TestConnection" class="raised emby-button">
-                            <span>Test connection</span>
+                            <span>Refresh status</span>
                         </button>
                         <span id="TestConnectionResult" style="margin-left: 1em;"></span>
+                    </div>
+
+                    <div id="HarmonieStatusPanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tbody>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Version</td><td><code id="StatusVersion"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Backend</td><td><code id="StatusBackend"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Workers</td><td><span id="StatusWorkers"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Embedding dim</td><td><span id="StatusEmbeddingDim"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Schema version</td><td><span id="StatusSchemaVersion"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Libraries</td><td><span id="StatusLibraries"></span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h2>Library scan</h2>
+                    <div class="fieldDescription">
+                        Trigger harmonie to scan its libraries for new or changed tracks. Incremental scans only re-extract files whose size or mtime changed; force re-extracts every track.
+                    </div>
+                    <div>
+                        <button is="emby-button" type="button" id="TriggerScan" class="raised emby-button">
+                            <span>Trigger scan</span>
+                        </button>
+                        <button is="emby-button" type="button" id="TriggerScanForce" class="raised emby-button" style="margin-left: 0.5em;">
+                            <span>Trigger scan (force)</span>
+                        </button>
+                        <span id="ScanResult" style="margin-left: 1em;"></span>
+                    </div>
+
+                    <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <div style="margin-bottom: 0.5em;">
+                            <strong>Scan state:</strong>
+                            <span id="ScanStateText"></span>
+                            <span id="ScanPhaseText" style="opacity: 0.7;"></span>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tbody>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Failed</td><td><span id="ScanFailed"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
+                                <tr id="ScanLastDurationRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
+                                <tr id="ScanLastErrorRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Last error</td><td><code id="ScanLastError" style="color: #c00;"></code></td></tr>
+                            </tbody>
+                        </table>
                     </div>
 
                     <h2>Path mappings</h2>
@@ -241,6 +291,7 @@
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
                             document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 30;
                             Dashboard.hideLoadingMsg();
+                            loadInitialState();
                         });
                     });
 
@@ -289,23 +340,159 @@
                         return false;
                     });
 
+                function formatBytes(n) {
+                    if (n == null) return '?';
+                    if (n < 1024) return n + ' B';
+                    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KiB';
+                    if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MiB';
+                    return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
+                }
+
+                function formatDuration(seconds) {
+                    if (seconds == null || seconds < 0) return '?';
+                    var s = Math.floor(seconds);
+                    var h = Math.floor(s / 3600);
+                    var m = Math.floor((s % 3600) / 60);
+                    var rs = s % 60;
+                    if (h > 0) return h + 'h ' + m + 'm';
+                    if (m > 0) return m + 'm ' + rs + 's';
+                    return rs + 's';
+                }
+
+                function renderStatus(status) {
+                    document.querySelector('#StatusVersion').textContent = status.version || '?';
+                    document.querySelector('#StatusBackend').textContent = status.backend || '?';
+                    document.querySelector('#StatusTracks').textContent = (status.tracks || 0).toLocaleString();
+                    document.querySelector('#StatusDuration').textContent = formatDuration(status.total_duration_sec);
+                    document.querySelector('#StatusDbSize').textContent = formatBytes(status.db_size_bytes);
+                    document.querySelector('#StatusWorkers').textContent = status.workers || '?';
+                    document.querySelector('#StatusEmbeddingDim').textContent = status.embedding_dim || '?';
+                    document.querySelector('#StatusSchemaVersion').textContent = status.schema_version || '?';
+                    document.querySelector('#StatusLibraries').textContent =
+                        (status.libraries || []).join(', ') || '(none)';
+                    document.querySelector('#HarmonieStatusPanel').style.display = '';
+                }
+
+                function renderScan(scan) {
+                    document.querySelector('#ScanStatePanel').style.display = '';
+                    var stateText = document.querySelector('#ScanStateText');
+                    stateText.textContent = scan.state || '?';
+                    stateText.style.color = scan.state === 'error' ? '#c00'
+                        : scan.state === 'scanning' ? '#06c' : '';
+
+                    var phaseEl = document.querySelector('#ScanPhaseText');
+                    phaseEl.textContent = (scan.phase && scan.phase !== 'idle')
+                        ? ' (' + scan.phase + ')' : '';
+
+                    document.querySelector('#ScanDiscovered').textContent = (scan.discovered || 0).toLocaleString();
+                    document.querySelector('#ScanFull').textContent = (scan.full || 0).toLocaleString();
+                    document.querySelector('#ScanDescriptorsOnly').textContent = (scan.descriptors_only || 0).toLocaleString();
+                    document.querySelector('#ScanSkipped').textContent = (scan.skipped || 0).toLocaleString();
+                    document.querySelector('#ScanFailed').textContent = (scan.failed || 0).toLocaleString();
+                    document.querySelector('#ScanRemoved').textContent = (scan.removed || 0).toLocaleString();
+
+                    var lastDurationRow = document.querySelector('#ScanLastDurationRow');
+                    if (scan.last_duration_sec != null) {
+                        document.querySelector('#ScanLastDuration').textContent = formatDuration(scan.last_duration_sec);
+                        lastDurationRow.style.display = '';
+                    } else {
+                        lastDurationRow.style.display = 'none';
+                    }
+
+                    var lastErrorRow = document.querySelector('#ScanLastErrorRow');
+                    if (scan.last_error) {
+                        document.querySelector('#ScanLastError').textContent = scan.last_error;
+                        lastErrorRow.style.display = '';
+                    } else {
+                        lastErrorRow.style.display = 'none';
+                    }
+                }
+
+                var scanPollTimer = null;
+                function pollScanWhileRunning() {
+                    if (scanPollTimer) clearTimeout(scanPollTimer);
+                    scanPollTimer = setTimeout(function () {
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                            dataType: 'json'
+                        }).then(function (scan) {
+                            renderScan(scan);
+                            // Refresh status counters too — track count moves while scanning.
+                            return ApiClient.fetch({
+                                type: 'GET',
+                                url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                                dataType: 'json'
+                            }).then(renderStatus).then(function () { return scan; });
+                        }).then(function (scan) {
+                            if (scan.state === 'scanning') {
+                                pollScanWhileRunning();
+                            }
+                        }).catch(function () {
+                            // Stop polling on error; user can refresh manually.
+                        });
+                    }, 2000);
+                }
+
+                function loadInitialState() {
+                    ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                        dataType: 'json'
+                    }).then(renderStatus).catch(function () { /* not configured yet */ });
+
+                    ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                        dataType: 'json'
+                    }).then(function (scan) {
+                        renderScan(scan);
+                        if (scan.state === 'scanning') pollScanWhileRunning();
+                    }).catch(function () { /* not configured yet */ });
+                }
+
                 document.querySelector('#TestConnection')
                     .addEventListener('click', function () {
                         var resultEl = document.querySelector('#TestConnectionResult');
-                        resultEl.textContent = 'Testing...';
+                        resultEl.textContent = 'Refreshing\u2026';
                         ApiClient.fetch({
                             type: 'GET',
                             url: ApiClient.getUrl('Plugins/Harmonie/Status'),
                             dataType: 'json'
                         }).then(function (status) {
-                            resultEl.textContent =
-                                'OK \u2014 version ' + status.version +
-                                ', backend ' + status.backend +
-                                ', ' + status.tracks + ' tracks indexed.';
+                            renderStatus(status);
+                            resultEl.textContent = 'Connected.';
                         }).catch(function (err) {
+                            document.querySelector('#HarmonieStatusPanel').style.display = 'none';
                             resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
                         });
                     });
+
+                function triggerScan(force) {
+                    var resultEl = document.querySelector('#ScanResult');
+                    resultEl.textContent = 'Triggering\u2026';
+                    var url = ApiClient.getUrl('Plugins/Harmonie/Scan' + (force ? '?force=true' : ''));
+                    ApiClient.fetch({
+                        type: 'POST',
+                        url: url,
+                        dataType: 'json'
+                    }).then(function (scan) {
+                        renderScan(scan);
+                        if (scan.state === 'scanning') {
+                            resultEl.textContent = 'Scan running\u2026';
+                            pollScanWhileRunning();
+                        } else {
+                            resultEl.textContent = 'Trigger sent.';
+                        }
+                    }).catch(function (err) {
+                        resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                    });
+                }
+
+                document.querySelector('#TriggerScan')
+                    .addEventListener('click', function () { triggerScan(false); });
+                document.querySelector('#TriggerScanForce')
+                    .addEventListener('click', function () { triggerScan(true); });
 
                 document.querySelector('#RefreshNow')
                     .addEventListener('click', function () {

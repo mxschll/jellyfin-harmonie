@@ -139,35 +139,10 @@ public class DriftPlaylistRequest
 }
 
 /// <summary>
-/// Subset of harmonie's <c>GET /api/v1/info</c> response. Used by the
-/// "Test connection" surface in the config page.
-/// </summary>
-public class ServiceInfo
-{
-    [JsonPropertyName("version")]
-    public string Version { get; set; } = string.Empty;
-
-    [JsonPropertyName("backend")]
-    public string Backend { get; set; } = string.Empty;
-
-    [JsonPropertyName("embedding_dim")]
-    public int EmbeddingDim { get; set; }
-}
-
-/// <summary>
-/// Subset of harmonie's <c>GET /api/v1/stats</c> response. Used together
-/// with <see cref="ServiceInfo"/> to confirm the catalog is populated.
-/// </summary>
-public class ServiceStats
-{
-    [JsonPropertyName("tracks")]
-    public long Tracks { get; set; }
-}
-
-/// <summary>
-/// Aggregated info + stats payload returned by the plugin's
-/// <c>GET /Plugins/Harmonie/Status</c> endpoint. Combines two harmonie
-/// calls into one result for the UI.
+/// Subset of harmonie's <c>GET /api/v1/status</c> response. Combines
+/// what used to be split across <c>/info</c> and <c>/stats</c>; the
+/// plugin renders all of it on the config page so users can see the
+/// state of the underlying service at a glance.
 /// </summary>
 public class HarmonieStatus
 {
@@ -177,8 +152,78 @@ public class HarmonieStatus
     [JsonPropertyName("backend")]
     public string Backend { get; set; } = string.Empty;
 
+    [JsonPropertyName("embedding_dim")]
+    public int EmbeddingDim { get; set; }
+
+    [JsonPropertyName("libraries")]
+    public List<string> Libraries { get; set; } = new();
+
+    [JsonPropertyName("workers")]
+    public int Workers { get; set; }
+
+    [JsonPropertyName("db_path")]
+    public string DbPath { get; set; } = string.Empty;
+
+    [JsonPropertyName("schema_version")]
+    public int SchemaVersion { get; set; }
+
+    [JsonPropertyName("descriptor_version")]
+    public int DescriptorVersion { get; set; }
+
     [JsonPropertyName("tracks")]
     public long Tracks { get; set; }
+
+    [JsonPropertyName("total_duration_sec")]
+    public double TotalDurationSec { get; set; }
+
+    [JsonPropertyName("db_size_bytes")]
+    public long DbSizeBytes { get; set; }
+
+    [JsonPropertyName("by_model")]
+    public Dictionary<string, long> ByModel { get; set; } = new();
+}
+
+/// <summary>
+/// Live scan-resource representation, returned by both
+/// <c>GET /api/v1/scan</c> and <c>POST /api/v1/scan</c>.
+/// </summary>
+public class ScanState
+{
+    [JsonPropertyName("state")]
+    public string State { get; set; } = string.Empty;
+
+    [JsonPropertyName("phase")]
+    public string Phase { get; set; } = string.Empty;
+
+    [JsonPropertyName("started_at")]
+    public double? StartedAt { get; set; }
+
+    [JsonPropertyName("finished_at")]
+    public double? FinishedAt { get; set; }
+
+    [JsonPropertyName("last_duration_sec")]
+    public double? LastDurationSec { get; set; }
+
+    [JsonPropertyName("last_error")]
+    public string? LastError { get; set; }
+
+    [JsonPropertyName("discovered")]
+    public int Discovered { get; set; }
+
+    [JsonPropertyName("full")]
+    public int Full { get; set; }
+
+    [JsonPropertyName("descriptors_only")]
+    public int DescriptorsOnly { get; set; }
+
+    [JsonPropertyName("skipped")]
+    public int Skipped { get; set; }
+
+    [JsonPropertyName("failed")]
+    public int Failed { get; set; }
+
+    [JsonPropertyName("removed")]
+    public int Removed { get; set; }
 }
 
 /// <summary>
