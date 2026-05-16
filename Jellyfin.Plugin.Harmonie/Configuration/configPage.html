@@ -3,14 +3,6 @@
 <head>
     <meta charset="utf-8">
     <title>Harmonie</title>
-    <style>
-        /* Pull the description tight under the checkbox so it's
-           visually grouped with that one input, not the next field. */
-        #HarmonieConfigPage .checkboxContainer + .fieldDescription {
-            margin-top: -0.5em;
-            margin-left: 2.4em;
-        }
-    </style>
 </head>
 <body>
     <div id="HarmonieConfigPage"
@@ -157,12 +149,14 @@
                             Maximum BPM gap between consecutive tracks. Leave empty for no constraint (harmonie's default).
                         </div>
                     </div>
-                    <label class="checkboxContainer">
-                        <input id="KeyCompatible" name="KeyCompatible" type="checkbox" is="emby-checkbox" />
-                        <span>Mix only harmonically compatible keys</span>
-                    </label>
-                    <div class="fieldDescription">
-                        When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Strict &mdash; tracks without key info are excluded.
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="KeyCompatible" name="KeyCompatible" type="checkbox" is="emby-checkbox" />
+                            <span>Mix only harmonically compatible keys</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Strict &mdash; tracks without key info are excluded.
+                        </div>
                     </div>
 
                     <h2>[MIX] defaults</h2>
@@ -189,19 +183,23 @@
                             Maximum number of seed tracks pulled from your listening history. Within the listening window above, the plugin takes the top N most recently played tracks (or the top N most played, when "Seed by top-played" is on). It's a deterministic top-N, not random. 5&ndash;15 is the sweet spot &mdash; too few clones one track, too many blurs the average. 1&ndash;100.
                         </div>
                     </div>
-                    <label class="checkboxContainer">
-                        <input id="DefaultMixUseTopPlayed" name="DefaultMixUseTopPlayed" type="checkbox" is="emby-checkbox" />
-                        <span>Seed by top-played instead of most-recent</span>
-                    </label>
-                    <div class="fieldDescription">
-                        Off (default): "today's mix" &mdash; seeds are the most recently played tracks in the window. On: "your sound" &mdash; seeds are the highest play-count tracks. Override per playlist with <code>[MIX top]</code>.
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="DefaultMixUseTopPlayed" name="DefaultMixUseTopPlayed" type="checkbox" is="emby-checkbox" />
+                            <span>Seed by top-played instead of most-recent</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Off (default): "today's mix" &mdash; seeds are the most recently played tracks in the window. On: "your sound" &mdash; seeds are the highest play-count tracks. Override per playlist with <code>[MIX top]</code>.
+                        </div>
                     </div>
-                    <label class="checkboxContainer">
-                        <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
-                        <span>Use drift mode for mix expansion</span>
-                    </label>
-                    <div class="fieldDescription">
-                        Off (default): a "more like this" mix grouped around the centroid. On: a stretch mix that walks away from the seed for discovery. Override per playlist with <code>[MIX drift]</code>.
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
+                            <span>Use drift mode for mix expansion</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Off (default): a "more like this" mix grouped around the centroid. On: a stretch mix that walks away from the seed for discovery. Override per playlist with <code>[MIX drift]</code>.
+                        </div>
                     </div>
 
                     <h2>[STYLE] cluster playlists</h2>
@@ -209,10 +207,12 @@
                         Optional. When enabled, the daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from that user's listening history. Each playlist is named <code>[STYLE] Genre · Style</code>. As tastes shift the playlists rename and re-fill themselves &mdash; no churn, no orphans.
                     </div>
 
-                    <label class="checkboxContainer">
-                        <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
-                        <span>Enable per-user style cluster playlists</span>
-                    </label>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
+                            <span>Enable per-user style cluster playlists</span>
+                        </label>
+                    </div>
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Playlists per user</label>
