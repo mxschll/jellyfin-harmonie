@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.21.1",
+        "changelog": " ### Features  - Weight radio seeds by position so first track anchors the result (6544525)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.21/jellyfin-harmonie_0.1.21.1.zip",
+        "checksum": "93b4883ab9a2cd6721fcbcaf872ae1e8",
+        "timestamp": "2026-05-16T13:26:53Z"
+      },
+      {
+        "version": "0.1.21.0",
+        "changelog": " ### Features  - Weight radio seeds by position so first track anchors the result (6544525)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.21/jellyfin-harmonie_0.1.21.0.zip",
+        "checksum": "d898bb5a74f417eaa5679405a5552c9b",
+        "timestamp": "2026-05-16T13:26:53Z"
+      },
+      {
         "version": "0.1.20.1",
         "changelog": " ### Features  - Refresh on track reorder via 30s polling backstop (6aef9fb)  ",
         "targetAbi": "10.11.0.0",
