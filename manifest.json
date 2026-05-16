@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.30.1",
+        "changelog": " ### Bug Fixes  - Keep optimistic scanning state when post snapshot still shows idle (cc3823f)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.30/jellyfin-harmonie_0.1.30.1.zip",
+        "checksum": "86bab9e7687c1a9a3d512688161f9582",
+        "timestamp": "2026-05-16T17:06:57Z"
+      },
+      {
+        "version": "0.1.30.0",
+        "changelog": " ### Bug Fixes  - Keep optimistic scanning state when post snapshot still shows idle (cc3823f)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.30/jellyfin-harmonie_0.1.30.0.zip",
+        "checksum": "05a1f12f7a0a93de76c4441d468ea736",
+        "timestamp": "2026-05-16T17:06:57Z"
+      },
+      {
         "version": "0.1.29.1",
         "changelog": " ### Bug Fixes  - Optimistic scan state on trigger and drop the inline status text (fe7bb3e)  ",
         "targetAbi": "10.11.0.0",
