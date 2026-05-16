@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.42.1",
+        "changelog": " ### Bug Fixes  - Put style playlists description below checkbox like the others (e898abe)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.42/jellyfin-harmonie_0.1.42.1.zip",
+        "checksum": "d65d0a8bdfb7e41bb5213c2ce915365d",
+        "timestamp": "2026-05-16T18:56:19Z"
+      },
+      {
+        "version": "0.1.42.0",
+        "changelog": " ### Bug Fixes  - Put style playlists description below checkbox like the others (e898abe)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.42/jellyfin-harmonie_0.1.42.0.zip",
+        "checksum": "100bbfad2fc666f64eae89128739a992",
+        "timestamp": "2026-05-16T18:56:19Z"
+      },
+      {
         "version": "0.1.41.1",
         "changelog": " ### Documentation  - Tighten settings page text, drop weasel words and dev jargon (a3e784a)  ",
         "targetAbi": "10.11.0.0",
