@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.31.1",
+        "changelog": " ### Documentation  - Link to readme and clarify what seed count cap actually does (66a577e)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.31/jellyfin-harmonie_0.1.31.1.zip",
+        "checksum": "bf2a847d36814b82e0d955d131a2f1cb",
+        "timestamp": "2026-05-16T17:13:23Z"
+      },
+      {
+        "version": "0.1.31.0",
+        "changelog": " ### Documentation  - Link to readme and clarify what seed count cap actually does (66a577e)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.31/jellyfin-harmonie_0.1.31.0.zip",
+        "checksum": "53cf3cb3847adfbcc71db8c7e056d940",
+        "timestamp": "2026-05-16T17:13:23Z"
+      },
+      {
         "version": "0.1.30.1",
         "changelog": " ### Bug Fixes  - Keep optimistic scanning state when post snapshot still shows idle (cc3823f)  ",
         "targetAbi": "10.11.0.0",
