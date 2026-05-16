@@ -65,13 +65,10 @@
                     </div>
 
                     <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <div style="margin-bottom: 0.5em;">
-                            <strong>Scan state:</strong>
-                            <span id="ScanStateText"></span>
-                            <span id="ScanPhaseText" style="opacity: 0.7;"></span>
-                        </div>
                         <table style="width: 100%; border-collapse: collapse;">
                             <tbody>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">State</td><td><strong id="ScanStateText"></strong></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Phase</td><td><span id="ScanPhaseText"></span></td></tr>
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
@@ -380,9 +377,7 @@
                     stateText.style.color = scan.state === 'error' ? '#c00'
                         : scan.state === 'scanning' ? '#06c' : '';
 
-                    var phaseEl = document.querySelector('#ScanPhaseText');
-                    phaseEl.textContent = (scan.phase && scan.phase !== 'idle')
-                        ? ' (' + scan.phase + ')' : '';
+                    document.querySelector('#ScanPhaseText').textContent = scan.phase || 'idle';
 
                     document.querySelector('#ScanDiscovered').textContent = (scan.discovered || 0).toLocaleString();
                     document.querySelector('#ScanFull').textContent = (scan.full || 0).toLocaleString();
