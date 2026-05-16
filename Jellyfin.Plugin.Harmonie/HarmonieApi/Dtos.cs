@@ -49,11 +49,25 @@ public class PlaylistResult
 }
 
 /// <summary>
+/// Optional consecutive-pair smoothness rules. Used by both similar and
+/// drift modes. Null fields are omitted from the JSON request and
+/// harmonie applies its own defaults (no BPM constraint, no key check).
+/// </summary>
+public class SmoothTransitions
+{
+    [JsonPropertyName("bpm_tolerance")]
+    public double? BpmTolerance { get; set; }
+
+    [JsonPropertyName("key_compatible")]
+    public bool KeyCompatible { get; set; }
+}
+
+/// <summary>
 /// Body for harmonie's <c>POST /api/v1/playlists</c> with
 /// <c>mode = "similar"</c>. The plugin's "[RADIO]" playlists use this.
 /// Only the minimum fields needed by the plugin are modeled — harmonie
-/// supports more (filter, smooth_transitions, include_seeds), but the
-/// plugin keeps the surface area small on purpose.
+/// supports more (filter, include_seeds), but the plugin keeps the
+/// surface area small on purpose.
 /// </summary>
 public class SimilarPlaylistRequest
 {
@@ -65,6 +79,9 @@ public class SimilarPlaylistRequest
 
     [JsonPropertyName("n")]
     public int N { get; set; } = 20;
+
+    [JsonPropertyName("smooth_transitions")]
+    public SmoothTransitions? SmoothTransitions { get; set; }
 }
 
 /// <summary>
@@ -82,6 +99,12 @@ public class DriftPlaylistRequest
 
     [JsonPropertyName("n")]
     public int N { get; set; } = 30;
+
+    [JsonPropertyName("chunk_size")]
+    public int ChunkSize { get; set; } = 5;
+
+    [JsonPropertyName("smooth_transitions")]
+    public SmoothTransitions? SmoothTransitions { get; set; }
 }
 
 /// <summary>

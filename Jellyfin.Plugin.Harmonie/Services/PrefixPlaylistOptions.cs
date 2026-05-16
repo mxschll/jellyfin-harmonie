@@ -32,8 +32,9 @@ public enum HarmonieMode
 ///   [DRIFT] anything-after-the-prefix → drifting walk
 ///
 /// Both prefixes accept an optional <c>n=&lt;count&gt;</c> token inside the
-/// brackets to control playlist length, e.g. <c>[RADIO n=40] Workout</c>.
-/// Defaults: 20 tracks for radio, 30 for drift.
+/// brackets to override the playlist length, e.g. <c>[RADIO n=40] Workout</c>.
+/// When <c>n</c> is omitted from the title, <see cref="N"/> is null and the
+/// caller substitutes the per-mode default from plugin config.
 ///
 /// Returns null if the name doesn't open with one of the two prefixes.
 /// </summary>
@@ -51,18 +52,6 @@ public class PrefixPlaylistOptions
     /// </summary>
     public const string DriftPrefix = "[DRIFT]";
 
-    /// <summary>
-    /// Default number of tracks for radio mode. Matches harmonie's own
-    /// default for the <c>similar</c> endpoint.
-    /// </summary>
-    public const int RadioDefaultN = 20;
-
-    /// <summary>
-    /// Default number of tracks for drift mode. Drift benefits from a
-    /// longer playlist so the walk has room to evolve.
-    /// </summary>
-    public const int DriftDefaultN = 30;
-
     private static readonly Regex BracketPattern = new(
         @"^\[(?<word>[A-Za-z]+)(?<rest>[^\]]*)\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -73,9 +62,11 @@ public class PrefixPlaylistOptions
     public HarmonieMode Mode { get; set; }
 
     /// <summary>
-    /// Total tracks in the resulting playlist.
+    /// Total tracks in the resulting playlist as parsed from the title.
+    /// Null when the title omits <c>n=N</c>; the service falls back to
+    /// the configured default for the mode.
     /// </summary>
-    public int N { get; set; }
+    public int? N { get; set; }
 
     /// <summary>
     /// Parses a playlist name. Returns null if the name doesn't start
@@ -96,16 +87,13 @@ public class PrefixPlaylistOptions
 
         var bracketWord = match.Groups["word"].Value;
         HarmonieMode mode;
-        int defaultN;
         if (string.Equals(bracketWord, "RADIO", StringComparison.OrdinalIgnoreCase))
         {
             mode = HarmonieMode.Radio;
-            defaultN = RadioDefaultN;
         }
         else if (string.Equals(bracketWord, "DRIFT", StringComparison.OrdinalIgnoreCase))
         {
             mode = HarmonieMode.Drift;
-            defaultN = DriftDefaultN;
         }
         else
         {
@@ -115,7 +103,6 @@ public class PrefixPlaylistOptions
         var options = new PrefixPlaylistOptions
         {
             Mode = mode,
-            N = defaultN,
         };
 
         // Tokens inside the brackets after the mode word. Currently only

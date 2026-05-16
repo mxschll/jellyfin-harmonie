@@ -50,42 +50,38 @@ public class PrefixPlaylistOptionsTests
     // ---------------------------------------------------------------
 
     [Fact]
-    public void Bare_radio_prefix_yields_radio_mode_with_default_n()
+    public void Bare_radio_prefix_yields_radio_mode_with_unset_n()
     {
-        // Default N for radio matches harmonie's own /playlists default
-        // for similar mode (20). If either side changes that contract,
-        // this test catches the drift.
+        // Unset N is the parser's way of telling the service to use
+        // the configured radio default. If we ever start hard-coding
+        // a value here again, this test catches it.
         var opts = PrefixPlaylistOptions.TryParse("[RADIO]");
         Assert.NotNull(opts);
         Assert.Equal(HarmonieMode.Radio, opts!.Mode);
-        Assert.Equal(20, opts.N);
+        Assert.Null(opts.N);
     }
 
     [Fact]
-    public void Bare_drift_prefix_yields_drift_mode_with_default_n()
+    public void Bare_drift_prefix_yields_drift_mode_with_unset_n()
     {
-        // Drift defaults to a longer playlist (30) so the walk has room
-        // to evolve in style.
         var opts = PrefixPlaylistOptions.TryParse("[DRIFT]");
         Assert.NotNull(opts);
         Assert.Equal(HarmonieMode.Drift, opts!.Mode);
-        Assert.Equal(30, opts.N);
+        Assert.Null(opts.N);
     }
 
     [Fact]
-    public void Trailing_descriptive_text_does_not_change_mode_or_defaults()
+    public void Trailing_descriptive_text_does_not_change_mode()
     {
         // "[RADIO] Workout" is the everyday case — playlists named like
         // a human, not just the prefix.
         var radio = PrefixPlaylistOptions.TryParse("[RADIO] Workout");
         Assert.NotNull(radio);
         Assert.Equal(HarmonieMode.Radio, radio!.Mode);
-        Assert.Equal(20, radio.N);
 
         var drift = PrefixPlaylistOptions.TryParse("[DRIFT] Long mix");
         Assert.NotNull(drift);
         Assert.Equal(HarmonieMode.Drift, drift!.Mode);
-        Assert.Equal(30, drift.N);
     }
 
     // ---------------------------------------------------------------
@@ -116,18 +112,19 @@ public class PrefixPlaylistOptionsTests
     }
 
     [Theory]
-    [InlineData("[RADIO n=999]", 20)]   // too high → default
-    [InlineData("[RADIO n=0]", 20)]     // too low (n>=1)
-    [InlineData("[RADIO n=abc]", 20)]   // not a number
-    [InlineData("[DRIFT n=999]", 30)]   // too high, drift default
-    [InlineData("[DRIFT n=0]", 30)]
-    public void Invalid_n_values_fall_back_to_mode_default(string title, int expectedN)
+    [InlineData("[RADIO n=999]")]   // too high
+    [InlineData("[RADIO n=0]")]     // too low (n>=1)
+    [InlineData("[RADIO n=abc]")]   // not a number
+    [InlineData("[DRIFT n=999]")]
+    [InlineData("[DRIFT n=0]")]
+    public void Invalid_n_values_leave_n_unset(string title)
     {
-        // Out-of-range n shouldn't accidentally produce a 999-track
-        // playlist, and shouldn't mix radio/drift defaults.
+        // Out-of-range n should be ignored entirely (so the service
+        // applies the configured default), not silently clamped to a
+        // surprising value.
         var opts = PrefixPlaylistOptions.TryParse(title);
         Assert.NotNull(opts);
-        Assert.Equal(expectedN, opts!.N);
+        Assert.Null(opts!.N);
     }
 
     [Fact]

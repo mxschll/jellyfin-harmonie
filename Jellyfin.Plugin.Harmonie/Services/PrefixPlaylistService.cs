@@ -9,6 +9,7 @@ using Jellyfin.Data.Entities;
 #else
 using Jellyfin.Database.Implementations.Entities;
 #endif
+using Jellyfin.Plugin.Harmonie.Configuration;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
@@ -158,6 +159,9 @@ public class PrefixPlaylistService
             return;
         }
 
+        var config = HarmoniePlugin.Instance?.Configuration
+            ?? throw new InvalidOperationException("Plugin not initialized.");
+
         var owner = ResolveOwner(playlist);
         if (owner is null)
         {
@@ -238,6 +242,7 @@ public class PrefixPlaylistService
         }
 
         // Dispatch by mode. Drift takes a single seed by harmonie's contract.
+        var smoothTransitions = BuildSmoothTransitions(config);
         PlaylistResult harmonieResult;
         if (options.Mode == HarmonieMode.Drift)
         {
@@ -253,7 +258,9 @@ public class PrefixPlaylistService
                 new DriftPlaylistRequest
                 {
                     Seeds = new List<long> { harmonieSeedIds[0] },
-                    N = options.N,
+                    N = options.N ?? config.DefaultDriftN,
+                    ChunkSize = config.DefaultChunkSize,
+                    SmoothTransitions = smoothTransitions,
                 },
                 ct).ConfigureAwait(false);
         }
@@ -263,7 +270,8 @@ public class PrefixPlaylistService
                 new SimilarPlaylistRequest
                 {
                     Seeds = harmonieSeedIds,
-                    N = options.N,
+                    N = options.N ?? config.DefaultRadioN,
+                    SmoothTransitions = smoothTransitions,
                 },
                 ct).ConfigureAwait(false);
         }
@@ -324,6 +332,26 @@ public class PrefixPlaylistService
             seedIds.Count,
             resolvedNew.Count,
             harmonieResult.Items.Count);
+    }
+
+    /// <summary>
+    /// Builds a <see cref="SmoothTransitions"/> from plugin config, or
+    /// null if both fields are at their (no-op) defaults. Returning null
+    /// makes the request omit the field, which lets harmonie apply its
+    /// own defaults — same outcome but a cleaner request.
+    /// </summary>
+    private static SmoothTransitions? BuildSmoothTransitions(PluginConfiguration config)
+    {
+        if (config.BpmTolerance is null && !config.KeyCompatible)
+        {
+            return null;
+        }
+
+        return new SmoothTransitions
+        {
+            BpmTolerance = config.BpmTolerance,
+            KeyCompatible = config.KeyCompatible,
+        };
     }
 
     private async Task<List<long>> ResolveSeedIdsAsync(

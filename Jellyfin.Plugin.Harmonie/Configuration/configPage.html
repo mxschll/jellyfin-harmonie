@@ -56,10 +56,47 @@
                         The plugin watches for two kinds of playlist names. Add tracks to one and
                         the rest fills in automatically.
                         <ul style="margin-top: 0.5em;">
-                            <li><code>[RADIO]</code> &mdash; track radio. Add one or more tracks and harmonie returns 20 similar ones.</li>
-                            <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates 30 tracks that gradually move away from it.</li>
+                            <li><code>[RADIO]</code> &mdash; track radio. Add one or more tracks and harmonie returns similar ones.</li>
+                            <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates tracks that gradually move away from it.</li>
                         </ul>
                         Append <code>n=&lt;count&gt;</code> to override length, e.g. <code>[DRIFT n=50] Long mix</code>.
+                    </div>
+
+                    <h2>Playlist defaults</h2>
+                    <div class="fieldDescription">
+                        Applied when a playlist title doesn't override them. Initial values match harmonie's own API defaults.
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultRadioN">Default radio length (n)</label>
+                        <input id="DefaultRadioN" name="DefaultRadioN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks for <code>[RADIO]</code> playlists. 1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultDriftN">Default drift length (n)</label>
+                        <input id="DefaultDriftN" name="DefaultDriftN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks for <code>[DRIFT]</code> playlists. 1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultChunkSize">Drift chunk size</label>
+                        <input id="DefaultChunkSize" name="DefaultChunkSize" type="number" is="emby-input" min="1" max="100" />
+                        <div class="fieldDescription">
+                            Tracks per anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. 1&ndash;100. Drift mode only.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="BpmTolerance">BPM tolerance</label>
+                        <input id="BpmTolerance" name="BpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
+                        <div class="fieldDescription">
+                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint (harmonie's default).
+                        </div>
+                    </div>
+                    <label class="checkboxContainer">
+                        <input id="KeyCompatible" name="KeyCompatible" type="checkbox" is="emby-checkbox" />
+                        <span>Mix only harmonically compatible keys</span>
+                    </label>
+                    <div class="fieldDescription">
+                        When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Strict &mdash; tracks without key info are excluded.
                     </div>
 
                     <div>
@@ -110,6 +147,14 @@
                             document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
                             document.querySelector('#PathMappings').value =
                                 pathMappingsToText(config.PathMappings);
+                            document.querySelector('#DefaultRadioN').value = config.DefaultRadioN || 20;
+                            document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 30;
+                            document.querySelector('#DefaultChunkSize').value = config.DefaultChunkSize || 5;
+                            // BpmTolerance is nullable. Empty input = null.
+                            document.querySelector('#BpmTolerance').value =
+                                (config.BpmTolerance === null || config.BpmTolerance === undefined)
+                                    ? '' : config.BpmTolerance;
+                            document.querySelector('#KeyCompatible').checked = !!config.KeyCompatible;
                             Dashboard.hideLoadingMsg();
                         });
                     });
@@ -125,6 +170,15 @@
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
                             config.PathMappings =
                                 pathMappingsFromText(document.querySelector('#PathMappings').value);
+                            config.DefaultRadioN =
+                                parseInt(document.querySelector('#DefaultRadioN').value, 10) || 20;
+                            config.DefaultDriftN =
+                                parseInt(document.querySelector('#DefaultDriftN').value, 10) || 30;
+                            config.DefaultChunkSize =
+                                parseInt(document.querySelector('#DefaultChunkSize').value, 10) || 5;
+                            var bpmTolRaw = document.querySelector('#BpmTolerance').value;
+                            config.BpmTolerance = bpmTolRaw === '' ? null : parseFloat(bpmTolRaw);
+                            config.KeyCompatible = document.querySelector('#KeyCompatible').checked;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });
