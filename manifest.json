@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.39.1",
+        "changelog": " ### Features  - Ship banner.png as the plugin image, keep thumb.png in repo for the readme (54ebbd9)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.39/jellyfin-harmonie_0.1.39.1.zip",
+        "checksum": "f055e052c9e09391c0a06f2801e9996d",
+        "timestamp": "2026-05-16T18:44:31Z"
+      },
+      {
+        "version": "0.1.39.0",
+        "changelog": " ### Features  - Ship banner.png as the plugin image, keep thumb.png in repo for the readme (54ebbd9)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.39/jellyfin-harmonie_0.1.39.0.zip",
+        "checksum": "a5f6be48c713310515640b2064f2cfd9",
+        "timestamp": "2026-05-16T18:44:31Z"
+      },
+      {
         "version": "0.1.38.1",
         "changelog": " ### Documentation  - Use banner image in readme hero (47a1c61) - Drop docker reference from harmonie install pointer (3b0d4c3) - Mention harmonies default port and url (876154f) - Shrink logo and document harmonie install in readme (5a6b653) - Center logo title and badge as a hero block (a3f1461) - Add ci badge and logo to readme (d360103) - Tighten readme intro and clarify what to restart (e066830) - Open readme with the spotify/plex framing (46cf4a5) - Rewrite readme for users, move dev notes to development.md (d712124)  ",
         "targetAbi": "10.11.0.0",
