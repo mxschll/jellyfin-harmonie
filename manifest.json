@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.38.1",
+        "changelog": " ### Documentation  - Use banner image in readme hero (47a1c61) - Drop docker reference from harmonie install pointer (3b0d4c3) - Mention harmonies default port and url (876154f) - Shrink logo and document harmonie install in readme (5a6b653) - Center logo title and badge as a hero block (a3f1461) - Add ci badge and logo to readme (d360103) - Tighten readme intro and clarify what to restart (e066830) - Open readme with the spotify/plex framing (46cf4a5) - Rewrite readme for users, move dev notes to development.md (d712124)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.38/jellyfin-harmonie_0.1.38.1.zip",
+        "checksum": "95183133a94e1d728aa60fb373aa816d",
+        "timestamp": "2026-05-16T18:42:44Z"
+      },
+      {
+        "version": "0.1.38.0",
+        "changelog": " ### Documentation  - Use banner image in readme hero (47a1c61) - Drop docker reference from harmonie install pointer (3b0d4c3) - Mention harmonies default port and url (876154f) - Shrink logo and document harmonie install in readme (5a6b653) - Center logo title and badge as a hero block (a3f1461) - Add ci badge and logo to readme (d360103) - Tighten readme intro and clarify what to restart (e066830) - Open readme with the spotify/plex framing (46cf4a5) - Rewrite readme for users, move dev notes to development.md (d712124)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.38/jellyfin-harmonie_0.1.38.0.zip",
+        "checksum": "e8ce0fb6e75b129c213860fb86e2226d",
+        "timestamp": "2026-05-16T18:42:44Z"
+      },
+      {
         "version": "0.1.37.1",
         "changelog": " ### Chores  - Drop refresh smart playlists button and bulk refresh endpoint (d4b7fd5)  ",
         "targetAbi": "10.11.0.0",
