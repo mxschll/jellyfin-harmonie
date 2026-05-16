@@ -54,6 +54,12 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
     private readonly Dictionary<Guid, IReadOnlyList<Guid>> _lastSeenOrder = new();
     private readonly object _orderLock = new();
 
+    // Last-seen name per playlist. Used to recognise a rename event so
+    // we can skip the debounce — a rename is a single user action, no
+    // burst of follow-up events to coalesce.
+    private readonly Dictionary<Guid, string> _lastSeenName = new();
+    private readonly object _nameLock = new();
+
     private Timer? _pollTimer;
     private bool _started;
 
@@ -156,7 +162,12 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             return;
         }
 
-        ScheduleRefresh(playlist.Id, playlist.Name);
+        // A rename is a single user action with no follow-up burst, so
+        // there's nothing to coalesce. Fire immediately. Track-add and
+        // reorder events still go through the debounce so a drag-drop
+        // of N tracks doesn't kick off N refreshes.
+        var delay = WasRenamed(playlist.Id, playlist.Name) ? TimeSpan.Zero : DebounceDelay;
+        ScheduleRefresh(playlist.Id, playlist.Name, delay);
     }
 
     // ---------------------------------------------------------------
@@ -210,7 +221,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
             "Polling: order change detected on {Name} (children={Count}); scheduling refresh.",
             playlist.Name,
             current.Count);
-        ScheduleRefresh(playlist.Id, playlist.Name);
+        ScheduleRefresh(playlist.Id, playlist.Name, DebounceDelay);
     }
 
     private void PrimeSnapshots()
@@ -286,6 +297,23 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
         return ids;
     }
 
+    /// <summary>
+    /// Records the playlist's current name and returns whether it
+    /// changed since the last time we saw it. The first time a
+    /// playlist appears (no previous name on file) is not treated as
+    /// a rename — there's nothing to rename from.
+    /// </summary>
+    private bool WasRenamed(Guid playlistId, string currentName)
+    {
+        lock (_nameLock)
+        {
+            _lastSeenName.TryGetValue(playlistId, out var previous);
+            _lastSeenName[playlistId] = currentName;
+            return previous is not null
+                && !string.Equals(previous, currentName, StringComparison.Ordinal);
+        }
+    }
+
     private static bool OrderEquals(IReadOnlyList<Guid> a, IReadOnlyList<Guid> b)
     {
         if (a.Count != b.Count)
@@ -322,7 +350,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
         }
     }
 
-    private void ScheduleRefresh(Guid playlistId, string playlistName)
+    private void ScheduleRefresh(Guid playlistId, string playlistName, TimeSpan delay)
     {
         CancellationTokenSource cts;
         lock (_pendingLock)
@@ -343,7 +371,10 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
         {
             try
             {
-                await Task.Delay(DebounceDelay, cts.Token).ConfigureAwait(false);
+                if (delay > TimeSpan.Zero)
+                {
+                    await Task.Delay(delay, cts.Token).ConfigureAwait(false);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -365,10 +396,18 @@ public sealed class PlaylistAutoRefreshService : IHostedService, IDisposable
 
             try
             {
-                _logger.LogInformation(
-                    "Auto-refreshing playlist {Name} after {Delay}s of inactivity.",
-                    playlistName,
-                    DebounceDelay.TotalSeconds);
+                if (delay > TimeSpan.Zero)
+                {
+                    _logger.LogInformation(
+                        "Auto-refreshing playlist {Name} after {Delay}s of inactivity.",
+                        playlistName,
+                        delay.TotalSeconds);
+                }
+                else
+                {
+                    _logger.LogInformation("Auto-refreshing playlist {Name}.", playlistName);
+                }
+
                 await _prefixService.RefreshOneByIdAsync(playlistId, CancellationToken.None)
                     .ConfigureAwait(false);
             }
