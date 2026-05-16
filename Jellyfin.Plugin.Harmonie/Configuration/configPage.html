@@ -35,17 +35,17 @@
                     </div>
 
                     <div id="HarmonieStatusPanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                             <tbody>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Version</td><td><code id="StatusVersion"></code></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Backend</td><td><code id="StatusBackend"></code></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Workers</td><td><span id="StatusWorkers"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Embedding dim</td><td><span id="StatusEmbeddingDim"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Schema version</td><td><span id="StatusSchemaVersion"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7;">Libraries</td><td><span id="StatusLibraries"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Version</td><td><code id="StatusVersion"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Backend</td><td><code id="StatusBackend"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Workers</td><td><span id="StatusWorkers"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Embedding dim</td><td><span id="StatusEmbeddingDim"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="StatusSchemaVersion"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Libraries</td><td><span id="StatusLibraries"></span></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -65,18 +65,18 @@
                     </div>
 
                     <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                             <tbody>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">State</td><td><strong id="ScanStateText"></strong></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Phase</td><td><span id="ScanPhaseText"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Failed</td><td><span id="ScanFailed"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
-                                <tr id="ScanLastDurationRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
-                                <tr id="ScanLastErrorRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7;">Last error</td><td><code id="ScanLastError" style="color: #c00;"></code></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">State</td><td><strong id="ScanStateText"></strong></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Phase</td><td><span id="ScanPhaseText"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Failed</td><td><span id="ScanFailed"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
+                                <tr id="ScanLastDurationRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
+                                <tr id="ScanLastErrorRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last error</td><td><code id="ScanLastError" style="color: #c00;"></code></td></tr>
                             </tbody>
                         </table>
                     </div>
