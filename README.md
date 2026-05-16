@@ -35,7 +35,7 @@ In Jellyfin go to Dashboard, Plugins, Repositories, and add this URL:
 https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/manifest.json
 ```
 
-Open the Catalog tab, find Harmonie under Music, and click Install. Restart Jellyfin when prompted. Then open Plugins, Harmonie, and point the plugin at your harmonie server.
+Open the Catalog tab, find Harmonie under Music, and click Install. Restart Jellyfin when prompted. Then open Plugins, Harmonie, and point the plugin at your harmonie server. Harmonie listens on port `8842` by default, so if you ran it on the same machine as Jellyfin the URL is `http://localhost:8842`.
 
 ## Use it
 
