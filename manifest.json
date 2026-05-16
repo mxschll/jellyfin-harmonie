@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.28.1",
+        "changelog": " ### Features  - Suggest path mappings from harmonie and jellyfin libraries (dc63e9e)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.28/jellyfin-harmonie_0.1.28.1.zip",
+        "checksum": "54ad2a9ad6c5c0f206fa4babaaaa1289",
+        "timestamp": "2026-05-16T17:01:35Z"
+      },
+      {
+        "version": "0.1.28.0",
+        "changelog": " ### Features  - Suggest path mappings from harmonie and jellyfin libraries (dc63e9e)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.28/jellyfin-harmonie_0.1.28.0.zip",
+        "checksum": "4a9087303a134fc46f311fc2a65f7a00",
+        "timestamp": "2026-05-16T17:01:35Z"
+      },
+      {
         "version": "0.1.27.1",
         "changelog": " ### Bug Fixes  - Stable column widths in status and scan tables (e080613)  ",
         "targetAbi": "10.11.0.0",
