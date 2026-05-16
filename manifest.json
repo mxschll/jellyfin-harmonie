@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.34.1",
+        "changelog": " ### Bug Fixes  - Theme-aware readme link and stable scan table layout (1464b29)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.34/jellyfin-harmonie_0.1.34.1.zip",
+        "checksum": "4395c18a725ae1c1e849c6d9818d7ab9",
+        "timestamp": "2026-05-16T17:25:28Z"
+      },
+      {
+        "version": "0.1.34.0",
+        "changelog": " ### Bug Fixes  - Theme-aware readme link and stable scan table layout (1464b29)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.34/jellyfin-harmonie_0.1.34.0.zip",
+        "checksum": "7e7fd1a86f580761569778e0b93bfc2c",
+        "timestamp": "2026-05-16T17:25:28Z"
+      },
+      {
         "version": "0.1.33.1",
         "changelog": " ### Bug Fixes  - Use jellyfin checkbox container convention so descriptions group properly (b1d5d8d)  ",
         "targetAbi": "10.11.0.0",
