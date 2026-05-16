@@ -1,8 +1,14 @@
-# Jellyfin Harmonie
+<p align="center">
+  <img src="Jellyfin.Plugin.Harmonie/thumb.png" width="160" alt="Harmonie logo" />
+</p>
 
-<img src="Jellyfin.Plugin.Harmonie/thumb.png" align="right" width="140" alt="Harmonie logo" />
+<h1 align="center">Jellyfin Harmonie</h1>
 
-[![CI](https://github.com/mxschll/jellyfin-harmonie/actions/workflows/ci.yml/badge.svg)](https://github.com/mxschll/jellyfin-harmonie/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/mxschll/jellyfin-harmonie/actions/workflows/ci.yml">
+    <img src="https://github.com/mxschll/jellyfin-harmonie/actions/workflows/ci.yml/badge.svg" alt="CI" />
+  </a>
+</p>
 
 Spotify has Song Radio and Daily Mix. Plex has Sonic Sage. They listen to a track or your recent plays and surface dozens of similar songs from your library. Jellyfin doesn't have anything like that. The existing smart-playlist plugins match on metadata (genre, year, rating), not on what the music actually sounds like.
 
