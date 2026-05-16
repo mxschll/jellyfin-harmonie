@@ -24,17 +24,17 @@ topo_order = false
 commit_parsers = [
   # Hide the bot's own auto-commits from the changelog.
   { message = "^chore: update manifest", skip = true },
-  { message = "^feat",     group = " Features" },
-  { message = "^fix",      group = " Bug Fixes" },
-  { message = "^perf",     group = " Performance" },
-  { message = "^refactor", group = " Refactor" },
-  { message = "^docs",     group = " Documentation" },
-  { message = "^test",     group = " Tests" },
-  { message = "^build",    group = "  Build" },
-  { message = "^ci",       group = " CI" },
-  { message = "^chore",    group = " Chores" },
-  { message = "^revert",   group = " Revert" },
-  { message = "^style",    group = " Style" },
+  { message = "^feat",     group = "Features" },
+  { message = "^fix",      group = "Bug Fixes" },
+  { message = "^perf",     group = "Performance" },
+  { message = "^refactor", group = "Refactor" },
+  { message = "^docs",     group = "Documentation" },
+  { message = "^test",     group = "Tests" },
+  { message = "^build",    group = "Build" },
+  { message = "^ci",       group = "CI" },
+  { message = "^chore",    group = "Chores" },
+  { message = "^revert",   group = "Revert" },
+  { message = "^style",    group = "Style" },
   # Anything else falls into "Other".
   { message = ".*",        group = "Other" },
 ]
