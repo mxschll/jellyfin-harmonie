@@ -63,9 +63,9 @@ Examples:
 - `[MIX top days=30] Heavy Rotation`
 - `[MIX drift] Stretch Mix`
 
-## Style cluster playlists
+## Personal Mix playlists
 
-Optional. When you turn this on, the plugin maintains a fixed number of `[STYLE]` playlists per user, one per top style derived from listening history. As your taste shifts the playlists rename and refill themselves. No orphans, no manual cleanup. Turn it on in plugin settings under "[STYLE] cluster playlists".
+Optional. When you turn this on, the plugin maintains a fixed number of `Personal Mix · Style` playlists per user, one per top style derived from listening history. As your taste shifts the playlists rename and refill themselves. No orphans, no manual cleanup. Turn it on in plugin settings under "Personal Mix playlists".
 
 ## Refresh
 

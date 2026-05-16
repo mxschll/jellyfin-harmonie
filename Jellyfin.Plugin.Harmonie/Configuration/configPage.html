@@ -195,22 +195,22 @@
                         </div>
                     </div>
 
-                    <h2>[STYLE] cluster playlists</h2>
+                    <h2>Personal Mix playlists</h2>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
-                            <span>Enable per-user style cluster playlists</span>
+                            <span>Enable per-user Personal Mix playlists</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Optional. The daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from listening history. Each is named <code>[STYLE] Genre &middot; Style</code>. As tastes shift the playlists rename and re-fill in place.
+                            Optional. The daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from listening history. Each is named <code>Personal Mix &middot; Style</code>. As tastes shift the playlists rename and re-fill in place.
                         </div>
                     </div>
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Playlists per user</label>
                         <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
-                        <div class="fieldDescription">Number of <code>[STYLE]</code> playlists per user. Reducing the number deletes the excess. 0&ndash;10.</div>
+                        <div class="fieldDescription">Number of Personal Mix playlists per user. Reducing the number deletes the excess. 0&ndash;10.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Listening window (days)</label>
@@ -220,7 +220,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
                         <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks in each <code>[STYLE]</code> playlist. 1&ndash;500.</div>
+                        <div class="fieldDescription">Number of tracks in each Personal Mix playlist. 1&ndash;500.</div>
                     </div>
 
                     <div>

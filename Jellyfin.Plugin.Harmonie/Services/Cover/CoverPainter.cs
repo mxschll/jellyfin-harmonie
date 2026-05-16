@@ -53,6 +53,32 @@ public sealed class CoverPainter
     }
 
     /// <summary>
+    /// Renders a 1024×1024 primary cover for a Personal Mix playlist:
+    /// "Personal Mix" small at top, the style label big underneath.
+    /// Used for plugin-managed style cluster playlists where the
+    /// style name is the visual focus and "Personal Mix" is the
+    /// supertitle.
+    /// </summary>
+    public byte[] RenderPersonalMix(string styleLabel, string badge, SKColor baseColor)
+    {
+        var (top, bottom) = CoverPalette.Gradient(baseColor);
+
+        var info = new SKImageInfo(1024, 1024, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var surface = SKSurface.Create(info);
+        var canvas = surface.Canvas;
+        canvas.Clear(SKColors.Black);
+
+        DrawBackground(canvas, top, bottom, info.Width, info.Height);
+        DrawBadge(canvas, badge);
+        DrawStackedTitle(canvas, "Personal Mix", styleLabel, info.Width, info.Height);
+        DrawWordmark(canvas, info.Width, info.Height);
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Png, 95);
+        return data.ToArray();
+    }
+
+    /// <summary>
     /// Renders a 1920×1080 backdrop — just the gradient, no overlaid
     /// text. Jellyfin's playlist detail view overlays its own title on
     /// the backdrop, so duplicating it here would only create noise.
@@ -151,6 +177,58 @@ public sealed class CoverPainter
                 DrawText(canvas, paint, line, x, y, smallest);
                 y += lineHeight;
             }
+        }
+    }
+
+    /// <summary>
+    /// Draws a smaller supertitle line above a larger main-title line,
+    /// both horizontally centred. The combined block is centred
+    /// vertically. The main title shrinks through the size ladder if
+    /// it doesn't fit the available width on a single line.
+    /// </summary>
+    private void DrawStackedTitle(
+        SKCanvas canvas,
+        string superTitle,
+        string mainTitle,
+        int width,
+        int height)
+    {
+        const float SuperSize = 64f;
+        const float SuperGap = 24f; // gap between super and main lines
+        var maxWidth = width - (Margin * 2);
+
+        // Pick a size for the main title that fits.
+        var mainSize = TitleSizesSquare[^1];
+        foreach (var size in TitleSizesSquare)
+        {
+            using var probe = TextPaint(SKColors.White, size);
+            if (MeasureText(probe, mainTitle, size) <= maxWidth)
+            {
+                mainSize = size;
+                break;
+            }
+        }
+
+        var totalHeight = SuperSize + SuperGap + mainSize;
+        var blockTop = (height - totalHeight) / 2f;
+
+        // Supertitle: smaller, slightly transparent so it reads as
+        // secondary information.
+        using (var paint = TextPaint(SKColors.White.WithAlpha(0xCC), SuperSize))
+        {
+            var w = MeasureText(paint, superTitle, SuperSize);
+            var x = (width - w) / 2f;
+            var baseline = blockTop + SuperSize - 4f;
+            DrawText(canvas, paint, superTitle, x, baseline, SuperSize);
+        }
+
+        // Main title: full white, big.
+        using (var paint = TextPaint(SKColors.White, mainSize))
+        {
+            var w = MeasureText(paint, mainTitle, mainSize);
+            var x = (width - w) / 2f;
+            var baseline = blockTop + SuperSize + SuperGap + mainSize - 8f;
+            DrawText(canvas, paint, mainTitle, x, baseline, mainSize);
         }
     }
 

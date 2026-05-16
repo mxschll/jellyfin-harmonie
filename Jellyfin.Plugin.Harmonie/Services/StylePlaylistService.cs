@@ -440,5 +440,5 @@ public class StylePlaylistService
     }
 
     private static string FormatSlotTitle(string label) =>
-        $"[STYLE] {label}";
+        $"Personal Mix · {label}";
 }

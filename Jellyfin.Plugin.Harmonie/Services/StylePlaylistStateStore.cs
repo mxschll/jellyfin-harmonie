@@ -89,6 +89,30 @@ public class StylePlaylistStateStore
         }
     }
 
+    /// <summary>
+    /// Looks up a slot by its Jellyfin playlist GUID across all users.
+    /// Returns null if the playlist isn't a plugin-managed slot.
+    /// Used by the cover provider to recognise "Personal Mix"
+    /// playlists without needing a name prefix.
+    /// </summary>
+    public StylePlaylistSlot? FindSlotByPlaylistId(Guid playlistId)
+    {
+        var key = playlistId.ToString("N");
+        var dict = Load();
+        foreach (var state in dict.Values)
+        {
+            foreach (var slot in state.Slots)
+            {
+                if (string.Equals(slot.PlaylistGuid, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return slot;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private Dictionary<string, UserStylePlaylistState> Load()
     {
         if (_cache is not null)

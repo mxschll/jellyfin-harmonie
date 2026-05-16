@@ -9,7 +9,7 @@ namespace Jellyfin.Plugin.Harmonie.Tests;
 
 /// <summary>
 /// The clusterer turns a user's recent listens into k cluster
-/// playlists. Bugs here either mis-group tracks (so a "[STYLE] House"
+/// playlists. Bugs here either mis-group tracks (so a "Personal Mix · House"
 /// playlist actually contains Techno) or — historically — produce
 /// playlists with empty or duplicate titles. The tests below pin down
 /// both kinds of correctness.
@@ -136,7 +136,7 @@ public class StyleClustererTests
 
         var clusters = StyleClusterer.Cluster(input, 3);
         Assert.All(clusters, c => Assert.False(string.IsNullOrEmpty(c.Label),
-            "Cluster produced an empty label — would render as '[STYLE] '."));
+            "Cluster produced an empty label — would render as 'Personal Mix · '."));
     }
 
     [Fact]

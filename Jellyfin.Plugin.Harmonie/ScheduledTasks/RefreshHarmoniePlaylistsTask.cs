@@ -33,7 +33,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     public string Key => "HarmonieRefreshPlaylists";
 
     public string Description =>
-        "Rebuild every Harmonie smart playlist ([RADIO], [DRIFT], [MIX], and per-user [STYLE] cluster playlists) by querying the harmonie service.";
+        "Rebuild every Harmonie smart playlist ([RADIO], [DRIFT], [MIX], and per-user Personal Mix playlists) by querying the harmonie service.";
 
     public string Category => "Harmonie";
 
