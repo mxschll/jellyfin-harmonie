@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.26.1",
+        "changelog": " ### Bug Fixes  - Always poll scan status after triggering and drop state color (297f2a7)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.26/jellyfin-harmonie_0.1.26.1.zip",
+        "checksum": "ff5f00e85ed2d5bcbb0e627e8f39a6ad",
+        "timestamp": "2026-05-16T16:53:57Z"
+      },
+      {
+        "version": "0.1.26.0",
+        "changelog": " ### Bug Fixes  - Always poll scan status after triggering and drop state color (297f2a7)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.26/jellyfin-harmonie_0.1.26.0.zip",
+        "checksum": "2e8e8f2ad0288b8392122a52a45e8263",
+        "timestamp": "2026-05-16T16:53:57Z"
+      },
+      {
         "version": "0.1.25.1",
         "changelog": " ### Bug Fixes  - Surface scan state and phase as table rows in the config ui (37b385e)  ",
         "targetAbi": "10.11.0.0",
