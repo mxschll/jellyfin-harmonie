@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.36.1",
+        "changelog": " ### Bug Fixes  - Extract StatusTestRequest to its own file to satisfy analyzers (f03e6e8)  ### Features  - Refresh status uses unsaved form values via post status/test (b098069)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.36/jellyfin-harmonie_0.1.36.1.zip",
+        "checksum": "f50a389d3ed831da9846b0d60f71b563",
+        "timestamp": "2026-05-16T17:33:25Z"
+      },
+      {
+        "version": "0.1.36.0",
+        "changelog": " ### Bug Fixes  - Extract StatusTestRequest to its own file to satisfy analyzers (f03e6e8)  ### Features  - Refresh status uses unsaved form values via post status/test (b098069)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.36/jellyfin-harmonie_0.1.36.0.zip",
+        "checksum": "df375281db56e73a4f0833429677987b",
+        "timestamp": "2026-05-16T17:33:25Z"
+      },
+      {
         "version": "0.1.34.1",
         "changelog": " ### Bug Fixes  - Theme-aware readme link and stable scan table layout (1464b29)  ",
         "targetAbi": "10.11.0.0",
