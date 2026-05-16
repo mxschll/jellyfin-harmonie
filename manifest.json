@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.14.1",
+        "changelog": "Release v0.1.14.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.14/jellyfin-harmonie_0.1.14.1.zip",
+        "checksum": "dd2976230358a106551cd0887e10f051",
+        "timestamp": "2026-05-16T11:21:43Z"
+      },
+      {
+        "version": "0.1.14.0",
+        "changelog": "Release v0.1.14.",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.14/jellyfin-harmonie_0.1.14.0.zip",
+        "checksum": "718655a051d5bfa5f8a6b1ac056bd95e",
+        "timestamp": "2026-05-16T11:21:43Z"
+      },
+      {
         "version": "0.1.13.1",
         "changelog": " ### Chores  - Strip emojis from changelog group headers (0ee6447) - Refresh catalog banner image (ca61dd7)  ### Features  - Add catalog banner image (f5090b8)  ### Features  - Add plugin thumbnail image (e94a535)  ### CI  - Drop skip-ci token from manifest (d3c50f7)  ### Tests  - Add unit tests for PrefixPlaylistOptions and PathMapper (309be0f)  ### CI  - Switch git-cliff to taiki-e/install-action (Docker action was broken) (5ffcc66)  ### Chores  - Bump actions/checkout from 4 to 6 (63644e9) - Bump softprops/action-gh-release from 2 to 3 (6f5aa42) - Bump actions/setup-dotnet from 4 to 5 (f997a4a)  ### Other  - Merge pull request #3 from mxschll/dependabot/github_actions/actions/checkout-6  chore(deps): bump actions/checkout from 4 to 6 (b7d8607) - Merge pull request #2 from mxschll/dependabot/github_actions/softprops/action-gh-release-3  chore(deps): bump softprops/action-gh-release from 2 to 3 (d2ad2af) - Merge pull request #1 from mxschll/dependabot/github_actions/actions/setup-dotnet-5  chore(deps): bump actions/setup-dotnet from 4 to 5 (36ced22)  ### CI  - Switch git-cliff to taiki-e/install-action (7cf0aaf)  ### Chores  - Update release workflow (5d7a62e)  ",
         "targetAbi": "10.11.0.0",
