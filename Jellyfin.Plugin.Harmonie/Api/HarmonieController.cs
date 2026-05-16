@@ -91,18 +91,6 @@ public class HarmonieController : ControllerBase
     }
 
     /// <summary>
-    /// Body for the unsaved-config status check.
-    /// </summary>
-    public class StatusTestRequest
-    {
-        public string Url { get; set; } = string.Empty;
-
-        public string? ApiKey { get; set; }
-
-        public int? TimeoutSeconds { get; set; }
-    }
-
-    /// <summary>
     /// Triggers a refresh of every prefix-mode playlist and every
     /// per-user style playlist. Returns immediately; refresh runs in
     /// the background.
