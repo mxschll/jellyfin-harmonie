@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.40.1",
+        "changelog": " ### Bug Fixes  - Probe harmonie reachability before refresh to avoid log noise (e0160ae)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.40/jellyfin-harmonie_0.1.40.1.zip",
+        "checksum": "0c63be6ef41c2246891be68371c55fae",
+        "timestamp": "2026-05-16T18:51:04Z"
+      },
+      {
+        "version": "0.1.40.0",
+        "changelog": " ### Bug Fixes  - Probe harmonie reachability before refresh to avoid log noise (e0160ae)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.40/jellyfin-harmonie_0.1.40.0.zip",
+        "checksum": "2a5ce030482e9028fcb567fb04ad9c5f",
+        "timestamp": "2026-05-16T18:51:04Z"
+      },
+      {
         "version": "0.1.39.1",
         "changelog": " ### Features  - Ship banner.png as the plugin image, keep thumb.png in repo for the readme (54ebbd9)  ",
         "targetAbi": "10.11.0.0",
