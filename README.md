@@ -6,21 +6,34 @@ You drive the plugin entirely through playlist titles and contents in the Jellyf
 
 ## How it works
 
-The plugin recognises two kinds of playlists by their name prefix:
+The plugin recognises three kinds of playlists by their name prefix:
 
-| Title                       | Mode  | What happens                                                                                            |
-| --------------------------- | ----- | ------------------------------------------------------------------------------------------------------- |
-| `[RADIO] Workout`           | radio | Tracks you put in are seeds; harmonie returns 20 similar tracks and the plugin appends them.            |
-| `[DRIFT] Long mix`          | drift | One seed only. Each new chunk's anchor is the previous one — the playlist walks gradually away.        |
+| Title                       | Mode  | Seeds                                    | What happens                                                                                            |
+| --------------------------- | ----- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `[RADIO] Workout`           | radio | the tracks you put in                    | harmonie returns similar tracks and the plugin appends them.                                            |
+| `[DRIFT] Long mix`          | drift | one track you put in                     | each new chunk's anchor is the previous one — the playlist walks gradually away.                       |
+| `[MIX] My Mix`              | mix   | your Jellyfin listening history          | seeds itself; you don't add tracks. Anything you do add is wiped on the next refresh.                  |
 
-You can append `n=<count>` inside the brackets to override length, e.g. `[RADIO n=40] Workout` or `[DRIFT n=50] Long mix`. Defaults: 20 for radio, 30 for drift.
+You can append tokens inside the brackets to override settings per playlist:
 
-The plugin remembers which tracks it added on the last refresh (in a small JSON file in the plugin config dir). On the next refresh:
+| Token              | Modes        | What it does                                       |
+| ------------------ | ------------ | -------------------------------------------------- |
+| `n=<count>`        | all          | playlist length (1–500)                           |
+| `days=<count>`     | mix          | listening window in days (1–365)                  |
+| `top` / `top=<N>`  | mix          | seed by play count rank instead of recency        |
+| `drift`            | mix          | use harmonie's drift mode for the expansion        |
 
-- Items in the playlist that the plugin **did** add → previous matches; dropped.
-- Items the plugin **didn't** add → seeds; preserved.
+Examples:
 
-So adding or removing seeds works naturally, and the playlist always equals `seeds + fresh harmonie matches`, in that order.
+- `[RADIO n=40] Workout` — 40 similar tracks
+- `[DRIFT n=50] Long mix` — 50-track drifting walk
+- `[MIX]` — defaults from settings (recent plays, last 7 days, 30 tracks)
+- `[MIX top days=30] Heavy Rotation` — your top-played tracks of the month
+- `[MIX drift] Stretch Mix` — gradually evolves from your recent plays
+
+For Radio and Drift, the plugin remembers which tracks it added on the last refresh (in a small JSON file in the plugin config dir) so it can tell seeds apart from previous matches. The playlist always equals `seeds + fresh harmonie matches`, in that order.
+
+Mix is different: every refresh wipes the playlist and replaces it from scratch. The "seeds" are derived from your listening history — you never add them by hand.
 
 ## Refreshing
 

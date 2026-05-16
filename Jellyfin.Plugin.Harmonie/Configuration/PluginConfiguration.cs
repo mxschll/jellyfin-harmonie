@@ -35,6 +35,15 @@ public class PluginConfiguration : BasePluginConfiguration
         DefaultChunkSize = 5;
         BpmTolerance = null;
         KeyCompatible = false;
+
+        // Defaults for [MIX] playlists — seeds come from Jellyfin's
+        // own listening history. Sweet spots from the harmonie docs:
+        // 5–15 seeds, 7-day window, 30-track output.
+        DefaultMixN = 30;
+        DefaultMixDays = 7;
+        DefaultMixSeedCap = 10;
+        DefaultMixUseTopPlayed = false;
+        DefaultMixUsesDrift = false;
     }
 
     /// <summary>
@@ -90,4 +99,36 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Strict — tracks without key info are excluded.
     /// </summary>
     public bool KeyCompatible { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default number of tracks for <c>[MIX]</c>
+    /// playlists. 1–500.
+    /// </summary>
+    public int DefaultMixN { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default listening window for <c>[MIX]</c>
+    /// playlists, in days. 1–365.
+    /// </summary>
+    public int DefaultMixDays { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of seeds taken from listening
+    /// history. Too few (1–2) gives myopic results; too many (50+)
+    /// blurs the centroid. 5–15 is the sweet spot per harmonie docs.
+    /// </summary>
+    public int DefaultMixSeedCap { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether mix seeds are picked by play-count rank
+    /// instead of recency. False = "today's mix" (recently played).
+    /// True = "your sound" (heavy rotation).
+    /// </summary>
+    public bool DefaultMixUseTopPlayed { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether mix mode uses harmonie's drift instead of
+    /// similar. Drift = "stretch" mix (evolving away from seeds).
+    /// </summary>
+    public bool DefaultMixUsesDrift { get; set; }
 }

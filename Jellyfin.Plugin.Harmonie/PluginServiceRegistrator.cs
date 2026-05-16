@@ -13,6 +13,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddHttpClient<HarmonieClient>();
         serviceCollection.AddSingleton<HarmonieStateStore>();
         serviceCollection.AddSingleton<LibraryResolver>();
+        serviceCollection.AddSingleton<ListenHistoryProvider>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();
         serviceCollection.AddHostedService<PlaylistAutoRefreshService>();
     }

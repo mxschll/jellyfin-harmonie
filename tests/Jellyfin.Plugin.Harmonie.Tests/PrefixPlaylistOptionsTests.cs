@@ -137,4 +137,96 @@ public class PrefixPlaylistOptionsTests
         Assert.Equal(HarmonieMode.Radio, opts!.Mode);
         Assert.Equal(15, opts.N);
     }
+
+    // ---------------------------------------------------------------
+    // Mix mode (listening-history seeded).
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void Bare_mix_prefix_yields_mix_mode_with_no_overrides()
+    {
+        // Mix-mode parameters all default to null so the service can
+        // substitute its own configured defaults.
+        var opts = PrefixPlaylistOptions.TryParse("[MIX]");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Mix, opts!.Mode);
+        Assert.Null(opts.N);
+        Assert.Null(opts.Days);
+        Assert.Null(opts.UseTopPlayed);
+        Assert.Null(opts.SeedCap);
+        Assert.Null(opts.UsesDrift);
+    }
+
+    [Fact]
+    public void Mix_days_overrides_listening_window()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[MIX days=30]");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Mix, opts!.Mode);
+        Assert.Equal(30, opts.Days);
+    }
+
+    [Fact]
+    public void Mix_top_flag_switches_to_top_played_selection()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[MIX top]");
+        Assert.NotNull(opts);
+        Assert.True(opts!.UseTopPlayed);
+        Assert.Null(opts.SeedCap);
+    }
+
+    [Fact]
+    public void Mix_top_with_value_caps_the_seed_count()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[MIX top=5]");
+        Assert.NotNull(opts);
+        Assert.True(opts!.UseTopPlayed);
+        Assert.Equal(5, opts.SeedCap);
+    }
+
+    [Fact]
+    public void Mix_drift_flag_requests_drift_expansion()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[MIX drift]");
+        Assert.NotNull(opts);
+        Assert.True(opts!.UsesDrift);
+    }
+
+    [Fact]
+    public void Mix_combines_multiple_tokens()
+    {
+        // Pinning down: tokens must combine independently.
+        var opts = PrefixPlaylistOptions.TryParse("[MIX days=14 top=8 n=40] My mix");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Mix, opts!.Mode);
+        Assert.Equal(14, opts.Days);
+        Assert.Equal(8, opts.SeedCap);
+        Assert.True(opts.UseTopPlayed);
+        Assert.Equal(40, opts.N);
+    }
+
+    [Fact]
+    public void Mix_specific_tokens_dont_apply_to_radio_or_drift()
+    {
+        // `days`, `top`, and `drift` are mix-only. On other prefixes
+        // they're treated as unknown and ignored — the prefix's mode
+        // stays untouched.
+        var radio = PrefixPlaylistOptions.TryParse("[RADIO days=30 top=5]");
+        Assert.NotNull(radio);
+        Assert.Equal(HarmonieMode.Radio, radio!.Mode);
+        Assert.Null(radio.Days);
+        Assert.Null(radio.UseTopPlayed);
+        Assert.Null(radio.SeedCap);
+    }
+
+    [Theory]
+    [InlineData("[MIX days=0]")]      // too low
+    [InlineData("[MIX days=400]")]    // too high (max 365)
+    [InlineData("[MIX days=abc]")]    // unparseable
+    public void Mix_invalid_days_leaves_days_unset(string title)
+    {
+        var opts = PrefixPlaylistOptions.TryParse(title);
+        Assert.NotNull(opts);
+        Assert.Null(opts!.Days);
+    }
 }

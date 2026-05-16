@@ -34,6 +34,7 @@ public class PrefixPlaylistService
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
     private readonly HarmonieStateStore _stateStore;
+    private readonly ListenHistoryProvider _listenHistory;
     private readonly IPlaylistManager _playlistManager;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
@@ -49,6 +50,7 @@ public class PrefixPlaylistService
         HarmonieClient client,
         LibraryResolver libraryResolver,
         HarmonieStateStore stateStore,
+        ListenHistoryProvider listenHistory,
         IPlaylistManager playlistManager,
         ILibraryManager libraryManager,
         IUserManager userManager,
@@ -57,6 +59,7 @@ public class PrefixPlaylistService
         _client = client;
         _libraryResolver = libraryResolver;
         _stateStore = stateStore;
+        _listenHistory = listenHistory;
         _playlistManager = playlistManager;
         _libraryManager = libraryManager;
         _userManager = userManager;
@@ -93,7 +96,7 @@ public class PrefixPlaylistService
 
         if (playlists.Count == 0)
         {
-            _logger.LogInformation("No [RADIO] or [DRIFT] playlists found.");
+            _logger.LogInformation("No [RADIO], [DRIFT] or [MIX] playlists found.");
             return;
         }
 
@@ -169,17 +172,17 @@ public class PrefixPlaylistService
             return;
         }
 
-        // Distinguish user-added seeds from plugin-added matches.
+        // Load any state from the previous refresh — used by Radio/Drift
+        // to subtract plugin-added items from the seed list, and by all
+        // modes to record what to wipe next time.
         var state = _stateStore.Get(playlist.Id) ?? new PrefixPlaylistState();
         var lastAdded = new HashSet<string>(state.LastAddedItemIds, StringComparer.Ordinal);
 
-        // Stale-state detection: Jellyfin reuses a deleted playlist's GUID
-        // when a new playlist with the same path is created, so our
+        // Stale-state detection: Jellyfin reuses a deleted playlist's
+        // GUID when a new playlist with the same path is created, so our
         // per-GUID state can carry items from a previous incarnation. If
         // most of those previously-added items are no longer present in
-        // the playlist, the state is bogus — discard it. Without this
-        // check, a fresh smart playlist whose seed happened to match an
-        // old plugin-added match would have its only seed filtered out.
+        // the playlist, the state is bogus — discard it.
         if (lastAdded.Count > 0)
         {
             var currentChildIds = playlist.LinkedChildren
@@ -190,7 +193,7 @@ public class PrefixPlaylistService
             if (overlap * 2 < lastAdded.Count)
             {
                 _logger.LogInformation(
-                    "Playlist {Name}: state looks stale ({Overlap}/{Total} previously-added items still present). Treating all current items as user seeds.",
+                    "Playlist {Name}: state looks stale ({Overlap}/{Total} previously-added items still present). Discarding cached state.",
                     playlist.Name,
                     overlap,
                     lastAdded.Count);
@@ -199,38 +202,50 @@ public class PrefixPlaylistService
             }
         }
 
-        var seedIds = ExtractSeedIds(playlist, lastAdded);
-
-        // Race-condition guard: when a brand-new playlist is created with
-        // a track in the same UI gesture, Jellyfin's events can arrive
-        // before its LinkedChildren are visible to a fresh GetItemById
-        // call. Wait once and re-read.
-        if (seedIds.Count == 0)
+        // Pick seeds. Mix mode pulls from listening history; Radio/Drift
+        // pull from the user-added subset of the playlist.
+        List<Guid> seedIds;
+        if (options.Mode == HarmonieMode.Mix)
         {
-            _logger.LogInformation(
-                "Playlist {Name}: snapshot is empty (children={Children}); waiting 2s and re-reading.",
-                playlist.Name,
-                playlist.LinkedChildren?.Length ?? 0);
-            await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
-            if (_libraryManager.GetItemById(playlist.Id) is Playlist refreshed)
+            seedIds = GetMixSeedIds(owner, options, config);
+            if (seedIds.Count == 0)
             {
-                playlist = refreshed;
-                seedIds = ExtractSeedIds(playlist, lastAdded);
                 _logger.LogInformation(
-                    "Playlist {Name}: after retry, children={Children}, seeds={Seeds}.",
-                    playlist.Name,
-                    playlist.LinkedChildren?.Length ?? 0,
-                    seedIds.Count);
+                    "Playlist {Name} (mix): no listening history in window; nothing to do.",
+                    playlist.Name);
+                return;
             }
         }
-
-        if (seedIds.Count == 0)
+        else
         {
-            _logger.LogInformation(
-                "Playlist {Name} ({Mode}): no seeds yet; nothing to do.",
-                playlist.Name,
-                options.Mode);
-            return;
+            seedIds = ExtractSeedIds(playlist, lastAdded);
+
+            // Race-condition guard: when a brand-new playlist is created
+            // with a track in the same UI gesture, Jellyfin's events can
+            // arrive before its LinkedChildren are visible to a fresh
+            // GetItemById call. Wait once and re-read.
+            if (seedIds.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Playlist {Name}: snapshot is empty (children={Children}); waiting 2s and re-reading.",
+                    playlist.Name,
+                    playlist.LinkedChildren?.Length ?? 0);
+                await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
+                if (_libraryManager.GetItemById(playlist.Id) is Playlist refreshed)
+                {
+                    playlist = refreshed;
+                    seedIds = ExtractSeedIds(playlist, lastAdded);
+                }
+            }
+
+            if (seedIds.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Playlist {Name} ({Mode}): no seeds yet; nothing to do.",
+                    playlist.Name,
+                    options.Mode);
+                return;
+            }
         }
 
         // Translate Jellyfin seed items to harmonie track ids.
@@ -243,8 +258,10 @@ public class PrefixPlaylistService
 
         // Dispatch by mode. Drift takes a single seed by harmonie's contract.
         var smoothTransitions = BuildSmoothTransitions(config);
+        var driftRequested = options.Mode == HarmonieMode.Drift
+            || (options.Mode == HarmonieMode.Mix && (options.UsesDrift ?? config.DefaultMixUsesDrift));
         PlaylistResult harmonieResult;
-        if (options.Mode == HarmonieMode.Drift)
+        if (driftRequested)
         {
             if (harmonieSeedIds.Count > 1)
             {
@@ -266,11 +283,15 @@ public class PrefixPlaylistService
         }
         else
         {
+            // Radio (or Mix in similar mode) — same harmonie call shape.
+            var radioN = options.Mode == HarmonieMode.Mix
+                ? options.N ?? config.DefaultMixN
+                : options.N ?? config.DefaultRadioN;
             harmonieResult = await _client.SimilarPlaylistAsync(
                 new SimilarPlaylistRequest
                 {
                     Seeds = harmonieSeedIds,
-                    N = options.N ?? config.DefaultRadioN,
+                    N = radioN,
                     SmoothTransitions = smoothTransitions,
                 },
                 ct).ConfigureAwait(false);
@@ -282,9 +303,15 @@ public class PrefixPlaylistService
             return;
         }
 
-        // Resolve each match to a Jellyfin Audio item, skipping items the
-        // user already has in the seed set so we don't duplicate.
-        var seedSet = new HashSet<Guid>(seedIds);
+        // For Radio/Drift, seeds are user-added and stay at the top of
+        // the playlist. For Mix, seeds are derived from listening
+        // history and are NOT included in the playlist body — the user
+        // doesn't expect their last-played tracks to fill the mix.
+        var includeSeedsInPlaylist = options.Mode != HarmonieMode.Mix;
+
+        // Resolve each match to a Jellyfin Audio item, skipping items
+        // the seeds already cover so we don't duplicate.
+        var seedSet = includeSeedsInPlaylist ? new HashSet<Guid>(seedIds) : new HashSet<Guid>();
         var resolvedNew = new List<Guid>();
         foreach (var match in harmonieResult.Items)
         {
@@ -297,8 +324,7 @@ public class PrefixPlaylistService
             resolvedNew.Add(audio.Id);
         }
 
-        // Replace the playlist contents — seeds first (preserving the
-        // user's order), then new harmonie matches.
+        // Replace the playlist contents.
         lock (_refreshingLock)
         {
             _refreshing.Add(playlist.Id);
@@ -306,7 +332,8 @@ public class PrefixPlaylistService
 
         try
         {
-            await ReplacePlaylistAsync(playlist, owner, seedIds, resolvedNew, ct).ConfigureAwait(false);
+            var bodySeeds = includeSeedsInPlaylist ? seedIds : new List<Guid>();
+            await ReplacePlaylistAsync(playlist, owner, bodySeeds, resolvedNew, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -316,10 +343,16 @@ public class PrefixPlaylistService
             }
         }
 
-        // Persist state so the next refresh distinguishes seeds from matches.
+        // Persist state. For Mix mode the entire playlist is plugin-
+        // added, so on the next refresh nothing in LinkedChildren counts
+        // as a "user seed" — exactly the behaviour we want.
         var newState = new PrefixPlaylistState
         {
-            LastAddedItemIds = resolvedNew.Select(g => g.ToString("N")).ToList(),
+            LastAddedItemIds = (includeSeedsInPlaylist
+                ? resolvedNew
+                : seedIds.Concat(resolvedNew))
+                .Select(g => g.ToString("N"))
+                .ToList(),
             LastRefreshedUtc = DateTimeOffset.UtcNow,
             LastSeedCount = seedIds.Count,
         };
@@ -332,6 +365,23 @@ public class PrefixPlaylistService
             seedIds.Count,
             resolvedNew.Count,
             harmonieResult.Items.Count);
+    }
+
+    /// <summary>
+    /// Pulls seeds for a Mix playlist from Jellyfin's listening
+    /// history. Returns Audio item ids for tracks the owner played
+    /// in the configured (or per-title-overridden) window.
+    /// </summary>
+    private List<Guid> GetMixSeedIds(
+        User owner,
+        PrefixPlaylistOptions options,
+        PluginConfiguration config)
+    {
+        var days = options.Days ?? config.DefaultMixDays;
+        var seedCap = options.SeedCap ?? config.DefaultMixSeedCap;
+        var useTopPlayed = options.UseTopPlayed ?? config.DefaultMixUseTopPlayed;
+        var seeds = _listenHistory.GetSeeds(owner, days, seedCap, useTopPlayed);
+        return seeds.Select(a => a.Id).ToList();
     }
 
     /// <summary>

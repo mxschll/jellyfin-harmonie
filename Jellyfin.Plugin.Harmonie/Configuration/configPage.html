@@ -53,13 +53,15 @@
 
                     <h2>Smart playlists</h2>
                     <div class="fieldDescription">
-                        The plugin watches for two kinds of playlist names. Add tracks to one and
+                        The plugin watches for three kinds of playlist names. Add tracks to one and
                         the rest fills in automatically.
                         <ul style="margin-top: 0.5em;">
                             <li><code>[RADIO]</code> &mdash; track radio. Add one or more tracks and harmonie returns similar ones.</li>
                             <li><code>[DRIFT]</code> &mdash; drifting walk. Add a single track and harmonie generates tracks that gradually move away from it.</li>
+                            <li><code>[MIX]</code> &mdash; auto-generated from your Jellyfin listening history. You don't add tracks; the plugin does it on a schedule. Anything you add manually is wiped on the next refresh.</li>
                         </ul>
                         Append <code>n=&lt;count&gt;</code> to override length, e.g. <code>[DRIFT n=50] Long mix</code>.
+                        For <code>[MIX]</code>: append <code>days=N</code>, <code>top</code>, or <code>drift</code> to override the defaults below per playlist.
                     </div>
 
                     <h2>Playlist defaults</h2>
@@ -97,6 +99,45 @@
                     </label>
                     <div class="fieldDescription">
                         When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Strict &mdash; tracks without key info are excluded.
+                    </div>
+
+                    <h2>[MIX] defaults</h2>
+                    <div class="fieldDescription">
+                        Mix playlists seed themselves from your Jellyfin listening history. The settings below shape what becomes a seed.
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixN">Default mix length (n)</label>
+                        <input id="DefaultMixN" name="DefaultMixN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks in a mix playlist. 1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">Listening window (days)</label>
+                        <input id="DefaultMixDays" name="DefaultMixDays" type="number" is="emby-input" min="1" max="365" />
+                        <div class="fieldDescription">
+                            How far back to look for seed tracks. 1 = today's listens. 7 = the week. 30 = your monthly taste profile.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">Seed count cap</label>
+                        <input id="DefaultMixSeedCap" name="DefaultMixSeedCap" type="number" is="emby-input" min="1" max="100" />
+                        <div class="fieldDescription">
+                            Maximum number of seeds drawn from listening history. 5&ndash;15 is the sweet spot &mdash; too few clones one track, too many blurs the average. 1&ndash;100.
+                        </div>
+                    </div>
+                    <label class="checkboxContainer">
+                        <input id="DefaultMixUseTopPlayed" name="DefaultMixUseTopPlayed" type="checkbox" is="emby-checkbox" />
+                        <span>Seed by top-played instead of most-recent</span>
+                    </label>
+                    <div class="fieldDescription">
+                        Off (default): "today's mix" &mdash; seeds are the most recently played tracks in the window. On: "your sound" &mdash; seeds are the highest play-count tracks. Override per playlist with <code>[MIX top]</code>.
+                    </div>
+                    <label class="checkboxContainer">
+                        <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
+                        <span>Use drift mode for mix expansion</span>
+                    </label>
+                    <div class="fieldDescription">
+                        Off (default): a "more like this" mix grouped around the centroid. On: a stretch mix that walks away from the seed for discovery. Override per playlist with <code>[MIX drift]</code>.
                     </div>
 
                     <div>
@@ -155,6 +196,11 @@
                                 (config.BpmTolerance === null || config.BpmTolerance === undefined)
                                     ? '' : config.BpmTolerance;
                             document.querySelector('#KeyCompatible').checked = !!config.KeyCompatible;
+                            document.querySelector('#DefaultMixN').value = config.DefaultMixN || 30;
+                            document.querySelector('#DefaultMixDays').value = config.DefaultMixDays || 7;
+                            document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
+                            document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
+                            document.querySelector('#DefaultMixUsesDrift').checked = !!config.DefaultMixUsesDrift;
                             Dashboard.hideLoadingMsg();
                         });
                     });
@@ -179,6 +225,14 @@
                             var bpmTolRaw = document.querySelector('#BpmTolerance').value;
                             config.BpmTolerance = bpmTolRaw === '' ? null : parseFloat(bpmTolRaw);
                             config.KeyCompatible = document.querySelector('#KeyCompatible').checked;
+                            config.DefaultMixN =
+                                parseInt(document.querySelector('#DefaultMixN').value, 10) || 30;
+                            config.DefaultMixDays =
+                                parseInt(document.querySelector('#DefaultMixDays').value, 10) || 7;
+                            config.DefaultMixSeedCap =
+                                parseInt(document.querySelector('#DefaultMixSeedCap').value, 10) || 10;
+                            config.DefaultMixUseTopPlayed = document.querySelector('#DefaultMixUseTopPlayed').checked;
+                            config.DefaultMixUsesDrift = document.querySelector('#DefaultMixUsesDrift').checked;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });
