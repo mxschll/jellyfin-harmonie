@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.46.1",
+        "changelog": " ### Chores  - Default playlist lengths to 20 and enable style playlists (c58e8a2)  ### Features  - Move reorder polling backstop to a scheduled task (b967ec5)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.46/jellyfin-harmonie_0.1.46.1.zip",
+        "checksum": "0894639a3bd6a197ca9a59e9f9b0987d",
+        "timestamp": "2026-05-16T21:05:55Z"
+      },
+      {
+        "version": "0.1.46.0",
+        "changelog": " ### Chores  - Default playlist lengths to 20 and enable style playlists (c58e8a2)  ### Features  - Move reorder polling backstop to a scheduled task (b967ec5)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.46/jellyfin-harmonie_0.1.46.0.zip",
+        "checksum": "8afeffc453d682ab6a38abd0462538e2",
+        "timestamp": "2026-05-16T21:05:55Z"
+      },
+      {
         "version": "0.1.45.1",
         "changelog": " ### Features  - Skip debounce for renames so covers regenerate immediately (c31fdba)  ",
         "targetAbi": "10.11.0.0",
