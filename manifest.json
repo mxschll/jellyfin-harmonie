@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "485e9b6f-f623-4c97-9679-ad33c1db0d18",
+    "name": "Harmonie",
+    "description": "Generate Jellyfin playlists from harmonie audio similarity. Name a playlist [HRMNY] and the plugin fills it with tracks similar to whatever you put in. Drift and energy modes are available via title parameters.",
+    "overview": "Build playlists from harmonie audio similarity.",
+    "owner": "mxschll",
+    "category": "Music",
+    "imageUrl": "",
+    "versions": []
+  }
+]

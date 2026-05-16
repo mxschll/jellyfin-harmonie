@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Harmonie</title>
+</head>
+<body>
+    <div id="HarmonieConfigPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="HarmonieConfigForm">
+                    <h2>Harmonie connection</h2>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="HarmonieUrl">Harmonie URL</label>
+                        <input id="HarmonieUrl" name="HarmonieUrl" type="text" is="emby-input" />
+                        <div class="fieldDescription">Base URL of the harmonie service. No trailing slash. Example: <code>http://harmonie:8842</code>.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="HarmonieApiKey">API key</label>
+                        <input id="HarmonieApiKey" name="HarmonieApiKey" type="text" is="emby-input" />
+                        <div class="fieldDescription">Sent as <code>X-API-Key</code>. Leave empty if harmonie was started without authentication.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TimeoutSeconds">HTTP timeout (seconds)</label>
+                        <input id="TimeoutSeconds" name="TimeoutSeconds" type="number" is="emby-input" min="1" max="600" />
+                    </div>
+                    <div>
+                        <button is="emby-button" type="button" id="TestConnection" class="raised emby-button">
+                            <span>Test connection</span>
+                        </button>
+                        <span id="TestConnectionResult" style="margin-left: 1em;"></span>
+                    </div>
+
+                    <h2>Path mappings</h2>
+                    <div class="fieldDescription">
+                        Optional. Used as a last-resort fallback if a track can't be matched
+                        by tags. Translate the harmonie-side path prefix
+                        to the Jellyfin-side prefix. One per line, format:
+                        <code>/harmonie/path => /jellyfin/path</code>.
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
+                        <textarea id="PathMappings"
+                                  name="PathMappings"
+                                  is="emby-input"
+                                  rows="4"
+                                  style="width: 100%; font-family: monospace;"
+                                  placeholder="/music => /media/Music"></textarea>
+                    </div>
+
+                    <h2>Smart playlists by name prefix</h2>
+                    <div class="fieldDescription">
+                        Any Jellyfin playlist whose name starts with the prefix
+                        below is auto-extended by harmonie. Three modes,
+                        chosen via the playlist title:
+                        <ul style="margin-top: 0.5em;">
+                            <li><code>[HRMNY]</code> &mdash; seed mode. Add 1+ tracks; harmonie returns similar ones.</li>
+                            <li><code>[HRMNY drift]</code> or <code>[HRMNY drift=10]</code> &mdash; drift mode. One seed; the playlist walks away from it. Optional chunk size.</li>
+                            <li><code>[HRMNY energy=80]</code> &mdash; energy mode. No seed needed; harmonie picks tracks at that energy level (0&ndash;100, mapped to danceability) and shuffles them.</li>
+                        </ul>
+                        Append <code>n=&lt;count&gt;</code> to set total playlist length, e.g. <code>[HRMNY drift n=40]</code>.
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Prefix">Prefix</label>
+                        <input id="Prefix" name="Prefix" type="text" is="emby-input" />
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                        <button is="emby-button" type="button" id="RefreshNow" class="raised block emby-button">
+                            <span>Refresh smart playlists now</span>
+                        </button>
+                        <span id="RefreshResult" style="margin-left: 1em;"></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginUniqueId = '485e9b6f-f623-4c97-9679-ad33c1db0d18';
+
+                function pathMappingsToText(mappings) {
+                    return (mappings || [])
+                        .map(function (m) { return (m.HarmoniePrefix || '') + ' => ' + (m.JellyfinPrefix || ''); })
+                        .join('\n');
+                }
+
+                function pathMappingsFromText(text) {
+                    return (text || '')
+                        .split(/\r?\n/)
+                        .map(function (line) { return line.trim(); })
+                        .filter(function (line) { return line.length > 0; })
+                        .map(function (line) {
+                            var idx = line.indexOf('=>');
+                            if (idx < 0) {
+                                return { HarmoniePrefix: line, JellyfinPrefix: '' };
+                            }
+                            return {
+                                HarmoniePrefix: line.substring(0, idx).trim(),
+                                JellyfinPrefix: line.substring(idx + 2).trim()
+                            };
+                        });
+                }
+
+                document.querySelector('#HarmonieConfigPage')
+                    .addEventListener('pageshow', function () {
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                            document.querySelector('#HarmonieUrl').value = config.HarmonieUrl || '';
+                            document.querySelector('#HarmonieApiKey').value = config.HarmonieApiKey || '';
+                            document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
+                            document.querySelector('#Prefix').value = config.Prefix || '[HRMNY]';
+                            document.querySelector('#PathMappings').value =
+                                pathMappingsToText(config.PathMappings);
+                            Dashboard.hideLoadingMsg();
+                        });
+                    });
+
+                document.querySelector('#HarmonieConfigForm')
+                    .addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                            config.HarmonieUrl = document.querySelector('#HarmonieUrl').value;
+                            config.HarmonieApiKey = document.querySelector('#HarmonieApiKey').value;
+                            config.TimeoutSeconds =
+                                parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
+                            config.Prefix = document.querySelector('#Prefix').value || '[HRMNY]';
+                            config.PathMappings =
+                                pathMappingsFromText(document.querySelector('#PathMappings').value);
+                            ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
+                                Dashboard.processPluginConfigurationUpdateResult(result);
+                            });
+                        });
+                        return false;
+                    });
+
+                document.querySelector('#TestConnection')
+                    .addEventListener('click', function () {
+                        var resultEl = document.querySelector('#TestConnectionResult');
+                        resultEl.textContent = 'Testing...';
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                            dataType: 'json'
+                        }).then(function (status) {
+                            resultEl.textContent =
+                                'OK \u2014 version ' + status.version +
+                                ', backend ' + status.backend +
+                                ', ' + status.tracks + ' tracks indexed.';
+                        }).catch(function (err) {
+                            resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                        });
+                    });
+
+                document.querySelector('#RefreshNow')
+                    .addEventListener('click', function () {
+                        var resultEl = document.querySelector('#RefreshResult');
+                        resultEl.textContent = 'Triggered.';
+                        ApiClient.fetch({
+                            type: 'POST',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Refresh')
+                        }).then(function () {
+                            resultEl.textContent = 'Refresh started in the background. Check Dashboard logs.';
+                        }).catch(function (err) {
+                            resultEl.textContent = 'Failed to trigger refresh: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                        });
+                    });
+            })();
+        </script>
+    </div>
+</body>
+</html>

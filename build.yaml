@@ -1,0 +1,19 @@
+---
+name: "Harmonie"
+guid: "485e9b6f-f623-4c97-9679-ad33c1db0d18"
+version: "0.1.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+overview: "Generate Jellyfin playlists from harmonie audio similarity."
+description: >
+  Bridges the harmonie audio similarity service into Jellyfin. Calls
+  harmonie's API to build similar / chained / vibe playlists from your
+  music library and exposes them as native Jellyfin playlists. Supports
+  on-demand creation through REST endpoints and recurring smart playlists
+  refreshed by a scheduled task.
+category: "Music"
+owner: "mxschll"
+artifacts:
+- "Jellyfin.Plugin.Harmonie.dll"
+changelog: >
+  Initial release.

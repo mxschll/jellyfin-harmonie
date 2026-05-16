@@ -1,0 +1,224 @@
+name: Release
+
+# Triggered by pushing a tag of the form v0.1.0 (or v0.1.0.0).
+# The workflow builds the plugin for both Jellyfin 10.10 (net8.0) and
+# 10.11 (net9.0), packages each into its own Jellyfin-compatible ZIP,
+# attaches both to a GitHub Release, computes their MD5s, and updates
+# manifest.json on main with two new version entries (one per ABI).
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    env:
+      # If you need to bump these, also bump conditional package refs in the csproj.
+      ABI_NET8: "10.10.0.0"
+      ABI_NET9: "10.11.0.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Derive base version from tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF##*/}                    # v0.1.0 or v0.1.0.0
+          BASE=${TAG#v}                            # 0.1.0  or 0.1.0.0
+          # Strip a 4th component if present so we can re-derive distinct
+          # 4-part versions per ABI.
+          BASE=$(echo "$BASE" | awk -F. '{ if (NF==4) print $1"."$2"."$3; else print $0 }')
+          # Pad to three components.
+          DOTS=$(echo "$BASE" | tr -cd '.' | wc -c)
+          if [ "$DOTS" -lt 2 ]; then
+            for _ in $(seq 0 $((1 - DOTS))); do BASE="${BASE}.0"; done
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "v_net8=${BASE}.0"  >> "$GITHUB_OUTPUT"  # 0.1.0.0 → Jellyfin 10.10
+          echo "v_net9=${BASE}.1"  >> "$GITHUB_OUTPUT"  # 0.1.0.1 → Jellyfin 10.11
+          echo "Resolved base $BASE → 10.10 build ${BASE}.0 / 10.11 build ${BASE}.1"
+
+      - name: Build & package for Jellyfin 10.10 (net8.0)
+        id: pkg8
+        run: |
+          set -euo pipefail
+          VERSION=${{ steps.version.outputs.v_net8 }}
+          ABI=${{ env.ABI_NET8 }}
+
+          dotnet publish Jellyfin.Plugin.Harmonie/Jellyfin.Plugin.Harmonie.csproj \
+            --configuration Release -f net8.0 \
+            -p:Version=${VERSION} \
+            -p:AssemblyVersion=${VERSION} \
+            -p:FileVersion=${VERSION}
+
+          PUB=Jellyfin.Plugin.Harmonie/bin/Release/net8.0/publish
+          STG=staging-net8
+          ZIP="jellyfin-harmonie_${VERSION}.zip"
+          mkdir -p "$STG"
+          cp "$PUB/Jellyfin.Plugin.Harmonie.dll" "$STG/"
+          cat > "$STG/meta.json" <<EOF
+          {
+            "category": "Music",
+            "changelog": "",
+            "description": "Generate Jellyfin playlists from harmonie audio similarity.",
+            "guid": "485e9b6f-f623-4c97-9679-ad33c1db0d18",
+            "name": "Harmonie",
+            "overview": "Build playlists from harmonie audio similarity.",
+            "owner": "mxschll",
+            "targetAbi": "${ABI}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.0000000Z)",
+            "version": "${VERSION}",
+            "status": "Active",
+            "autoUpdate": true,
+            "assemblies": [
+              "Jellyfin.Plugin.Harmonie.dll"
+            ]
+          }
+          EOF
+          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll meta.json)
+          CHECKSUM=$(md5sum "$ZIP" | awk '{print $1}')
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: Build & package for Jellyfin 10.11 (net9.0)
+        id: pkg9
+        run: |
+          set -euo pipefail
+          VERSION=${{ steps.version.outputs.v_net9 }}
+          ABI=${{ env.ABI_NET9 }}
+
+          dotnet publish Jellyfin.Plugin.Harmonie/Jellyfin.Plugin.Harmonie.csproj \
+            --configuration Release -f net9.0 \
+            -p:Version=${VERSION} \
+            -p:AssemblyVersion=${VERSION} \
+            -p:FileVersion=${VERSION}
+
+          PUB=Jellyfin.Plugin.Harmonie/bin/Release/net9.0/publish
+          STG=staging-net9
+          ZIP="jellyfin-harmonie_${VERSION}.zip"
+          mkdir -p "$STG"
+          cp "$PUB/Jellyfin.Plugin.Harmonie.dll" "$STG/"
+          cat > "$STG/meta.json" <<EOF
+          {
+            "category": "Music",
+            "changelog": "",
+            "description": "Generate Jellyfin playlists from harmonie audio similarity.",
+            "guid": "485e9b6f-f623-4c97-9679-ad33c1db0d18",
+            "name": "Harmonie",
+            "overview": "Build playlists from harmonie audio similarity.",
+            "owner": "mxschll",
+            "targetAbi": "${ABI}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.0000000Z)",
+            "version": "${VERSION}",
+            "status": "Active",
+            "autoUpdate": true,
+            "assemblies": [
+              "Jellyfin.Plugin.Harmonie.dll"
+            ]
+          }
+          EOF
+          (cd "$STG" && zip -j "../$ZIP" Jellyfin.Plugin.Harmonie.dll meta.json)
+          CHECKSUM=$(md5sum "$ZIP" | awk '{print $1}')
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release with both ZIPs
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.pkg8.outputs.zip }}
+            ${{ steps.pkg9.outputs.zip }}
+
+      - name: Update manifest.json with both entries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          TAG=${{ steps.version.outputs.tag }}
+          TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Use the GitHub-rendered release notes as the changelog field.
+          CHANGELOG=$(gh release view "$TAG" --json body --jq .body \
+            | sed 's/"/\\"/g' | tr '\n' ' ' | head -c 1500 || true)
+          if [ -z "$CHANGELOG" ]; then CHANGELOG="Release ${TAG}."; fi
+
+          export V8=${{ steps.pkg8.outputs.version }}
+          export V9=${{ steps.pkg9.outputs.version }}
+          export CK8=${{ steps.pkg8.outputs.checksum }}
+          export CK9=${{ steps.pkg9.outputs.checksum }}
+          export ZIP8=${{ steps.pkg8.outputs.zip }}
+          export ZIP9=${{ steps.pkg9.outputs.zip }}
+          export ABI8=${{ env.ABI_NET8 }}
+          export ABI9=${{ env.ABI_NET9 }}
+          export REPO TAG TS CHANGELOG
+
+          python3 - <<'PY'
+          import json, os, pathlib
+
+          path = pathlib.Path("manifest.json")
+          data = json.loads(path.read_text())
+          plugin = data[0]
+          plugin.setdefault("versions", [])
+
+          repo = os.environ["REPO"]
+          tag = os.environ["TAG"]
+          changelog = os.environ.get("CHANGELOG", "")
+          ts = os.environ["TS"]
+
+          new_entries = []
+          for v, ck, zip_, abi in [
+              (os.environ["V9"], os.environ["CK9"], os.environ["ZIP9"], os.environ["ABI9"]),
+              (os.environ["V8"], os.environ["CK8"], os.environ["ZIP8"], os.environ["ABI8"]),
+          ]:
+              new_entries.append({
+                  "version": v,
+                  "changelog": changelog,
+                  "targetAbi": abi,
+                  "sourceUrl": f"https://github.com/{repo}/releases/download/{tag}/{zip_}",
+                  "checksum": ck,
+                  "timestamp": ts,
+              })
+
+          new_versions = {e["version"] for e in new_entries}
+          plugin["versions"] = [v for v in plugin["versions"] if v.get("version") not in new_versions]
+          # Insert both, newest target ABI first (Jellyfin tie-breaks on ordering rarely; we want
+          # the latest entry to surface at the top of the catalog UI).
+          plugin["versions"] = new_entries + plugin["versions"]
+
+          path.write_text(json.dumps(data, indent=2) + "\n")
+          PY
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          if git diff --cached --quiet; then
+            echo "manifest.json unchanged."
+          else
+            git commit -m "chore: update manifest for ${TAG}"
+            git push origin main
+          fi
