@@ -61,7 +61,6 @@
                         <button is="emby-button" type="button" id="TriggerScanForce" class="raised emby-button" style="margin-left: 0.5em;">
                             <span>Trigger scan (force)</span>
                         </button>
-                        <span id="ScanResult" style="margin-left: 1em;"></span>
                     </div>
 
                     <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
@@ -427,16 +426,6 @@
                         }).then(function (scan) {
                             if (scan.state === 'scanning') {
                                 pollScanWhileRunning();
-                            } else {
-                                // Scan finished or errored. Update the
-                                // header message so the user sees that
-                                // polling stopped.
-                                var resultEl = document.querySelector('#ScanResult');
-                                if (scan.state === 'error') {
-                                    resultEl.textContent = 'Scan failed.';
-                                } else {
-                                    resultEl.textContent = 'Scan complete.';
-                                }
                             }
                         }).catch(function () {
                             // Stop polling on error; user can refresh manually.
@@ -479,8 +468,15 @@
                     });
 
                 function triggerScan(force) {
-                    var resultEl = document.querySelector('#ScanResult');
-                    resultEl.textContent = 'Triggering\u2026';
+                    // Show "scanning" / "starting" immediately so the
+                    // table reacts the moment the button is pressed.
+                    // Real counters arrive on the first poll tick.
+                    document.querySelector('#ScanStatePanel').style.display = '';
+                    document.querySelector('#ScanStateText').textContent = 'scanning';
+                    document.querySelector('#ScanPhaseText').textContent = 'starting';
+                    document.querySelector('#ScanLastDurationRow').style.display = 'none';
+                    document.querySelector('#ScanLastErrorRow').style.display = 'none';
+
                     var url = ApiClient.getUrl('Plugins/Harmonie/Scan' + (force ? '?force=true' : ''));
                     ApiClient.fetch({
                         type: 'POST',
@@ -488,13 +484,14 @@
                         dataType: 'json'
                     }).then(function (scan) {
                         renderScan(scan);
-                        resultEl.textContent = 'Scan running\u2026';
-                        // Always start polling — the POST snapshot can race
-                        // with harmonie flipping into the scanning state,
-                        // and we want live updates regardless.
                         pollScanWhileRunning();
-                    }).catch(function (err) {
-                        resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                    }).catch(function () {
+                        // Trigger failed — restore by fetching real state.
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                            dataType: 'json'
+                        }).then(renderScan).catch(function () { /* ignore */ });
                     });
                 }
 
