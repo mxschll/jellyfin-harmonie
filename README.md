@@ -2,7 +2,7 @@
 
 Spotify has Song Radio and Daily Mix. Plex has Sonic Sage. They listen to a track or your recent plays and surface dozens of similar songs from your library. Jellyfin doesn't have anything like that. The existing smart-playlist plugins match on metadata (genre, year, rating), not on what the music actually sounds like.
 
-Harmonie fills that gap. It's a Jellyfin plugin that fills playlists with similar music, using [harmonie](https://github.com/mxschll/harmonie) for the audio analysis. You drive everything from the Jellyfin web UI. Name a playlist `[RADIO]` and the plugin fills it with tracks that sound like the ones at the top. Name it `[DRIFT]` and the playlist gradually walks away from the seed. Name it `[MIX]` and the plugin seeds from your listening history, with no input from you.
+Harmonie fills that gap. It's a Jellyfin plugin that fills playlists with similar music, using [harmonie](https://github.com/mxschll/harmonie) for the audio analysis. Name a playlist `[RADIO]` and the plugin fills it with tracks that sound like the ones at the top. Name it `[DRIFT]` and the playlist gradually walks away from the seed. Name it `[MIX]` and the plugin seeds from your listening history, with no input from you.
 
 ## Install
 
@@ -12,7 +12,7 @@ In Jellyfin go to Dashboard, Plugins, Repositories, and add this URL:
 https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/manifest.json
 ```
 
-Open the Catalog tab, find Harmonie under Music, and click Install. Restart when prompted. Then open Plugins, Harmonie, and point the plugin at your harmonie server.
+Open the Catalog tab, find Harmonie under Music, and click Install. Restart Jellyfin when prompted. Then open Plugins, Harmonie, and point the plugin at your harmonie server.
 
 ## Use it
 
