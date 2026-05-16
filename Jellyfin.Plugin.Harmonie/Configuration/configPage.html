@@ -52,7 +52,7 @@
 
                     <h2>Library scan</h2>
                     <div class="fieldDescription">
-                        Trigger harmonie to scan its libraries for new or changed tracks. Incremental scans only re-extract files whose size or mtime changed; force re-extracts every track.
+                        Trigger harmonie to scan its libraries for new or changed tracks. The forced variant re-extracts every track instead of skipping unchanged files.
                     </div>
                     <div>
                         <button is="emby-button" type="button" id="TriggerScan" class="raised emby-button">
@@ -82,13 +82,7 @@
 
                     <h2>Path mappings</h2>
                     <div class="fieldDescription">
-                        Optional. Only needed when harmonie and Jellyfin see your music library at
-                        different filesystem paths &mdash; e.g. harmonie running in Docker mounts
-                        <code>/music</code> while Jellyfin sees the same files at
-                        <code>/Volumes/Audio</code>. The plugin uses these as a fallback when a
-                        track can't be matched by tags.
-                        Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
-                        Most users with simple setups need none.
+                        Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
@@ -108,20 +102,19 @@
 
                     <h2>Smart playlists</h2>
                     <div class="fieldDescription">
-                        The plugin watches playlist names with three prefixes &mdash; <code>[RADIO]</code>, <code>[DRIFT]</code>, and <code>[MIX]</code> &mdash; and fills them in automatically.
-                        See the <a is="emby-linkbutton" class="button-link" href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
+                        The plugin recognises three playlist title prefixes: <code>[RADIO]</code>, <code>[DRIFT]</code>, and <code>[MIX]</code>. See the <a is="emby-linkbutton" class="button-link" href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
                     </div>
 
                     <h2>Playlist defaults</h2>
                     <div class="fieldDescription">
-                        Applied when a playlist title doesn't override them. Initial values match harmonie's own API defaults.
+                        Applied when a playlist title doesn't override them.
                     </div>
 
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="RadioSeedCount">Radio seed count</label>
                         <input id="RadioSeedCount" name="RadioSeedCount" type="number" is="emby-input" min="1" max="20" />
                         <div class="fieldDescription">
-                            For <code>[RADIO]</code> playlists: the first <em>N</em> tracks in the playlist are the seeds harmonie matches against. Anything below position N is plugin-managed and gets refreshed. Reorder a track into the top N to make it a seed. 1&ndash;20.
+                            For <code>[RADIO]</code> playlists: the first N tracks are the seeds. Anything below them gets replaced on each refresh. Reorder a track into the top N to make it a seed. 1&ndash;20.
                         </div>
                     </div>
 
@@ -139,14 +132,14 @@
                         <label class="inputLabel inputLabelUnfocused" for="DefaultChunkSize">Drift chunk size</label>
                         <input id="DefaultChunkSize" name="DefaultChunkSize" type="number" is="emby-input" min="1" max="100" />
                         <div class="fieldDescription">
-                            Tracks per anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. 1&ndash;100. Drift mode only.
+                            How many tracks the playlist stays on each anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. Drift mode only. 1&ndash;100.
                         </div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="BpmTolerance">BPM tolerance</label>
                         <input id="BpmTolerance" name="BpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
                         <div class="fieldDescription">
-                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint (harmonie's default).
+                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
                         </div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -155,13 +148,13 @@
                             <span>Mix only harmonically compatible keys</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Strict &mdash; tracks without key info are excluded.
+                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
                         </div>
                     </div>
 
                     <h2>[MIX] defaults</h2>
                     <div class="fieldDescription">
-                        Mix playlists seed themselves from your Jellyfin listening history. The settings below shape what becomes a seed.
+                        Mix playlists seed themselves from your Jellyfin listening history.
                     </div>
 
                     <div class="inputContainer">
@@ -173,14 +166,14 @@
                         <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">Listening window (days)</label>
                         <input id="DefaultMixDays" name="DefaultMixDays" type="number" is="emby-input" min="1" max="365" />
                         <div class="fieldDescription">
-                            How far back to look for seed tracks. 1 = today's listens. 7 = the week. 30 = your monthly taste profile.
+                            How far back to look for seed tracks. 1&ndash;365.
                         </div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">Seed count cap</label>
                         <input id="DefaultMixSeedCap" name="DefaultMixSeedCap" type="number" is="emby-input" min="1" max="100" />
                         <div class="fieldDescription">
-                            Maximum number of seed tracks pulled from your listening history. Within the listening window above, the plugin takes the top N most recently played tracks (or the top N most played, when "Seed by top-played" is on). It's a deterministic top-N, not random. 5&ndash;15 is the sweet spot &mdash; too few clones one track, too many blurs the average. 1&ndash;100.
+                            Maximum number of seeds taken from your listening history. The plugin picks the top N most recently played tracks within the listening window, or the top N most played when "Seed by top-played" is on. 1&ndash;100.
                         </div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -189,7 +182,7 @@
                             <span>Seed by top-played instead of most-recent</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Off (default): "today's mix" &mdash; seeds are the most recently played tracks in the window. On: "your sound" &mdash; seeds are the highest play-count tracks. Override per playlist with <code>[MIX top]</code>.
+                            Off: seeds are the most recently played tracks in the listening window. On: seeds are the highest play-count tracks in the window. Override per playlist with <code>[MIX top]</code>.
                         </div>
                     </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -198,13 +191,13 @@
                             <span>Use drift mode for mix expansion</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Off (default): a "more like this" mix grouped around the centroid. On: a stretch mix that walks away from the seed for discovery. Override per playlist with <code>[MIX drift]</code>.
+                            Off: harmonie returns tracks similar to the seeds. On: harmonie walks away from the seeds for more variety. Override per playlist with <code>[MIX drift]</code>.
                         </div>
                     </div>
 
                     <h2>[STYLE] cluster playlists</h2>
                     <div class="fieldDescription">
-                        Optional. When enabled, the daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from that user's listening history. Each playlist is named <code>[STYLE] Genre · Style</code>. As tastes shift the playlists rename and re-fill themselves &mdash; no churn, no orphans.
+                        Optional. The daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from listening history. Each is named <code>[STYLE] Genre &middot; Style</code>. As tastes shift the playlists rename and re-fill in place.
                     </div>
 
                     <div class="checkboxContainer">
@@ -217,7 +210,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Playlists per user</label>
                         <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
-                        <div class="fieldDescription">Number of <code>[STYLE]</code> playlists maintained per user. Reducing this later removes the excess. 0&ndash;10.</div>
+                        <div class="fieldDescription">Number of <code>[STYLE]</code> playlists per user. Reducing the number deletes the excess. 0&ndash;10.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Listening window (days)</label>
