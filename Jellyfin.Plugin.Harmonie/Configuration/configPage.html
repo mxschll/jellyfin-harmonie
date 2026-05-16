@@ -74,8 +74,8 @@
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Failed</td><td><span id="ScanFailed"></span></td></tr>
                                 <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
-                                <tr id="ScanLastDurationRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
-                                <tr id="ScanLastErrorRow" style="display: none;"><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last error</td><td><code id="ScanLastError" style="color: #c00;"></code></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last error</td><td><code id="ScanLastError"></code></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -109,7 +109,7 @@
                     <h2>Smart playlists</h2>
                     <div class="fieldDescription">
                         The plugin watches playlist names with three prefixes &mdash; <code>[RADIO]</code>, <code>[DRIFT]</code>, and <code>[MIX]</code> &mdash; and fills them in automatically.
-                        See the <a href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
+                        See the <a is="emby-linkbutton" class="button-link" href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
                     </div>
 
                     <h2>Playlist defaults</h2>
@@ -391,21 +391,9 @@
                     document.querySelector('#ScanFailed').textContent = (scan.failed || 0).toLocaleString();
                     document.querySelector('#ScanRemoved').textContent = (scan.removed || 0).toLocaleString();
 
-                    var lastDurationRow = document.querySelector('#ScanLastDurationRow');
-                    if (scan.last_duration_sec != null) {
-                        document.querySelector('#ScanLastDuration').textContent = formatDuration(scan.last_duration_sec);
-                        lastDurationRow.style.display = '';
-                    } else {
-                        lastDurationRow.style.display = 'none';
-                    }
-
-                    var lastErrorRow = document.querySelector('#ScanLastErrorRow');
-                    if (scan.last_error) {
-                        document.querySelector('#ScanLastError').textContent = scan.last_error;
-                        lastErrorRow.style.display = '';
-                    } else {
-                        lastErrorRow.style.display = 'none';
-                    }
+                    document.querySelector('#ScanLastDuration').textContent =
+                        scan.last_duration_sec != null ? formatDuration(scan.last_duration_sec) : '—';
+                    document.querySelector('#ScanLastError').textContent = scan.last_error || '—';
                 }
 
                 var scanPollTimer = null;
@@ -475,8 +463,8 @@
                     document.querySelector('#ScanStatePanel').style.display = '';
                     document.querySelector('#ScanStateText').textContent = 'scanning';
                     document.querySelector('#ScanPhaseText').textContent = 'starting';
-                    document.querySelector('#ScanLastDurationRow').style.display = 'none';
-                    document.querySelector('#ScanLastErrorRow').style.display = 'none';
+                    document.querySelector('#ScanLastDuration').textContent = '—';
+                    document.querySelector('#ScanLastError').textContent = '—';
 
                     var url = ApiClient.getUrl('Plugins/Harmonie/Scan' + (force ? '?force=true' : ''));
                     ApiClient.fetch({
