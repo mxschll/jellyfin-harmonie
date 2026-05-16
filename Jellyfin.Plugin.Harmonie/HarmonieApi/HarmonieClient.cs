@@ -72,6 +72,40 @@ public class HarmonieClient
     }
 
     /// <summary>
+    /// Variant of <see cref="GetStatusAsync(CancellationToken)"/> that
+    /// uses the supplied URL, API key, and timeout instead of the
+    /// plugin's persisted config. Used by the "Refresh status" button
+    /// on the config page so the admin can verify the form values
+    /// before clicking Save.
+    /// </summary>
+    public async Task<HarmonieStatus> GetStatusAsync(
+        string url,
+        string? apiKey,
+        int timeoutSeconds,
+        CancellationToken ct)
+    {
+        var trimmed = (url ?? string.Empty).TrimEnd('/');
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            throw new InvalidOperationException("Harmonie URL is not provided.");
+        }
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, new Uri($"{trimmed}/api/v1/status"));
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            req.Headers.Add("X-API-Key", apiKey);
+        }
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+        using var resp = await _httpClient.SendAsync(req, linkedCts.Token).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<HarmonieStatus>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new HarmonieStatus();
+    }
+
+    /// <summary>
     /// Fetches harmonie's <c>/api/v1/scan</c> — the live scan state,
     /// safe to poll while a scan is running.
     /// </summary>

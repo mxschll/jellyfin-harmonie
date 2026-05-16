@@ -62,6 +62,47 @@ public class HarmonieController : ControllerBase
     }
 
     /// <summary>
+    /// Tests connectivity against an unsaved URL/API key — the admin
+    /// can verify their form values before clicking Save.
+    /// </summary>
+    [HttpPost("Status/Test")]
+    public async Task<ActionResult<HarmonieStatus>> TestStatus(
+        [FromBody] StatusTestRequest body,
+        CancellationToken ct)
+    {
+        if (body is null || string.IsNullOrWhiteSpace(body.Url))
+        {
+            return BadRequest(new { error = "url is required" });
+        }
+
+        try
+        {
+            var timeout = body.TimeoutSeconds is > 0 and <= 600 ? body.TimeoutSeconds.Value : 30;
+            var status = await _client
+                .GetStatusAsync(body.Url, body.ApiKey, timeout, ct)
+                .ConfigureAwait(false);
+            return Ok(status);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug(ex, "harmonie status test failed for unsaved url {Url}", body.Url);
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Body for the unsaved-config status check.
+    /// </summary>
+    public class StatusTestRequest
+    {
+        public string Url { get; set; } = string.Empty;
+
+        public string? ApiKey { get; set; }
+
+        public int? TimeoutSeconds { get; set; }
+    }
+
+    /// <summary>
     /// Triggers a refresh of every prefix-mode playlist and every
     /// per-user style playlist. Returns immediately; refresh runs in
     /// the background.

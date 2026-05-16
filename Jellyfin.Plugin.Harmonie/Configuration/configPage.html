@@ -443,9 +443,19 @@
                     .addEventListener('click', function () {
                         var resultEl = document.querySelector('#TestConnectionResult');
                         resultEl.textContent = 'Refreshing\u2026';
+                        // Test against the form values, not the saved
+                        // config. This way the admin doesn't have to
+                        // save before verifying a URL change.
+                        var body = {
+                            Url: document.querySelector('#HarmonieUrl').value,
+                            ApiKey: document.querySelector('#HarmonieApiKey').value,
+                            TimeoutSeconds: parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30
+                        };
                         ApiClient.fetch({
-                            type: 'GET',
-                            url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                            type: 'POST',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Status/Test'),
+                            data: JSON.stringify(body),
+                            contentType: 'application/json',
                             dataType: 'json'
                         }).then(function (status) {
                             renderStatus(status);
