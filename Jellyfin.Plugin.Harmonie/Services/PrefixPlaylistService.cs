@@ -12,12 +12,11 @@ using Jellyfin.Database.Implementations.Entities;
 #endif
 using Jellyfin.Plugin.Harmonie.Configuration;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
+using Jellyfin.Plugin.Harmonie.Services.Cover;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Harmonie.Services;
@@ -39,11 +38,10 @@ public class PrefixPlaylistService
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
     private readonly ListenHistoryProvider _listenHistory;
-    private readonly IPlaylistManager _playlistManager;
+    private readonly PlaylistContentReplacer _contentReplacer;
+    private readonly CoverRefreshQueuer _coverRefresh;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
-    private readonly IProviderManager _providerManager;
-    private readonly IFileSystem _fileSystem;
     private readonly ILogger<PrefixPlaylistService> _logger;
 
     // Playlist ids the plugin is currently refreshing. The auto-refresh
@@ -56,21 +54,19 @@ public class PrefixPlaylistService
         HarmonieClient client,
         LibraryResolver libraryResolver,
         ListenHistoryProvider listenHistory,
-        IPlaylistManager playlistManager,
+        PlaylistContentReplacer contentReplacer,
+        CoverRefreshQueuer coverRefresh,
         ILibraryManager libraryManager,
         IUserManager userManager,
-        IProviderManager providerManager,
-        IFileSystem fileSystem,
         ILogger<PrefixPlaylistService> logger)
     {
         _client = client;
         _libraryResolver = libraryResolver;
         _listenHistory = listenHistory;
-        _playlistManager = playlistManager;
+        _contentReplacer = contentReplacer;
+        _coverRefresh = coverRefresh;
         _libraryManager = libraryManager;
         _userManager = userManager;
-        _providerManager = providerManager;
-        _fileSystem = fileSystem;
         _logger = logger;
     }
 
@@ -369,25 +365,7 @@ public class PrefixPlaylistService
         // The cover depends on the playlist title + mode + style label,
         // which all live in the name. Without this, renaming a smart
         // playlist leaves the old cover cached in place.
-        QueueCoverRefresh(playlist.Id);
-    }
-
-    /// <summary>
-    /// Tells Jellyfin to re-run image providers on the playlist with
-    /// "replace existing image" set, which makes our
-    /// <see cref="Cover.HarmoniePlaylistImageProvider"/> re-render the
-    /// cover. The refresh is queued (background) — fire-and-forget.
-    /// </summary>
-    private void QueueCoverRefresh(Guid playlistId)
-    {
-        var options = new MetadataRefreshOptions(new DirectoryService(_fileSystem))
-        {
-            ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-            ReplaceAllImages = true,
-            // We only care about the image — leave metadata mode at
-            // default so we don't kick off unrelated work.
-        };
-        _providerManager.QueueRefresh(playlistId, options, RefreshPriority.Low);
+        _coverRefresh.Queue(playlist.Id);
     }
 
     /// <summary>
@@ -532,28 +510,10 @@ public class PrefixPlaylistService
         List<Guid> harmonieAdditions,
         CancellationToken ct)
     {
-        var existingEntryIds = playlist.LinkedChildren
-            .Where(c => c.ItemId.HasValue)
-            .Select(c => c.ItemId!.Value.ToString("N", CultureInfo.InvariantCulture))
-            .ToList();
-        if (existingEntryIds.Count > 0)
-        {
-            await _playlistManager
-                .RemoveItemFromPlaylistAsync(playlist.Id.ToString("N"), existingEntryIds)
-                .ConfigureAwait(false);
-        }
-
         var ordered = new List<Guid>(seeds.Count + harmonieAdditions.Count);
         ordered.AddRange(seeds);
         ordered.AddRange(harmonieAdditions);
-        if (ordered.Count == 0)
-        {
-            return;
-        }
-
-        await _playlistManager
-            .AddItemToPlaylistAsync(playlist.Id, ordered, owner.Id)
-            .ConfigureAwait(false);
+        await _contentReplacer.ReplaceContentsAsync(playlist, owner.Id, ordered, ct).ConfigureAwait(false);
     }
 
     private User? ResolveOwner(Playlist playlist)

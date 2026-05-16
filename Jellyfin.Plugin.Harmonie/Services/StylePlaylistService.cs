@@ -11,13 +11,12 @@ using Jellyfin.Database.Implementations.Entities;
 #endif
 using Jellyfin.Plugin.Harmonie.Configuration;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
+using Jellyfin.Plugin.Harmonie.Services.Cover;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Playlists;
 using Microsoft.Extensions.Logging;
 
@@ -48,10 +47,10 @@ public class StylePlaylistService
     private readonly ListenHistoryProvider _listenHistory;
     private readonly StylePlaylistStateStore _stateStore;
     private readonly IPlaylistManager _playlistManager;
+    private readonly PlaylistContentReplacer _contentReplacer;
+    private readonly CoverRefreshQueuer _coverRefresh;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
-    private readonly IProviderManager _providerManager;
-    private readonly IFileSystem _fileSystem;
     private readonly ILogger<StylePlaylistService> _logger;
 
     public StylePlaylistService(
@@ -60,10 +59,10 @@ public class StylePlaylistService
         ListenHistoryProvider listenHistory,
         StylePlaylistStateStore stateStore,
         IPlaylistManager playlistManager,
+        PlaylistContentReplacer contentReplacer,
+        CoverRefreshQueuer coverRefresh,
         ILibraryManager libraryManager,
         IUserManager userManager,
-        IProviderManager providerManager,
-        IFileSystem fileSystem,
         ILogger<StylePlaylistService> logger)
     {
         _client = client;
@@ -71,10 +70,10 @@ public class StylePlaylistService
         _listenHistory = listenHistory;
         _stateStore = stateStore;
         _playlistManager = playlistManager;
+        _contentReplacer = contentReplacer;
+        _coverRefresh = coverRefresh;
         _libraryManager = libraryManager;
         _userManager = userManager;
-        _providerManager = providerManager;
-        _fileSystem = fileSystem;
         _logger = logger;
     }
 
@@ -372,24 +371,9 @@ public class StylePlaylistService
             resolvedNew.Add(audio.Id);
         }
 
-        // Wipe and refill.
-        var existingEntryIds = playlist.LinkedChildren
-            .Where(c => c.ItemId.HasValue)
-            .Select(c => c.ItemId!.Value.ToString("N", System.Globalization.CultureInfo.InvariantCulture))
-            .ToList();
-        if (existingEntryIds.Count > 0)
-        {
-            await _playlistManager
-                .RemoveItemFromPlaylistAsync(playlist.Id.ToString("N"), existingEntryIds)
-                .ConfigureAwait(false);
-        }
-
-        if (resolvedNew.Count > 0)
-        {
-            await _playlistManager
-                .AddItemToPlaylistAsync(playlist.Id, resolvedNew, user.Id)
-                .ConfigureAwait(false);
-        }
+        await _contentReplacer
+            .ReplaceContentsAsync(playlist, user.Id, resolvedNew, ct)
+            .ConfigureAwait(false);
 
         _logger.LogInformation(
             "Style playlists: filled '{Title}' with {Count} track(s) for {User}.",
@@ -400,22 +384,7 @@ public class StylePlaylistService
         // Force the cover to regenerate. The label drives the cover
         // colour and text, so a slot rename (when the user's top style
         // shifts) needs the image to update too.
-        QueueCoverRefresh(playlist.Id);
-    }
-
-    /// <summary>
-    /// Queues an image-only refresh on a style playlist so the
-    /// <see cref="Cover.HarmoniePlaylistImageProvider"/> regenerates
-    /// the cover against the current title.
-    /// </summary>
-    private void QueueCoverRefresh(Guid playlistId)
-    {
-        var options = new MetadataRefreshOptions(new DirectoryService(_fileSystem))
-        {
-            ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-            ReplaceAllImages = true,
-        };
-        _providerManager.QueueRefresh(playlistId, options, RefreshPriority.Low);
+        _coverRefresh.Queue(playlist.Id);
     }
 
     private Task TrimExcessSlotsAsync(UserStylePlaylistState state, int keepCount)

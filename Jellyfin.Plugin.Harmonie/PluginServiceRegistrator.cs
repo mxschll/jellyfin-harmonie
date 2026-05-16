@@ -16,6 +16,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<LibraryResolver>();
         serviceCollection.AddSingleton<ListenHistoryProvider>();
         serviceCollection.AddSingleton<StylePlaylistStateStore>();
+        serviceCollection.AddSingleton<PlaylistContentReplacer>();
+        serviceCollection.AddSingleton<CoverRefreshQueuer>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();
         serviceCollection.AddSingleton<StylePlaylistService>();
 
