@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Jellyfin.Plugin.Harmonie/thumb.png" width="160" alt="Harmonie logo" />
+  <img src="Jellyfin.Plugin.Harmonie/thumb.png" width="110" alt="Harmonie logo" />
 </p>
 
 <h1 align="center">Jellyfin Harmonie</h1>
@@ -15,6 +15,19 @@ Spotify has Song Radio and Daily Mix. Plex has Sonic Sage. They listen to a trac
 Harmonie fills that gap. It's a Jellyfin plugin that fills playlists with similar music, using [harmonie](https://github.com/mxschll/harmonie) for the audio analysis. Name a playlist `[RADIO]` and the plugin fills it with tracks that sound like the ones at the top. Name it `[DRIFT]` and the playlist gradually walks away from the seed. Name it `[MIX]` and the plugin seeds from your listening history, with no input from you.
 
 ## Install
+
+The plugin needs a running [harmonie](https://github.com/mxschll/harmonie) service to talk to. Install harmonie first, then the plugin.
+
+### 1. Install harmonie
+
+```bash
+pipx install --pip-args='--pre' 'git+https://github.com/mxschll/harmonie.git'
+HARMONIE_LIBRARIES=/path/to/music harmonie serve
+```
+
+Point it at the same music directories Jellyfin reads. The first scan can take a while on a large library; harmonie analyses each track once and stores the result. See the [harmonie README](https://github.com/mxschll/harmonie#install) for everything else (Docker, API key, scan schedule).
+
+### 2. Install the plugin
 
 In Jellyfin go to Dashboard, Plugins, Repositories, and add this URL:
 
