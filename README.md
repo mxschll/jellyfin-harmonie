@@ -35,6 +35,21 @@ For Radio and Drift, the plugin remembers which tracks it added on the last refr
 
 Mix is different: every refresh wipes the playlist and replaces it from scratch. The "seeds" are derived from your listening history — you never add them by hand.
 
+## Per-user style cluster playlists (optional)
+
+When the *style cluster playlists* feature is enabled in plugin settings, the daily refresh maintains an additional set of `[STYLE]` playlists for each Jellyfin user, one per top style derived from that user's listening history.
+
+How it works:
+
+1. Pull the user's top-played tracks in the configured window (default 30 days).
+2. Resolve each against harmonie and read its style classification.
+3. Vote: each track contributes its top-1 style. Top-N counted styles win.
+4. For each top style, maintain one `[STYLE] Genre · Style` playlist seeded from the same recent listens, filtered to that style by harmonie.
+
+The playlists are *managed* — the plugin owns them. As your taste shifts, the playlist at slot 0 just renames itself to your current top style, instead of leaving stale playlists behind. Reducing the count in settings removes the excess; deleting one yourself is fine — the plugin recreates it on the next refresh.
+
+Turn it on under **Plugins → Harmonie → [STYLE] cluster playlists**.
+
 ## Refreshing
 
 Three triggers, in increasing levels of automation:

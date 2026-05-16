@@ -63,6 +63,34 @@ public class SmoothTransitions
 }
 
 /// <summary>
+/// Subset of harmonie's <c>FilterBody</c>. Only the fields the plugin
+/// actually uses are modeled — currently style-driven filtering for
+/// the per-style cluster playlists.
+/// </summary>
+public class FilterParams
+{
+    [JsonPropertyName("style")]
+    public List<string>? Style { get; set; }
+
+    [JsonPropertyName("style_min")]
+    public double? StyleMin { get; set; }
+}
+
+/// <summary>
+/// One entry in a track's Discogs-400 style classification, returned
+/// by harmonie's <c>/tracks/resolve</c> and <c>/tracks/{id}</c>
+/// endpoints.
+/// </summary>
+public class StyleScore
+{
+    [JsonPropertyName("style")]
+    public string Style { get; set; } = string.Empty;
+
+    [JsonPropertyName("probability")]
+    public double Probability { get; set; }
+}
+
+/// <summary>
 /// Body for harmonie's <c>POST /api/v1/playlists</c> with
 /// <c>mode = "similar"</c>. The plugin's "[RADIO]" playlists use this.
 /// Only the minimum fields needed by the plugin are modeled — harmonie
@@ -82,6 +110,9 @@ public class SimilarPlaylistRequest
 
     [JsonPropertyName("smooth_transitions")]
     public SmoothTransitions? SmoothTransitions { get; set; }
+
+    [JsonPropertyName("filter")]
+    public FilterParams? Filter { get; set; }
 }
 
 /// <summary>
@@ -171,4 +202,7 @@ public class ResolvedTrack
 
     [JsonPropertyName("title")]
     public string? Title { get; set; }
+
+    [JsonPropertyName("styles")]
+    public List<StyleScore> Styles { get; set; } = new();
 }

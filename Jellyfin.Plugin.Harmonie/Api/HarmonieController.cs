@@ -22,15 +22,18 @@ public class HarmonieController : ControllerBase
 {
     private readonly HarmonieClient _client;
     private readonly PrefixPlaylistService _prefixService;
+    private readonly StylePlaylistService _styleService;
     private readonly ILogger<HarmonieController> _logger;
 
     public HarmonieController(
         HarmonieClient client,
         PrefixPlaylistService prefixService,
+        StylePlaylistService styleService,
         ILogger<HarmonieController> logger)
     {
         _client = client;
         _prefixService = prefixService;
+        _styleService = styleService;
         _logger = logger;
     }
 
@@ -54,8 +57,9 @@ public class HarmonieController : ControllerBase
     }
 
     /// <summary>
-    /// Triggers a refresh of every prefix-mode playlist. Returns
-    /// immediately; refresh runs in the background.
+    /// Triggers a refresh of every prefix-mode playlist and every
+    /// per-user style playlist. Returns immediately; refresh runs in
+    /// the background.
     /// </summary>
     [HttpPost("Refresh")]
     public IActionResult Refresh()
@@ -66,6 +70,9 @@ public class HarmonieController : ControllerBase
             {
                 await _prefixService
                     .RefreshAllAsync(progress: null, CancellationToken.None)
+                    .ConfigureAwait(false);
+                await _styleService
+                    .RefreshAllAsync(CancellationToken.None)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)

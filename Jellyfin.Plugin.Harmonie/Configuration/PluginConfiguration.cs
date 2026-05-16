@@ -44,6 +44,13 @@ public class PluginConfiguration : BasePluginConfiguration
         DefaultMixSeedCap = 10;
         DefaultMixUseTopPlayed = false;
         DefaultMixUsesDrift = false;
+
+        // Per-user style cluster playlists. Off by default — opt-in
+        // because it creates server-wide playlists per user.
+        EnableStylePlaylists = false;
+        StylePlaylistCount = 5;
+        StylePlaylistDays = 30;
+        StylePlaylistN = 30;
     }
 
     /// <summary>
@@ -131,4 +138,32 @@ public class PluginConfiguration : BasePluginConfiguration
     /// similar. Drift = "stretch" mix (evolving away from seeds).
     /// </summary>
     public bool DefaultMixUsesDrift { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the per-user style cluster playlists
+    /// feature is enabled. When on, the daily refresh task creates and
+    /// maintains <see cref="StylePlaylistCount"/> playlists per user,
+    /// one per top style derived from their listening history.
+    /// </summary>
+    public bool EnableStylePlaylists { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of per-user style playlists to maintain.
+    /// 0–10. The first refresh creates them; subsequent refreshes
+    /// rename and re-fill in place. If reduced later, excess playlists
+    /// are removed.
+    /// </summary>
+    public int StylePlaylistCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the listening-history window (days) used to pick
+    /// each user's top styles and seed each cluster playlist. 1–365.
+    /// </summary>
+    public int StylePlaylistDays { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of tracks per style cluster playlist.
+    /// 1–500.
+    /// </summary>
+    public int StylePlaylistN { get; set; }
 }

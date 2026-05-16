@@ -140,6 +140,32 @@
                         Off (default): a "more like this" mix grouped around the centroid. On: a stretch mix that walks away from the seed for discovery. Override per playlist with <code>[MIX drift]</code>.
                     </div>
 
+                    <h2>[STYLE] cluster playlists</h2>
+                    <div class="fieldDescription">
+                        Optional. When enabled, the daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from that user's listening history. Each playlist is named <code>[STYLE] Genre · Style</code>. As tastes shift the playlists rename and re-fill themselves &mdash; no churn, no orphans.
+                    </div>
+
+                    <label class="checkboxContainer">
+                        <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
+                        <span>Enable per-user style cluster playlists</span>
+                    </label>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Playlists per user</label>
+                        <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
+                        <div class="fieldDescription">Number of <code>[STYLE]</code> playlists maintained per user. Reducing this later removes the excess. 0&ndash;10.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Listening window (days)</label>
+                        <input id="StylePlaylistDays" name="StylePlaylistDays" type="number" is="emby-input" min="1" max="365" />
+                        <div class="fieldDescription">How far back to look when computing each user's top styles. 1&ndash;365.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
+                        <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks in each <code>[STYLE]</code> playlist. 1&ndash;500.</div>
+                    </div>
+
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -201,6 +227,10 @@
                             document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
                             document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
                             document.querySelector('#DefaultMixUsesDrift').checked = !!config.DefaultMixUsesDrift;
+                            document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
+                            document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
+                            document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
+                            document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 30;
                             Dashboard.hideLoadingMsg();
                         });
                     });
@@ -233,6 +263,14 @@
                                 parseInt(document.querySelector('#DefaultMixSeedCap').value, 10) || 10;
                             config.DefaultMixUseTopPlayed = document.querySelector('#DefaultMixUseTopPlayed').checked;
                             config.DefaultMixUsesDrift = document.querySelector('#DefaultMixUsesDrift').checked;
+                            config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
+                            config.StylePlaylistCount =
+                                parseInt(document.querySelector('#StylePlaylistCount').value, 10);
+                            if (isNaN(config.StylePlaylistCount)) { config.StylePlaylistCount = 5; }
+                            config.StylePlaylistDays =
+                                parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
+                            config.StylePlaylistN =
+                                parseInt(document.querySelector('#StylePlaylistN').value, 10) || 30;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });

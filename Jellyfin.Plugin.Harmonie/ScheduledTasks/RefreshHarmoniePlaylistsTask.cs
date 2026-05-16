@@ -15,13 +15,16 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {
     private readonly PrefixPlaylistService _prefixService;
+    private readonly StylePlaylistService _styleService;
     private readonly ILogger<RefreshHarmoniePlaylistsTask> _logger;
 
     public RefreshHarmoniePlaylistsTask(
         PrefixPlaylistService prefixService,
+        StylePlaylistService styleService,
         ILogger<RefreshHarmoniePlaylistsTask> logger)
     {
         _prefixService = prefixService;
+        _styleService = styleService;
         _logger = logger;
     }
 
@@ -57,6 +60,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     {
         _logger.LogInformation("Starting Harmonie playlist refresh.");
         await _prefixService.RefreshAllAsync(progress, cancellationToken).ConfigureAwait(false);
+        await _styleService.RefreshAllAsync(cancellationToken).ConfigureAwait(false);
         progress.Report(100);
         _logger.LogInformation("Harmonie playlist refresh complete.");
     }

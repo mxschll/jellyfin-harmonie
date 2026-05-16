@@ -14,7 +14,9 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<HarmonieStateStore>();
         serviceCollection.AddSingleton<LibraryResolver>();
         serviceCollection.AddSingleton<ListenHistoryProvider>();
+        serviceCollection.AddSingleton<StylePlaylistStateStore>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();
+        serviceCollection.AddSingleton<StylePlaylistService>();
         serviceCollection.AddHostedService<PlaylistAutoRefreshService>();
     }
 }
