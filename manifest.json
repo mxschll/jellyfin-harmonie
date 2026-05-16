@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.32.1",
+        "changelog": " ### Bug Fixes  - Tighten checkbox description spacing so descriptions group with their checkbox (177b1c3)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.32/jellyfin-harmonie_0.1.32.1.zip",
+        "checksum": "b6a3f6a805dc8223d389a28aa7015d11",
+        "timestamp": "2026-05-16T17:15:37Z"
+      },
+      {
+        "version": "0.1.32.0",
+        "changelog": " ### Bug Fixes  - Tighten checkbox description spacing so descriptions group with their checkbox (177b1c3)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.32/jellyfin-harmonie_0.1.32.0.zip",
+        "checksum": "25f156f3034d4d30ccf3f61af1637383",
+        "timestamp": "2026-05-16T17:15:37Z"
+      },
+      {
         "version": "0.1.31.1",
         "changelog": " ### Documentation  - Link to readme and clarify what seed count cap actually does (66a577e)  ",
         "targetAbi": "10.11.0.0",
