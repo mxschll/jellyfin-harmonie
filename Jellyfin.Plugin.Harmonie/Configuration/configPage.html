@@ -483,7 +483,13 @@
                         url: url,
                         dataType: 'json'
                     }).then(function (scan) {
-                        renderScan(scan);
+                        // The POST snapshot races with harmonie's worker
+                        // thread starting. If it still shows 'idle', keep
+                        // the optimistic state and let polling catch up;
+                        // otherwise reflect what the server reports.
+                        if (scan && scan.state && scan.state !== 'idle') {
+                            renderScan(scan);
+                        }
                         pollScanWhileRunning();
                     }).catch(function () {
                         // Trigger failed — restore by fetching real state.
