@@ -31,7 +31,7 @@ public class PluginConfiguration : BasePluginConfiguration
         // harmonie/api/schemas.py. Changing them only affects what the
         // plugin requests; it doesn't change harmonie's behaviour.
         DefaultRadioN = 20;
-        DefaultDriftN = 30;
+        DefaultDriftN = 20;
         DefaultChunkSize = 5;
         BpmTolerance = null;
         KeyCompatible = false;
@@ -44,18 +44,17 @@ public class PluginConfiguration : BasePluginConfiguration
         // Defaults for [MIX] playlists — seeds come from Jellyfin's
         // own listening history. Sweet spots from the harmonie docs:
         // 5–15 seeds, 7-day window, 30-track output.
-        DefaultMixN = 30;
+        DefaultMixN = 20;
         DefaultMixDays = 7;
         DefaultMixSeedCap = 10;
         DefaultMixUseTopPlayed = false;
         DefaultMixUsesDrift = false;
 
-        // Per-user style cluster playlists. Off by default — opt-in
-        // because it creates server-wide playlists per user.
-        EnableStylePlaylists = false;
+        // Per-user style cluster playlists.
+        EnableStylePlaylists = true;
         StylePlaylistCount = 5;
         StylePlaylistDays = 30;
-        StylePlaylistN = 30;
+        StylePlaylistN = 20;
     }
 
     /// <summary>

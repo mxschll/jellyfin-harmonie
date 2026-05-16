@@ -269,14 +269,14 @@
                                 pathMappingsToText(config.PathMappings);
                             document.querySelector('#RadioSeedCount').value = config.RadioSeedCount || 5;
                             document.querySelector('#DefaultRadioN').value = config.DefaultRadioN || 20;
-                            document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 30;
+                            document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 20;
                             document.querySelector('#DefaultChunkSize').value = config.DefaultChunkSize || 5;
                             // BpmTolerance is nullable. Empty input = null.
                             document.querySelector('#BpmTolerance').value =
                                 (config.BpmTolerance === null || config.BpmTolerance === undefined)
                                     ? '' : config.BpmTolerance;
                             document.querySelector('#KeyCompatible').checked = !!config.KeyCompatible;
-                            document.querySelector('#DefaultMixN').value = config.DefaultMixN || 30;
+                            document.querySelector('#DefaultMixN').value = config.DefaultMixN || 20;
                             document.querySelector('#DefaultMixDays').value = config.DefaultMixDays || 7;
                             document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
                             document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
@@ -284,7 +284,7 @@
                             document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
-                            document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 30;
+                            document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
                             Dashboard.hideLoadingMsg();
                             loadInitialState();
                         });
@@ -306,14 +306,14 @@
                             config.DefaultRadioN =
                                 parseInt(document.querySelector('#DefaultRadioN').value, 10) || 20;
                             config.DefaultDriftN =
-                                parseInt(document.querySelector('#DefaultDriftN').value, 10) || 30;
+                                parseInt(document.querySelector('#DefaultDriftN').value, 10) || 20;
                             config.DefaultChunkSize =
                                 parseInt(document.querySelector('#DefaultChunkSize').value, 10) || 5;
                             var bpmTolRaw = document.querySelector('#BpmTolerance').value;
                             config.BpmTolerance = bpmTolRaw === '' ? null : parseFloat(bpmTolRaw);
                             config.KeyCompatible = document.querySelector('#KeyCompatible').checked;
                             config.DefaultMixN =
-                                parseInt(document.querySelector('#DefaultMixN').value, 10) || 30;
+                                parseInt(document.querySelector('#DefaultMixN').value, 10) || 20;
                             config.DefaultMixDays =
                                 parseInt(document.querySelector('#DefaultMixDays').value, 10) || 7;
                             config.DefaultMixSeedCap =
@@ -327,7 +327,7 @@
                             config.StylePlaylistDays =
                                 parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
                             config.StylePlaylistN =
-                                parseInt(document.querySelector('#StylePlaylistN').value, 10) || 30;
+                                parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });
