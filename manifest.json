@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.49.1",
+        "changelog": " ### Features  - Use harmonie seed_refs for one-shot similarity (4b1a776)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.49/jellyfin-harmonie_0.1.49.1.zip",
+        "checksum": "3157db58a3eb2c575f7dab221edb760e",
+        "timestamp": "2026-05-17T10:00:24Z"
+      },
+      {
+        "version": "0.1.49.0",
+        "changelog": " ### Features  - Use harmonie seed_refs for one-shot similarity (4b1a776)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.49/jellyfin-harmonie_0.1.49.0.zip",
+        "checksum": "4c59f043c82d66a138c4691bb258449f",
+        "timestamp": "2026-05-17T10:00:24Z"
+      },
+      {
         "version": "0.1.48.1",
         "changelog": " ### Documentation  - Add feedback callout to readme (0a7be98) - Tighten readme intro (cdefeb4) - Update playlists screenshot (7eb554b) - Add playlist screenshot to readme (7b0d934)  ### Features  - Replace built-in instant mix with audio similarity (712820d)  ",
         "targetAbi": "10.11.0.0",
