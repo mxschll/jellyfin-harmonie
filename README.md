@@ -29,12 +29,17 @@ The plugin needs a running [harmonie](https://github.com/mxschll/harmonie) servi
 
 ### 1. Install harmonie
 
+Install pipx, then harmonie itself:
+
 ```bash
+sudo apt install pipx
+pipx ensurepath
+
 pipx install --pip-args='--pre' 'git+https://github.com/mxschll/harmonie.git'
 HARMONIE_LIBRARIES=/path/to/music harmonie serve
 ```
 
-Point it at the same music directories Jellyfin reads. The first scan can take a while on a large library; harmonie analyses each track once and stores the result. See the [harmonie README](https://github.com/mxschll/harmonie#install) for everything else (API key, scan schedule).
+Point it at the same music directories Jellyfin reads. The first scan starts automatically. See the [harmonie README](https://github.com/mxschll/harmonie#install) for everything else.
 
 ### 2. Install the plugin
 
