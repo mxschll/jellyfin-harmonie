@@ -42,9 +42,9 @@ In Jellyfin go to Dashboard, Plugins, Repositories, and add this URL:
 https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/manifest.json
 ```
 
-Open the Catalog tab, find Harmonie under Music, and click Install. **Restart Jellyfin**. Then open Plugins, Harmonie, and point the plugin at your harmonie server. Harmonie listens on port `8842` by default, so if you ran it on the same machine as Jellyfin the URL is `http://localhost:8842`. Save the form — the status panel below only fills in once the URL is saved.
+Open the Catalog tab, find Harmonie under Music, and click Install. **Restart Jellyfin**. Then open Plugins, Harmonie, and point the plugin at your harmonie server. Harmonie listens on port `8842` by default, so if you ran it on the same machine as Jellyfin the URL is `http://localhost:8842`. Save the form. The status panel below loads after that.
 
-The plugin's settings page shows live harmonie scan progress and counters, so you can watch the first scan finish without leaving Jellyfin or curling the API.
+The plugin's settings page shows live harmonie scan progress and counters.
 
 <p align="center">
   <img src="docs/scan-progress.png" alt="Harmonie scan progress in the Jellyfin plugin settings, showing state, phase, and per-stage counters" width="720" />
