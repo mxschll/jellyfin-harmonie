@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.50.1",
+        "changelog": " ### CI  - Add skiasharp linux native assets so tests run on ubuntu (af95990)  ### Documentation  - Trim install copy and drop em dash (a858dca) - Add scan-progress screenshot and tighten install steps (a02fbf3)  ### Features  - Auto-save connection fields and refresh status panels (904ed51)  ### Tests  - Add cover painter smoke and determinism tests (8dbe971)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.50/jellyfin-harmonie_0.1.50.1.zip",
+        "checksum": "52db9c10014de59303932a105d91cef5",
+        "timestamp": "2026-05-17T12:58:03Z"
+      },
+      {
+        "version": "0.1.50.0",
+        "changelog": " ### CI  - Add skiasharp linux native assets so tests run on ubuntu (af95990)  ### Documentation  - Trim install copy and drop em dash (a858dca) - Add scan-progress screenshot and tighten install steps (a02fbf3)  ### Features  - Auto-save connection fields and refresh status panels (904ed51)  ### Tests  - Add cover painter smoke and determinism tests (8dbe971)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.50/jellyfin-harmonie_0.1.50.0.zip",
+        "checksum": "cd018232f6887bce9ec096d57c7308db",
+        "timestamp": "2026-05-17T12:58:03Z"
+      },
+      {
         "version": "0.1.49.1",
         "changelog": " ### Features  - Use harmonie seed_refs for one-shot similarity (4b1a776)  ",
         "targetAbi": "10.11.0.0",
