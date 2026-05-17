@@ -194,9 +194,6 @@ public class HarmonieStatus
     [JsonPropertyName("version")]
     public string Version { get; set; } = string.Empty;
 
-    [JsonPropertyName("backend")]
-    public string Backend { get; set; } = string.Empty;
-
     [JsonPropertyName("embedding_dim")]
     public int EmbeddingDim { get; set; }
 

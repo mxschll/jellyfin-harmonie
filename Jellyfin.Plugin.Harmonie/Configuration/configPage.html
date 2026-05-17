@@ -38,7 +38,6 @@
                         <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                             <tbody>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Version</td><td><code id="StatusVersion"></code></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Backend</td><td><code id="StatusBackend"></code></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
@@ -376,7 +375,6 @@
 
                 function renderStatus(status) {
                     document.querySelector('#StatusVersion').textContent = status.version || '?';
-                    document.querySelector('#StatusBackend').textContent = status.backend || '?';
                     document.querySelector('#StatusTracks').textContent = (status.tracks || 0).toLocaleString();
                     document.querySelector('#StatusDuration').textContent = formatDuration(status.total_duration_sec);
                     document.querySelector('#StatusDbSize').textContent = formatBytes(status.db_size_bytes);
