@@ -22,8 +22,13 @@
       propagates to project references, leaving the test runner with no
       native SkiaSharp libs. Re-declare here without the exclusion so
       NuGet pulls in the right SkiaSharp.NativeAssets.* for the host OS.
+      SkiaSharp 3.x ships macOS and Win32 native libs as transitive deps
+      of the SkiaSharp meta package; Linux native libs are in a separate
+      package and must be declared explicitly so CI on Ubuntu can find
+      libSkiaSharp.so.
     -->
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
   </ItemGroup>
 
   <ItemGroup>
