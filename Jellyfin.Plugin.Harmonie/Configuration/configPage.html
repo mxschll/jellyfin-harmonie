@@ -514,6 +514,49 @@
                 document.querySelector('#TriggerScanForce')
                     .addEventListener('click', function () { triggerScan(true); });
 
+                // Auto-save connection fields. The status and scan
+                // panels reflect the saved config, so leaving them
+                // stale after a URL edit is a UX trap (the user thinks
+                // the panel is live for the value they just typed).
+                // Solution: save URL / API key / timeout on a short
+                // debounce, then refresh the panels. Other settings
+                // still go through the explicit Save button so we
+                // don't persist half-edited counters.
+                var connectionAutoSaveTimer = null;
+                function autoSaveConnectionFields() {
+                    if (connectionAutoSaveTimer !== null) {
+                        clearTimeout(connectionAutoSaveTimer);
+                    }
+                    connectionAutoSaveTimer = setTimeout(function () {
+                        connectionAutoSaveTimer = null;
+                        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (saved) {
+                            // Read connection fields from the form;
+                            // leave every other field at its saved
+                            // value so a half-edited counter elsewhere
+                            // doesn't get persisted prematurely.
+                            saved.HarmonieUrl = document.querySelector('#HarmonieUrl').value;
+                            saved.HarmonieApiKey = document.querySelector('#HarmonieApiKey').value;
+                            saved.TimeoutSeconds =
+                                parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
+                            return ApiClient.updatePluginConfiguration(pluginUniqueId, saved);
+                        }).then(function () {
+                            // Panels read from the just-saved config.
+                            loadInitialState();
+                        }).catch(function (err) {
+                            // Keep the panels on whatever state they
+                            // last showed; the next keystroke (or
+                            // explicit Save) gets another shot.
+                            console.warn('Harmonie connection auto-save failed:', err);
+                        });
+                    }, 600);
+                }
+                document.querySelector('#HarmonieUrl')
+                    .addEventListener('input', autoSaveConnectionFields);
+                document.querySelector('#HarmonieApiKey')
+                    .addEventListener('input', autoSaveConnectionFields);
+                document.querySelector('#TimeoutSeconds')
+                    .addEventListener('input', autoSaveConnectionFields);
+
                 function basename(p) {
                     if (!p) return '';
                     var trimmed = p.replace(/[\\/]+$/, '');
