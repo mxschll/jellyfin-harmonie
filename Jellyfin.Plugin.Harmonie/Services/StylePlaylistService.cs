@@ -244,7 +244,7 @@ public class StylePlaylistService
         string label,
         CancellationToken ct)
     {
-        var desiredTitle = FormatSlotTitle(label);
+        var desiredTitle = FormatSlotTitle(user.Username, label);
 
         // If we have a slot, check that the playlist still exists.
         Playlist? playlist = null;
@@ -408,6 +408,19 @@ public class StylePlaylistService
         return Task.CompletedTask;
     }
 
-    private static string FormatSlotTitle(string label) =>
-        $"Personal Mix · {label}";
+    /// <summary>
+    /// Builds the playlist title for a given user and style label.
+    /// Personalised when the user has a username ("alice's Mix · House",
+    /// "James' Mix · Techno"); falls back to "Personal Mix · {label}"
+    /// when the username is empty so the slot still has a usable title.
+    /// </summary>
+    private static string FormatSlotTitle(string? username, string label)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return $"Personal Mix · {label}";
+        }
+
+        return $"{Possessive.Format(username)} Mix · {label}";
+    }
 }
