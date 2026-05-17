@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.48.1",
+        "changelog": " ### Documentation  - Add feedback callout to readme (0a7be98) - Tighten readme intro (cdefeb4) - Update playlists screenshot (7eb554b) - Add playlist screenshot to readme (7b0d934)  ### Features  - Replace built-in instant mix with audio similarity (712820d)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.48/jellyfin-harmonie_0.1.48.1.zip",
+        "checksum": "8e0e1b7a224c903687015ec6571b4195",
+        "timestamp": "2026-05-17T09:13:25Z"
+      },
+      {
+        "version": "0.1.48.0",
+        "changelog": " ### Documentation  - Add feedback callout to readme (0a7be98) - Tighten readme intro (cdefeb4) - Update playlists screenshot (7eb554b) - Add playlist screenshot to readme (7b0d934)  ### Features  - Replace built-in instant mix with audio similarity (712820d)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.48/jellyfin-harmonie_0.1.48.0.zip",
+        "checksum": "749a5fc3130ff564d881a622034334b3",
+        "timestamp": "2026-05-17T09:13:25Z"
+      },
+      {
         "version": "0.1.47.1",
         "changelog": " ### Features  - Rename style cluster playlists to Personal Mix (17d825f)  ### Refactor  - Extract PlaylistContentReplacer and CoverRefreshQueuer (45eb3bb)  ",
         "targetAbi": "10.11.0.0",
