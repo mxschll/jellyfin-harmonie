@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.52.1",
+        "changelog": " ### Documentation  - Simplify harmonie install section (0aa29d6)  ### Features  - Personalise style playlist titles with the owning user (417a51f)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.52/jellyfin-harmonie_0.1.52.1.zip",
+        "checksum": "4c154eb113eb9ce93a8d0172f9d1b539",
+        "timestamp": "2026-05-17T23:45:30Z"
+      },
+      {
+        "version": "0.1.52.0",
+        "changelog": " ### Documentation  - Simplify harmonie install section (0aa29d6)  ### Features  - Personalise style playlist titles with the owning user (417a51f)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.52/jellyfin-harmonie_0.1.52.0.zip",
+        "checksum": "d1e1cbc1e4c8a0cd9669a955fdafe8f7",
+        "timestamp": "2026-05-17T23:45:30Z"
+      },
+      {
         "version": "0.1.51.1",
         "changelog": " ### Chores  - Drop backend field from status ui (755c50f)  ### Documentation  - Add positioning one-liner to readme (4dc0506)  ",
         "targetAbi": "10.11.0.0",
