@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using Jellyfin.Data.Enums;
 #if NET8_0
@@ -154,8 +155,8 @@ public class HarmonieMusicManager : IMusicManager
             }
 
             var pathMapper = new PathMapper(config.PathMappings);
-            var (path, artist, album, title) = PrefixPlaylistService.BuildResolveArgs(seed, pathMapper);
-            if (path is null && artist is null && album is null && title is null)
+            var seedRef = PrefixPlaylistService.BuildSeedRef(seed, pathMapper);
+            if (seedRef is null)
             {
                 _logger.LogDebug(
                     "InstantMix seed '{Title}' has no tags or path; falling back.",
@@ -163,23 +164,31 @@ public class HarmonieMusicManager : IMusicManager
                 return null;
             }
 
-            var resolved = _client.ResolveAsync(path, artist, album, title, cts.Token)
-                .ConfigureAwait(false).GetAwaiter().GetResult();
-            if (resolved is null)
+            // Single round trip: harmonie resolves the seed_ref and
+            // computes similar in one call. Replaces the old
+            // resolve-then-similar two-step.
+            PlaylistResult harmonieResult;
+            try
             {
+                harmonieResult = _client.SimilarPlaylistAsync(
+                    new SimilarPlaylistRequest
+                    {
+                        SeedRefs = new List<SeedRef> { seedRef },
+                        N = FallbackPoolSize,
+                    },
+                    cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException ex)
+                when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                // 400 here means harmonie couldn't resolve the
+                // seed_ref to any track. Fall back without a stack
+                // trace.
                 _logger.LogDebug(
                     "InstantMix seed '{Title}' has no harmonie counterpart; falling back.",
                     seed.Name);
                 return null;
             }
-
-            var harmonieResult = _client.SimilarPlaylistAsync(
-                new SimilarPlaylistRequest
-                {
-                    Seeds = new List<long> { resolved.Id },
-                    N = FallbackPoolSize,
-                },
-                cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (harmonieResult.Items.Count == 0)
             {

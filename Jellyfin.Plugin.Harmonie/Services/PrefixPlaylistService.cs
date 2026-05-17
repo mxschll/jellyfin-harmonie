@@ -249,62 +249,84 @@ public class PrefixPlaylistService
             }
         }
 
-        // Translate Jellyfin seed items to harmonie track ids.
-        var harmonieSeedIds = await ResolveSeedIdsAsync(seedIds, pathMapper, playlist.Name, ct)
-            .ConfigureAwait(false);
-        if (harmonieSeedIds.Count == 0)
+        // Translate Jellyfin seed items to harmonie SeedRefs. Refs are
+        // resolved server-side by harmonie in a single playlists call,
+        // saving the per-seed /tracks/resolve round trip. The
+        // pre-flight reachability probe at the top of RefreshAllAsync /
+        // RefreshOneByIdAsync still gates this code, so we don't paper
+        // over a missing service.
+        var seedRefs = BuildSeedRefs(seedIds, pathMapper, playlist.Name);
+        if (seedRefs.Count == 0 && options.Mode != HarmonieMode.Radio)
         {
+            _logger.LogWarning(
+                "Playlist {Name}: no seed tracks have a usable path or tags; nothing to do.",
+                playlist.Name);
             return;
         }
 
-        // Dispatch by mode. Drift takes a single seed by harmonie's contract.
+        // Dispatch by mode.
         var smoothTransitions = BuildSmoothTransitions(config);
         var driftRequested = options.Mode == HarmonieMode.Drift
             || (options.Mode == HarmonieMode.Mix && (options.UsesDrift ?? config.DefaultMixUsesDrift));
         PlaylistResult harmonieResult;
         if (driftRequested)
         {
-            if (harmonieSeedIds.Count > 1)
-            {
-                _logger.LogInformation(
-                    "Playlist {Name} (drift): only the first seed is used; ignoring {Extra} extra seed(s).",
-                    playlist.Name,
-                    harmonieSeedIds.Count - 1);
-            }
-
+            // Drift now accepts multiple seeds: their centroid is the
+            // starting anchor. We send all available seeds (vs. dropping
+            // all but one as the old contract required).
             harmonieResult = await _client.DriftPlaylistAsync(
                 new DriftPlaylistRequest
                 {
-                    Seeds = new List<long> { harmonieSeedIds[0] },
+                    SeedRefs = seedRefs,
                     N = options.N ?? config.DefaultDriftN,
                     ChunkSize = config.DefaultChunkSize,
                     SmoothTransitions = smoothTransitions,
                 },
                 ct).ConfigureAwait(false);
         }
-        else
+        else if (options.Mode == HarmonieMode.Radio)
         {
-            // Radio (or Mix in similar mode) — same harmonie call shape.
-            var radioN = options.Mode == HarmonieMode.Mix
-                ? options.N ?? config.DefaultMixN
-                : options.N ?? config.DefaultRadioN;
-
-            // For Radio, give the first seed the most weight. Otherwise
-            // harmonie's centroid is order-invariant and reordering or
-            // swapping the first track has no effect on the matches.
-            // Linear decay: position i contributes (N - i) copies.
-            var weightedSeeds = options.Mode == HarmonieMode.Radio
-                ? WeightSeedsByPosition(harmonieSeedIds)
-                : harmonieSeedIds;
+            // Radio leans on the first seed via linear-decay position
+            // weighting. The weighting requires harmonie IDs (harmonie's
+            // seed_refs path dedups merged seeds, which would defeat the
+            // weighting), so we resolve once, weight, and submit IDs.
+            var harmonieSeedIds = await ResolveSeedIdsAsync(seedIds, pathMapper, playlist.Name, ct)
+                .ConfigureAwait(false);
+            if (harmonieSeedIds.Count == 0)
+            {
+                return;
+            }
 
             harmonieResult = await _client.SimilarPlaylistAsync(
                 new SimilarPlaylistRequest
                 {
-                    Seeds = weightedSeeds,
-                    N = radioN,
+                    Seeds = WeightSeedsByPosition(harmonieSeedIds),
+                    N = options.N ?? config.DefaultRadioN,
                     SmoothTransitions = smoothTransitions,
                 },
                 ct).ConfigureAwait(false);
+        }
+        else
+        {
+            // Mix in similar mode. No weighting (seeds are listening-
+            // history-derived, no notion of "first seed is anchor").
+            harmonieResult = await _client.SimilarPlaylistAsync(
+                new SimilarPlaylistRequest
+                {
+                    SeedRefs = seedRefs,
+                    N = options.N ?? config.DefaultMixN,
+                    SmoothTransitions = smoothTransitions,
+                },
+                ct).ConfigureAwait(false);
+        }
+
+        if (harmonieResult.UnresolvedSeedRefs.Count > 0)
+        {
+            _logger.LogDebug(
+                "Playlist {Name}: {Unresolved} of {Total} seed_refs didn't match a harmonie track.",
+                playlist.Name,
+                harmonieResult.UnresolvedSeedRefs.Count,
+                seedRefs.Count);
         }
 
         if (harmonieResult.Items.Count == 0)
@@ -405,6 +427,42 @@ public class PrefixPlaylistService
         };
     }
 
+    /// <summary>
+    /// Builds a list of <see cref="SeedRef"/> entries from Jellyfin
+    /// item ids, dropping anything that isn't an audio item or that has
+    /// neither tags nor a usable path. Resolution to harmonie track ids
+    /// happens server-side once we send the request — this is just the
+    /// metadata harvest.
+    /// </summary>
+    private List<SeedRef> BuildSeedRefs(
+        List<Guid> seedItemIds,
+        PathMapper pathMapper,
+        string playlistName)
+    {
+        var refs = new List<SeedRef>(seedItemIds.Count);
+        foreach (var seedId in seedItemIds)
+        {
+            if (_libraryManager.GetItemById(seedId) is not Audio audio)
+            {
+                continue;
+            }
+
+            var seedRef = BuildSeedRef(audio, pathMapper);
+            if (seedRef is null)
+            {
+                _logger.LogDebug(
+                    "Playlist {Name}: seed '{Title}' has no tags or path; skipping.",
+                    playlistName,
+                    audio.Name);
+                continue;
+            }
+
+            refs.Add(seedRef);
+        }
+
+        return refs;
+    }
+
     private async Task<List<long>> ResolveSeedIdsAsync(
         List<Guid> seedItemIds,
         PathMapper pathMapper,
@@ -501,6 +559,29 @@ public class PrefixPlaylistService
             string.IsNullOrEmpty(artist) ? null : artist,
             string.IsNullOrEmpty(audio.Album) ? null : audio.Album,
             string.IsNullOrEmpty(audio.Name) ? null : audio.Name);
+    }
+
+    /// <summary>
+    /// Builds a <see cref="SeedRef"/> for harmonie's <c>seed_refs</c>
+    /// field from a Jellyfin audio item. Returns null if the item has
+    /// neither tags nor a usable path. Pairs with
+    /// <see cref="BuildResolveArgs"/>; same fields, structured shape.
+    /// </summary>
+    public static SeedRef? BuildSeedRef(Audio audio, PathMapper pathMapper)
+    {
+        var (path, artist, album, title) = BuildResolveArgs(audio, pathMapper);
+        if (path is null && artist is null && album is null && title is null)
+        {
+            return null;
+        }
+
+        return new SeedRef
+        {
+            Path = path,
+            Artist = artist,
+            Album = album,
+            Title = title,
+        };
     }
 
     private async Task ReplacePlaylistAsync(

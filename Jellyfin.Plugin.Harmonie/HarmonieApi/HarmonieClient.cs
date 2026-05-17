@@ -261,9 +261,14 @@ public class HarmonieClient
         using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
         {
+            // Read the body for diagnostics, then let the caller throw
+            // and decide how loud to be. InstantMix routinely gets 400
+            // "no seeds resolved" when a track isn't in harmonie's
+            // index — that path falls back to genre-based and isn't a
+            // real failure, so we only log at Debug here.
             var errorBody = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            _logger.LogWarning(
-                "harmonie /playlists failed: {Status} {Body}",
+            _logger.LogDebug(
+                "harmonie /playlists returned {Status}: {Body}",
                 (int)resp.StatusCode,
                 errorBody);
             resp.EnsureSuccessStatusCode();
