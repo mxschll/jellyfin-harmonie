@@ -55,6 +55,16 @@ public class PluginConfiguration : BasePluginConfiguration
         StylePlaylistCount = 5;
         StylePlaylistDays = 30;
         StylePlaylistN = 20;
+
+        // Replace Jellyfin's built-in InstantMix / Song Radio with
+        // audio-similarity matches sourced from harmonie. Affects every
+        // client that calls /Songs/{id}/InstantMix and the related
+        // album/artist/playlist endpoints — Finamp, the web UI,
+        // Swiftfin, etc. Falls back to the default genre-based result
+        // on any failure (harmonie unreachable, track not in harmonie's
+        // index, request timeout, etc.) so the endpoint always returns
+        // something.
+        EnableInstantMixOverride = true;
     }
 
     /// <summary>
@@ -178,4 +188,17 @@ public class PluginConfiguration : BasePluginConfiguration
     /// 1–500.
     /// </summary>
     public int StylePlaylistN { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the plugin replaces
+    /// Jellyfin's built-in InstantMix / Song Radio implementation with
+    /// audio-similarity matches sourced from harmonie. When true, every
+    /// HTTP call to <c>/Songs/{id}/InstantMix</c> (and the related
+    /// album/artist/playlist endpoints used by Finamp, the web UI,
+    /// Swiftfin, etc.) goes through harmonie. When harmonie can't
+    /// resolve the seed, returns nothing, or fails for any reason, the
+    /// plugin falls back to the same genre-based logic Jellyfin would
+    /// have used itself.
+    /// </summary>
+    public bool EnableInstantMixOverride { get; set; }
 }

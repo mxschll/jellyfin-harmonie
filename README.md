@@ -74,6 +74,10 @@ Examples:
 
 Optional. When you turn this on, the plugin maintains a fixed number of `Personal Mix · Style` playlists per user, one per top style derived from listening history. As your taste shifts the playlists rename and refill themselves. No orphans, no manual cleanup. Turn it on in plugin settings under "Personal Mix playlists".
 
+## Song Radio / Instant Mix
+
+When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns audio-similar tracks instead of random tracks matching the seed's genre. Works in every Jellyfin client without setup. Falls back to Jellyfin's default genre-based behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
+
 ## Refresh
 
 The plugin refreshes a playlist five seconds after you edit it. There's also a daily scheduled task ("Refresh Harmonie Playlists" in Dashboard, Scheduled Tasks) that refreshes everything; run it manually from there if you want.

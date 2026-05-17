@@ -28,6 +28,8 @@ public class LibraryResolver
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<LibraryResolver> _logger;
 
+    private readonly object _buildLock = new();
+    private DateTime _lastBuiltUtc = DateTime.MinValue;
     private Dictionary<string, Audio>? _byTags;
     private Dictionary<string, Audio>? _byPath;
 
@@ -77,14 +79,46 @@ public class LibraryResolver
             }
         }
 
-        _byTags = byTags;
-        _byPath = byPath;
+        // Atomic swap so concurrent readers (e.g. the InstantMix hot
+        // path) never see the new _byTags paired with the stale _byPath.
+        lock (_buildLock)
+        {
+            _byTags = byTags;
+            _byPath = byPath;
+            _lastBuiltUtc = DateTime.UtcNow;
+        }
 
         _logger.LogInformation(
             "Indexed {Total} audio items: {Tags} by tags, {Paths} by path.",
             items.Count,
             byTags.Count,
             byPath.Count);
+    }
+
+    /// <summary>
+    /// Like <see cref="Build"/>, but skips the library walk when the
+    /// existing index is younger than <paramref name="maxAge"/>. The
+    /// fast path is lock-free; only the rebuild itself takes the lock.
+    /// Used by the InstantMix hot path so it doesn't re-walk a 20k
+    /// library on every request.
+    /// </summary>
+    public void EnsureFresh(TimeSpan maxAge, User? userScope = null)
+    {
+        if (_byTags is not null && DateTime.UtcNow - _lastBuiltUtc <= maxAge)
+        {
+            return;
+        }
+
+        lock (_buildLock)
+        {
+            // Double-check in case another thread rebuilt while we waited.
+            if (_byTags is not null && DateTime.UtcNow - _lastBuiltUtc <= maxAge)
+            {
+                return;
+            }
+
+            Build(userScope);
+        }
     }
 
     /// <summary>

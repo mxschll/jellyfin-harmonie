@@ -2,6 +2,7 @@ using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services;
 using Jellyfin.Plugin.Harmonie.Services.Cover;
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Providers;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,5 +37,16 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         // extends IImageProvider, so the manager's OfType filter still
         // matches it for primary-image generation.
         serviceCollection.AddSingleton<IImageProvider, HarmoniePlaylistImageProvider>();
+
+        // Replace Jellyfin's built-in IMusicManager. Plugin DI runs
+        // after the core's RegisterServices, so this overrides the
+        // default registration: every controller that depends on
+        // IMusicManager (the InstantMix endpoints used by Finamp's
+        // Song Radio, the web UI's Instant Mix, etc.) now resolves
+        // ours. The override decides at request time whether to call
+        // harmonie or fall back to the default genre-based behaviour,
+        // so toggling EnableInstantMixOverride takes effect without
+        // a server restart.
+        serviceCollection.AddSingleton<IMusicManager, HarmonieMusicManager>();
     }
 }

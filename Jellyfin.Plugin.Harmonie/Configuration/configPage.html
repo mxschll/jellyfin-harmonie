@@ -195,6 +195,18 @@
                         </div>
                     </div>
 
+                    <h2>Instant Mix / Song Radio</h2>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableInstantMixOverride" name="EnableInstantMixOverride" type="checkbox" is="emby-checkbox" />
+                            <span>Use audio similarity for Instant Mix and Song Radio</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Replaces Jellyfin's built-in Instant Mix (also called Song Radio in clients like Finamp) with audio-similarity matches from harmonie. When the seed track isn't in harmonie's index, harmonie returns nothing, or the service is unreachable, the plugin falls back to Jellyfin's default genre-based behaviour so the endpoint always returns something.
+                        </div>
+                    </div>
+
                     <h2>Personal Mix playlists</h2>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -285,6 +297,12 @@
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
                             document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
+                            // EnableInstantMixOverride defaults to true on fresh installs;
+                            // existing saved configs that pre-date this setting also get true via
+                            // the C# constructor. Treat undefined as true here so the checkbox
+                            // never starts unchecked just because the API response omitted the field.
+                            document.querySelector('#EnableInstantMixOverride').checked =
+                                config.EnableInstantMixOverride === undefined ? true : !!config.EnableInstantMixOverride;
                             Dashboard.hideLoadingMsg();
                             loadInitialState();
                         });
@@ -328,6 +346,8 @@
                                 parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
                             config.StylePlaylistN =
                                 parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
+                            config.EnableInstantMixOverride =
+                                document.querySelector('#EnableInstantMixOverride').checked;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });
