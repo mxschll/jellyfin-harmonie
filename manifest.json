@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.51.1",
+        "changelog": " ### Chores  - Drop backend field from status ui (755c50f)  ### Documentation  - Add positioning one-liner to readme (4dc0506)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.51/jellyfin-harmonie_0.1.51.1.zip",
+        "checksum": "908f0232c3bf7ac881e8e0e70d931735",
+        "timestamp": "2026-05-17T18:30:49Z"
+      },
+      {
+        "version": "0.1.51.0",
+        "changelog": " ### Chores  - Drop backend field from status ui (755c50f)  ### Documentation  - Add positioning one-liner to readme (4dc0506)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.51/jellyfin-harmonie_0.1.51.0.zip",
+        "checksum": "3872ccfd330fb7f41b3e0fe9cbd97338",
+        "timestamp": "2026-05-17T18:30:49Z"
+      },
+      {
         "version": "0.1.50.1",
         "changelog": " ### CI  - Add skiasharp linux native assets so tests run on ubuntu (af95990)  ### Documentation  - Trim install copy and drop em dash (a858dca) - Add scan-progress screenshot and tighten install steps (a02fbf3)  ### Features  - Auto-save connection fields and refresh status panels (904ed51)  ### Tests  - Add cover painter smoke and determinism tests (8dbe971)  ",
         "targetAbi": "10.11.0.0",
