@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.1.0.1",
+        "changelog": " ### CI  - Generate changelog before pushing tag [skip release] (dec399c)  ### Features  - Split refresh task into seeded and personal mix tasks [bump minor] (5ab241f)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.1.0/jellyfin-harmonie_1.1.0.1.zip",
+        "checksum": "2b06be00fdd126682dbbf2a031494a1b",
+        "timestamp": "2026-05-18T17:12:28Z"
+      },
+      {
+        "version": "1.1.0.0",
+        "changelog": " ### CI  - Generate changelog before pushing tag [skip release] (dec399c)  ### Features  - Split refresh task into seeded and personal mix tasks [bump minor] (5ab241f)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.1.0/jellyfin-harmonie_1.1.0.0.zip",
+        "checksum": "167e5cd66488894f9b5ebabee12ab826",
+        "timestamp": "2026-05-18T17:12:28Z"
+      },
+      {
         "version": "1.0.0.1",
         "changelog": "Release v1.0.0.",
         "targetAbi": "10.11.0.0",
