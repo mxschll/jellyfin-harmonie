@@ -1,13 +1,30 @@
 name: Release
 
-# Auto-publish on every push to main that touches source code, plus a
-# manual trigger via the Actions UI. The path filter excludes the
-# workflow's own manifest auto-commits and pure docs commits, so they
-# don't kick off a release.
+# Tag-driven versioning. Every push to main that touches plugin code
+# computes the next version from the most recent `v*.*.*` git tag,
+# pushes the new tag, builds both ABI ZIPs, creates a GitHub Release,
+# and updates manifest.json so the Jellyfin catalog picks up the new
+# version automatically.
+#
+# Bump level (default: patch) is taken from the subject line of the
+# HEAD commit:
+#
+#   [bump minor]   -> X.Y.Z → X.(Y+1).0
+#   [bump major]   -> X.Y.Z → (X+1).0.0
+#   [skip release] -> no tag/build/release (alias: [skip ci])
+#
+# Subject-only matching is deliberate: it stops markers in code blocks
+# or PR descriptions from accidentally bumping the version. For PR
+# merges, put the marker on the squash/merge commit's subject (the
+# easiest way is to include it in the PR title).
+#
+# workflow_dispatch overrides the level via the `level` input.
 #
 # Two ZIPs are built per release: one for Jellyfin 10.10 (net8.0) and
 # one for Jellyfin 10.11 (net9.0). Both attach to the same GitHub
-# Release; manifest.json carries one entry per ABI.
+# Release; manifest.json carries one entry per ABI. The ABI octet (.0
+# / .1) is appended to the resolved semver (X.Y.Z) only at package
+# time — the git tag itself stays three-octet.
 
 on:
   push:
@@ -20,9 +37,25 @@ on:
       - '.github/workflows/release.yml'
       - 'cliff.toml'
   workflow_dispatch:
+    inputs:
+      level:
+        description: 'Version bump level'
+        required: false
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
+
+# Serialise so two pushes in quick succession can't both compute the
+# same next version and collide on tag push.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 env:
   # Opt in to Node 24 now to silence the upcoming deprecation warning.
@@ -35,24 +68,91 @@ jobs:
     env:
       ABI_NET8: "10.10.0.0"
       ABI_NET9: "10.11.0.0"
-      # Bump this whenever you want to roll the major/minor (e.g. when the
-      # plugin's behavior changes meaningfully). The patch slot is the
-      # GitHub Actions run number.
-      BASE_VERSION: "0.1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           ref: main
+          # Need full history + every tag so the bump can find the
+          # most recent v*.*.*.
           fetch-depth: 0
+          fetch-tags: true
+
+      - name: Decide bump
+        id: decide
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "skip=false"  >> "$GITHUB_OUTPUT"
+            echo "level=${{ inputs.level }}" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch: level=${{ inputs.level }}"
+            exit 0
+          fi
+
+          # %s is the subject line only. Markers in the body are
+          # intentionally ignored to keep meta-commits safe.
+          subject=$(git log -1 --pretty=%s)
+          echo "subject: $subject"
+
+          if echo "$subject" | grep -qE '\[skip release\]|\[skip ci\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping per subject marker."
+          elif echo "$subject" | grep -qE '\[bump major\]'; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "level=major" >> "$GITHUB_OUTPUT"
+          elif echo "$subject" | grep -qE '\[bump minor\]'; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "level=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "level=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute next version
+        if: steps.decide.outputs.skip == 'false'
+        id: version
+        env:
+          LEVEL: ${{ steps.decide.outputs.level }}
+        run: |
+          set -euo pipefail
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          latest=${latest:-v0.0.0}
+          IFS='.' read -r major minor patch <<< "${latest#v}"
+          case "$LEVEL" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "unknown bump level: $LEVEL" >&2; exit 1 ;;
+          esac
+          BASE="${major}.${minor}.${patch}"
+          TAG="v${BASE}"
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+          echo "base=$BASE"        >> "$GITHUB_OUTPUT"
+          echo "v_net8=${BASE}.0"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.10
+          echo "v_net9=${BASE}.1"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.11
+          echo "Bumping ${latest} → ${TAG} (level=${LEVEL})"
+          echo "Per-ABI: 10.10=${BASE}.0  10.11=${BASE}.1"
+
+      - name: Push tag
+        if: steps.decide.outputs.skip == 'false'
+        env:
+          NEW_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
 
       - name: Install git-cliff
+        if: steps.decide.outputs.skip == 'false'
         uses: taiki-e/install-action@v2
         with:
           tool: git-cliff
 
       - name: Generate changelog from commits
+        if: steps.decide.outputs.skip == 'false'
         run: |
           # --unreleased: commits since the most recent tag.
           # --strip header: drop the "# Changelog" preamble.
@@ -62,24 +162,15 @@ jobs:
           echo "--------------"
 
       - name: Setup .NET
+        if: steps.decide.outputs.skip == 'false'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
             9.0.x
 
-      - name: Derive version
-        id: version
-        run: |
-          BASE="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"  # e.g. 0.1.42
-          TAG="v${BASE}"                              # e.g. v0.1.42
-          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
-          echo "base=$BASE"        >> "$GITHUB_OUTPUT"
-          echo "v_net8=${BASE}.0"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.10
-          echo "v_net9=${BASE}.1"  >> "$GITHUB_OUTPUT"  # Jellyfin 10.11
-          echo "Resolved tag $TAG → 10.10 build ${BASE}.0 / 10.11 build ${BASE}.1"
-
       - name: Build & package for Jellyfin 10.10 (net8.0)
+        if: steps.decide.outputs.skip == 'false'
         id: pkg8
         run: |
           set -euo pipefail
@@ -125,6 +216,7 @@ jobs:
           echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
 
       - name: Build & package for Jellyfin 10.11 (net9.0)
+        if: steps.decide.outputs.skip == 'false'
         id: pkg9
         run: |
           set -euo pipefail
@@ -170,6 +262,7 @@ jobs:
           echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release with both ZIPs
+        if: steps.decide.outputs.skip == 'false'
         id: release
         uses: softprops/action-gh-release@v3
         with:
@@ -181,6 +274,7 @@ jobs:
             ${{ steps.pkg9.outputs.zip }}
 
       - name: Update manifest.json with both entries
+        if: steps.decide.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

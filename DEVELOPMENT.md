@@ -39,13 +39,18 @@ If tags are clean this works without any path config. If tags don't match, the p
 
 ## Releasing
 
-Every push to `main` publishes a new release. The workflow at `.github/workflows/release.yml`:
+Versioning is tag-driven. Every push to `main` that touches plugin code computes the next semver tag from the most recent `v*.*.*`, pushes the new tag, builds both ABIs, attaches the ZIPs to a GitHub Release, and commits the updated `manifest.json` back to `main`.
 
-1. Builds the plugin for both target frameworks.
-2. Packages each into a Jellyfin ZIP with a `meta.json` declaring the right `targetAbi`.
-3. Creates a GitHub Release named `v0.1.<run>` and attaches both ZIPs.
-4. Commits the updated `manifest.json` back to `main`.
+Default bump is patch. Override on the **subject line** of the commit:
 
-The version is `<base>.<run>.<abi_slot>`. The base is `BASE_VERSION` in `release.yml` (default `0.1`); the ABI slot is `0` for 10.10 and `1` for 10.11.
+| Marker | Effect |
+| --- | --- |
+| `[bump minor]` | `X.Y.Z` → `X.(Y+1).0` |
+| `[bump major]` | `X.Y.Z` → `(X+1).0.0` |
+| `[skip release]` (or `[skip ci]`) | No tag, no release |
 
-Bump `BASE_VERSION` to start a new minor or major line. The Actions UI also has a "Run workflow" button to trigger a release without a code change.
+Subject-only matching is deliberate: markers in the body, code blocks, or a quoted PR description don't fire. For PR merges, put the marker in the squash commit's subject (the easiest is to include it in the PR title).
+
+The Actions UI's **Run workflow** button takes a `level` input (`patch` / `minor` / `major`) for ad-hoc bumps without a code change.
+
+The git tag is three-octet semver (`v1.0.0`); the per-ABI build appends a fourth octet for the Jellyfin manifest convention: `X.Y.Z.0` for net8.0/10.10, `X.Y.Z.1` for net9.0/10.11.
