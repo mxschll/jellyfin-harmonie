@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.54.1",
+        "changelog": " ### Features  - Wrap long cluster labels at hyphen on personal mix covers (59b5608)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.54/jellyfin-harmonie_0.1.54.1.zip",
+        "checksum": "318af162c684ce7da83326dbb1f1c90b",
+        "timestamp": "2026-05-18T10:22:44Z"
+      },
+      {
+        "version": "0.1.54.0",
+        "changelog": " ### Features  - Wrap long cluster labels at hyphen on personal mix covers (59b5608)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.54/jellyfin-harmonie_0.1.54.0.zip",
+        "checksum": "9818320bcff4cd73c70717aab1a61d64",
+        "timestamp": "2026-05-18T10:22:44Z"
+      },
+      {
         "version": "0.1.53.1",
         "changelog": " ### Features  - Floor cover gradient saturation so muted hues stay colourful (e85a871)  ",
         "targetAbi": "10.11.0.0",
