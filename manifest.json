@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "0.1.53.1",
+        "changelog": " ### Features  - Floor cover gradient saturation so muted hues stay colourful (e85a871)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.53/jellyfin-harmonie_0.1.53.1.zip",
+        "checksum": "6b981eb17dd1bb921cb00289e1d3390f",
+        "timestamp": "2026-05-18T10:10:01Z"
+      },
+      {
+        "version": "0.1.53.0",
+        "changelog": " ### Features  - Floor cover gradient saturation so muted hues stay colourful (e85a871)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v0.1.53/jellyfin-harmonie_0.1.53.0.zip",
+        "checksum": "ec7f4df7780744f7c16262c3cc12f71e",
+        "timestamp": "2026-05-18T10:10:01Z"
+      },
+      {
         "version": "0.1.52.1",
         "changelog": " ### Documentation  - Simplify harmonie install section (0aa29d6)  ### Features  - Personalise style playlist titles with the owning user (417a51f)  ",
         "targetAbi": "10.11.0.0",
