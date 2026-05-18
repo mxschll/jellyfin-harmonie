@@ -9,22 +9,25 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 
 /// <summary>
-/// Refreshes every prefix-mode playlist on a schedule. Runs daily by
-/// default; configurable from the Jellyfin scheduled-tasks page.
+/// Refreshes every prefix-mode smart playlist ([RADIO], [DRIFT],
+/// [MIX]) on a daily schedule. These all reflect short-term inputs —
+/// either tracks the user pinned, or recent listen history — so a
+/// daily refresh keeps them current.
+///
+/// The per-user Personal Mix playlists run on their own slow cadence
+/// in <see cref="RefreshPersonalMixPlaylistsTask"/>; they model
+/// medium-term taste and don't benefit from daily regeneration.
 /// </summary>
 public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {
     private readonly PrefixPlaylistService _prefixService;
-    private readonly StylePlaylistService _styleService;
     private readonly ILogger<RefreshHarmoniePlaylistsTask> _logger;
 
     public RefreshHarmoniePlaylistsTask(
         PrefixPlaylistService prefixService,
-        StylePlaylistService styleService,
         ILogger<RefreshHarmoniePlaylistsTask> logger)
     {
         _prefixService = prefixService;
-        _styleService = styleService;
         _logger = logger;
     }
 
@@ -33,7 +36,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     public string Key => "HarmonieRefreshPlaylists";
 
     public string Description =>
-        "Rebuild every Harmonie smart playlist ([RADIO], [DRIFT], [MIX], and per-user Personal Mix playlists) by querying the harmonie service.";
+        "Rebuild every [RADIO], [DRIFT], and [MIX] playlist by querying the harmonie service. Per-user Personal Mix playlists are refreshed by a separate, slower task.";
 
     public string Category => "Harmonie";
 
@@ -60,7 +63,6 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     {
         _logger.LogInformation("Starting Harmonie playlist refresh.");
         await _prefixService.RefreshAllAsync(progress, cancellationToken).ConfigureAwait(false);
-        await _styleService.RefreshAllAsync(cancellationToken).ConfigureAwait(false);
         progress.Report(100);
         _logger.LogInformation("Harmonie playlist refresh complete.");
     }

@@ -93,7 +93,12 @@ When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on
 
 ## Refresh
 
-The plugin refreshes a playlist five seconds after you edit it. There's also a daily scheduled task ("Refresh Harmonie Playlists" in Dashboard, Scheduled Tasks) that refreshes everything; run it manually from there if you want.
+The plugin refreshes a playlist five seconds after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):
+
+* **Refresh Harmonie Playlists** — daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, and `[MIX]` playlist.
+* **Refresh Harmonie Personal Mix Playlists** — every 30 days. Rebuilds the per-user Personal Mix playlists. The slower cadence is deliberate: these are derived from listening history clusters and lose their feel if regenerated daily.
+
+Both schedules can be changed from the same page, and either can be triggered manually.
 
 ## Compatibility
 

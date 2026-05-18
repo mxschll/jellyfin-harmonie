@@ -79,7 +79,8 @@ public class PrefixPlaylistService
     }
 
     /// <summary>
-    /// Refreshes every <c>[RADIO]</c> and <c>[DRIFT]</c> playlist on the server.
+    /// Refreshes every <c>[RADIO]</c>, <c>[DRIFT]</c>, and <c>[MIX]</c>
+    /// playlist on the server.
     /// </summary>
     public async Task RefreshAllAsync(IProgress<double>? progress, CancellationToken ct)
     {
