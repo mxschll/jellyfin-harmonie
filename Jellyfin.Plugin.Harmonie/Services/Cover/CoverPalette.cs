@@ -94,14 +94,23 @@ public static class CoverPalette
 
     /// <summary>
     /// Returns a top-left and bottom-right pair for the linear
-    /// gradient: a small lightness shift in HSL (lighter at top,
-    /// darker at bottom) so the cover has depth without a logo.
+    /// gradient: a lightness shift in HSL with a saturation floor.
+    /// The floor stops muted base hues (Hip Hop, Drift, Classical)
+    /// from reading as grey at low lightness — they become a deep
+    /// version of the same colour instead. Already-saturated base
+    /// colours are left alone.
     /// </summary>
     public static (SKColor Top, SKColor Bottom) Gradient(SKColor baseColor)
     {
         baseColor.ToHsl(out var h, out var s, out var l);
-        var top = SKColor.FromHsl(h, s, Math.Min(85f, l + 12f));
-        var bottom = SKColor.FromHsl(h, s, Math.Max(8f, l - 18f));
+
+        // Saturation floor: a low-S base hue at low lightness reads as
+        // grey, which is what we're trying to avoid. Lifting the floor
+        // gives muted hues something to be a deep version of.
+        var sat = Math.Max(60f, s);
+
+        var top = SKColor.FromHsl(h, sat, Math.Min(85f, l + 12f));
+        var bottom = SKColor.FromHsl(h, sat, Math.Max(8f, l - 18f));
         return (top, bottom);
     }
 
