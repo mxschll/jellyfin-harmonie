@@ -56,6 +56,43 @@ public class CoverPainterTests
         AssertPng(bytes, expectedWidth: 1024, expectedHeight: 1024);
     }
 
+    /// <summary>
+    /// Long hyphenated cluster labels ("Heavy Metal-Alternative Rock")
+    /// can't fit on one line at any size in the ladder. The painter
+    /// must wrap to two lines at the hyphen and still produce a valid
+    /// 1024x1024 PNG without overflowing the canvas. Smoke test:
+    /// renders, dimensions correct, no exception.
+    /// </summary>
+    [Fact]
+    public void RenderPersonalMix_handles_a_long_hyphenated_cluster_label()
+    {
+        var painter = new CoverPainter();
+
+        var bytes = painter.RenderPersonalMix(
+            "Heavy Metal-Alternative Rock",
+            "AUTO",
+            SampleColor);
+
+        AssertPng(bytes, expectedWidth: 1024, expectedHeight: 1024);
+    }
+
+    /// <summary>
+    /// A wrap-friendly long label and its single-line equivalent must
+    /// render to different bytes — guards against the wrap fallback
+    /// silently doing nothing (e.g. the size-fit pass picking the same
+    /// size for both, or the wrapper returning a single-line result).
+    /// </summary>
+    [Fact]
+    public void RenderPersonalMix_long_label_differs_from_short_label()
+    {
+        var painter = new CoverPainter();
+
+        var shortLabel = painter.RenderPersonalMix("House", "AUTO", SampleColor);
+        var longLabel = painter.RenderPersonalMix("Heavy Metal-Alternative Rock", "AUTO", SampleColor);
+
+        Assert.NotEqual(shortLabel, longLabel);
+    }
+
     [Fact]
     public void RenderPrimary_is_deterministic_across_calls()
     {

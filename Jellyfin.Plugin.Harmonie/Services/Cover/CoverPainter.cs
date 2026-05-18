@@ -183,8 +183,10 @@ public sealed class CoverPainter
     /// <summary>
     /// Draws a smaller supertitle line above a larger main-title line,
     /// both horizontally centred. The combined block is centred
-    /// vertically. The main title shrinks through the size ladder if
-    /// it doesn't fit the available width on a single line.
+    /// vertically. The main title shrinks through the size ladder; if
+    /// the longest cluster label still doesn't fit on one line at the
+    /// smallest size, it wraps to two lines at a sensible break point
+    /// (the hyphen between two cluster labels, or the midpoint).
     /// </summary>
     private void DrawStackedTitle(
         SKCanvas canvas,
@@ -197,19 +199,57 @@ public sealed class CoverPainter
         const float SuperGap = 24f; // gap between super and main lines
         var maxWidth = width - (Margin * 2);
 
-        // Pick a size for the main title that fits.
-        var mainSize = TitleSizesSquare[^1];
+        // First pass: try every size top-down to fit the title on one
+        // line. If the smallest still overflows, wrap to two lines and
+        // pick the largest size where both wrapped lines fit.
+        string[] mainLines = { mainTitle };
+        float mainSize = TitleSizesSquare[^1];
+        var fitsOneLine = false;
+
         foreach (var size in TitleSizesSquare)
         {
             using var probe = TextPaint(SKColors.White, size);
             if (MeasureText(probe, mainTitle, size) <= maxWidth)
             {
                 mainSize = size;
+                fitsOneLine = true;
                 break;
             }
         }
 
-        var totalHeight = SuperSize + SuperGap + mainSize;
+        if (!fitsOneLine)
+        {
+            mainLines = WrapToTwoLines(mainTitle);
+            // Find the biggest size that fits the longest wrapped line.
+            // If even the smallest doesn't fit, accept the overflow at
+            // the smallest size — better than dropping the title.
+            foreach (var size in TitleSizesSquare)
+            {
+                using var probe = TextPaint(SKColors.White, size);
+                var widest = 0f;
+                foreach (var line in mainLines)
+                {
+                    var w = MeasureText(probe, line, size);
+                    if (w > widest)
+                    {
+                        widest = w;
+                    }
+                }
+
+                if (widest <= maxWidth)
+                {
+                    mainSize = size;
+                    break;
+                }
+
+                // Loop will end with mainSize at smallest, even if no fit.
+                mainSize = size;
+            }
+        }
+
+        var lineHeight = mainSize * 1.05f;
+        var mainBlockHeight = lineHeight * mainLines.Length;
+        var totalHeight = SuperSize + SuperGap + mainBlockHeight;
         var blockTop = (height - totalHeight) / 2f;
 
         // Supertitle: smaller, slightly transparent so it reads as
@@ -222,13 +262,17 @@ public sealed class CoverPainter
             DrawText(canvas, paint, superTitle, x, baseline, SuperSize);
         }
 
-        // Main title: full white, big.
+        // Main title: full white, big. Multi-line when needed.
         using (var paint = TextPaint(SKColors.White, mainSize))
         {
-            var w = MeasureText(paint, mainTitle, mainSize);
-            var x = (width - w) / 2f;
-            var baseline = blockTop + SuperSize + SuperGap + mainSize - 8f;
-            DrawText(canvas, paint, mainTitle, x, baseline, mainSize);
+            var y = blockTop + SuperSize + SuperGap + mainSize - 8f;
+            foreach (var line in mainLines)
+            {
+                var w = MeasureText(paint, line, mainSize);
+                var x = (width - w) / 2f;
+                DrawText(canvas, paint, line, x, y, mainSize);
+                y += lineHeight;
+            }
         }
     }
 
@@ -245,9 +289,33 @@ public sealed class CoverPainter
         DrawTracked(canvas, paint, Mark, x, y, Tracking, TextSize);
     }
 
+    /// <summary>
+    /// Splits a title onto two lines for the wrap fallback. Prefers a
+    /// hyphen break (cluster labels are "GenreA-GenreB" form, where the
+    /// hyphen is the natural conceptual boundary). Falls back to
+    /// splitting on whitespace at the midpoint when there's no hyphen.
+    /// Returns the input on a single line for already-short titles.
+    /// </summary>
     private static string[] WrapToTwoLines(string text)
     {
         var trimmed = text.Trim();
+
+        // Hyphen split: cluster labels like "Heavy Metal-Alternative
+        // Rock" should break at the hyphen, not mid-word. Use the
+        // first hyphen so a label with multiple style components
+        // ("A-B-C") breaks after the first.
+        var dashIdx = trimmed.IndexOf('-', StringComparison.Ordinal);
+        if (dashIdx > 0 && dashIdx < trimmed.Length - 1)
+        {
+            var first = trimmed[..dashIdx].Trim();
+            var second = trimmed[(dashIdx + 1)..].Trim();
+            if (first.Length > 0 && second.Length > 0)
+            {
+                return new[] { first, second };
+            }
+        }
+
+        // Whitespace split: roughly equal halves by word count.
         var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length <= 1)
         {
@@ -255,9 +323,9 @@ public sealed class CoverPainter
         }
 
         var mid = words.Length / 2;
-        var first = string.Join(' ', words, 0, mid);
-        var second = string.Join(' ', words, mid, words.Length - mid);
-        return new[] { first, second };
+        var firstHalf = string.Join(' ', words, 0, mid);
+        var secondHalf = string.Join(' ', words, mid, words.Length - mid);
+        return new[] { firstHalf, secondHalf };
     }
 
     // -----------------------------------------------------------------
