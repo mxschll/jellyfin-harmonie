@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.1.1.1",
+        "changelog": " ### CI  - Switch release bump to conventional-commit prefixes (be2c6d0)  ### Refactor  - Add config provider interface and make prefixplaylistoptions immutable (4fef4f8) - Extract audiometadata and harmonieplaylistfilter helpers (e236d63) - Consolidate config access and scheduled-task triggers (dbb2d66)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.1.1/jellyfin-harmonie_1.1.1.1.zip",
+        "checksum": "c4c7d051fa945a818921183c64d05319",
+        "timestamp": "2026-05-19T22:08:45Z"
+      },
+      {
+        "version": "1.1.1.0",
+        "changelog": " ### CI  - Switch release bump to conventional-commit prefixes (be2c6d0)  ### Refactor  - Add config provider interface and make prefixplaylistoptions immutable (4fef4f8) - Extract audiometadata and harmonieplaylistfilter helpers (e236d63) - Consolidate config access and scheduled-task triggers (dbb2d66)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.1.1/jellyfin-harmonie_1.1.1.0.zip",
+        "checksum": "d68d3ff75a40cc5206cdc7647158c186",
+        "timestamp": "2026-05-19T22:08:45Z"
+      },
+      {
         "version": "1.1.0.1",
         "changelog": " ### CI  - Generate changelog before pushing tag [skip release] (dec399c)  ### Features  - Split refresh task into seeded and personal mix tasks [bump minor] (5ab241f)  ",
         "targetAbi": "10.11.0.0",
