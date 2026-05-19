@@ -21,7 +21,7 @@ namespace Jellyfin.Plugin.Harmonie.Services.Cover;
 /// for the image. We respond for two kinds of playlists:
 ///
 ///   1. Title-prefixed playlists ([RADIO], [DRIFT], [MIX]). Identified
-///      by name via <see cref="PrefixPlaylistOptions.TryParse"/>.
+///      by name via <see cref="HarmoniePlaylistFilter.TryGetOptions"/>.
 ///   2. Personal Mix playlists. These have no name prefix; we look up
 ///      the playlist GUID in <see cref="StylePlaylistStateStore"/> to
 ///      decide whether they're plugin-managed.
@@ -46,12 +46,12 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
 
     public bool Supports(BaseItem item)
     {
-        if (item is not Playlist playlist || string.IsNullOrEmpty(playlist.Name))
+        if (item is not Playlist playlist)
         {
             return false;
         }
 
-        return PrefixPlaylistOptions.TryParse(playlist.Name) is not null
+        return HarmoniePlaylistFilter.TryGetOptions(playlist) is not null
             || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null;
     }
 
@@ -131,7 +131,7 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
 
         // Title-prefixed playlists go through the parser so we honour
         // the badge and colour for each mode consistently.
-        var options = PrefixPlaylistOptions.TryParse(playlist.Name);
+        var options = HarmoniePlaylistFilter.TryGetOptions(playlist);
         if (options is not null)
         {
             return new CoverSpec(

@@ -64,7 +64,7 @@ public class LibraryResolver
             }
 
             var tagKey = TagKey(
-                FirstArtist(audio),
+                AudioMetadata.FirstArtist(audio),
                 audio.Album,
                 audio.Name,
                 audio.IndexNumber);
@@ -168,16 +168,6 @@ public class LibraryResolver
         }
 
         return null;
-    }
-
-    private static string? FirstArtist(Audio audio)
-    {
-        if (audio.Artists is { Count: > 0 } artists)
-        {
-            return artists[0];
-        }
-
-        return audio.AlbumArtists is { Count: > 0 } albumArtists ? albumArtists[0] : null;
     }
 
     private static string? TagKey(string? artist, string? album, string? title, int? trackNumber)

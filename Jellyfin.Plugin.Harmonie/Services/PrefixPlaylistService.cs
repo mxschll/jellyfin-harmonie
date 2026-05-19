@@ -95,8 +95,7 @@ public class PrefixPlaylistService
         };
         var playlists = _libraryManager.GetItemList(query)
             .OfType<Playlist>()
-            .Where(p => !string.IsNullOrEmpty(p.Name)
-                && PrefixPlaylistOptions.TryParse(p.Name) is not null)
+            .Where(p => HarmoniePlaylistFilter.TryGetOptions(p) is not null)
             .ToList();
 
         if (playlists.Count == 0)
@@ -158,8 +157,7 @@ public class PrefixPlaylistService
             return false;
         }
 
-        if (string.IsNullOrEmpty(playlist.Name)
-            || PrefixPlaylistOptions.TryParse(playlist.Name) is null)
+        if (HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
         {
             return false;
         }
@@ -186,7 +184,7 @@ public class PrefixPlaylistService
         PathMapper pathMapper,
         CancellationToken ct)
     {
-        var options = PrefixPlaylistOptions.TryParse(playlist.Name);
+        var options = HarmoniePlaylistFilter.TryGetOptions(playlist);
         if (options is null)
         {
             return;
@@ -553,7 +551,7 @@ public class PrefixPlaylistService
         ArgumentNullException.ThrowIfNull(audio);
         ArgumentNullException.ThrowIfNull(pathMapper);
 
-        var artist = FirstArtist(audio);
+        var artist = AudioMetadata.FirstArtist(audio);
         var path = string.IsNullOrEmpty(audio.Path) ? null : pathMapper.Map(audio.Path!);
         return (
             string.IsNullOrEmpty(path) ? null : path,
@@ -640,15 +638,5 @@ public class PrefixPlaylistService
         }
 
         return result;
-    }
-
-    private static string? FirstArtist(Audio audio)
-    {
-        if (audio.Artists is { Count: > 0 } artists)
-        {
-            return artists[0];
-        }
-
-        return audio.AlbumArtists is { Count: > 0 } albumArtists ? albumArtists[0] : null;
     }
 }

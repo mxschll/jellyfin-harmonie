@@ -101,8 +101,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
             return;
         }
 
-        if (string.IsNullOrEmpty(playlist.Name)
-            || PrefixPlaylistOptions.TryParse(playlist.Name) is null)
+        if (HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
         {
             return;
         }
@@ -226,13 +225,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
                 continue;
             }
 
-            if (string.IsNullOrEmpty(playlist.Name))
-            {
-                continue;
-            }
-
-            var options = PrefixPlaylistOptions.TryParse(playlist.Name);
-            if (options is null || options.Mode == HarmonieMode.Mix)
+            if (!HarmoniePlaylistFilter.IsWatched(playlist))
             {
                 continue;
             }
