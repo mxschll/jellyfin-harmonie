@@ -31,6 +31,10 @@ public class HarmonieClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private static PluginConfiguration RequireConfig()
+        => HarmoniePlugin.Instance?.Configuration
+            ?? throw new InvalidOperationException("Plugin not initialized.");
+
     private static Uri BuildUri(string baseUrl, string path)
     {
         var trimmed = (baseUrl ?? string.Empty).TrimEnd('/');
@@ -97,8 +101,7 @@ public class HarmonieClient
     /// </summary>
     public async Task<HarmonieStatus> GetStatusAsync(CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = RequireConfig();
 
         using var req = NewRequest(HttpMethod.Get, "/api/v1/status", config);
         using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
@@ -148,8 +151,7 @@ public class HarmonieClient
     /// </summary>
     public async Task<ScanState> GetScanAsync(CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = RequireConfig();
 
         using var req = NewRequest(HttpMethod.Get, "/api/v1/scan", config);
         using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
@@ -171,8 +173,7 @@ public class HarmonieClient
     /// <param name="ct">Cancellation token.</param>
     public async Task<ScanState> TriggerScanAsync(bool force, CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = RequireConfig();
 
         var path = force ? "/api/v1/scan?force=true" : "/api/v1/scan";
         using var req = NewRequest(HttpMethod.Post, path, config);
@@ -206,8 +207,7 @@ public class HarmonieClient
         string? title,
         CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = RequireConfig();
 
         var qs = HttpUtility.ParseQueryString(string.Empty);
         if (!string.IsNullOrEmpty(path))
@@ -252,8 +252,7 @@ public class HarmonieClient
 
     private async Task<PlaylistResult> PostPlaylistAsync<T>(T body, CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = RequireConfig();
 
         using var req = NewRequest(HttpMethod.Post, "/api/v1/playlists", config);
         req.Content = JsonContent.Create(body, options: JsonOptions);

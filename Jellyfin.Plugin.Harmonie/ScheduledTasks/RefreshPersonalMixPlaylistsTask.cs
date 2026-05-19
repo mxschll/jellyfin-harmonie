@@ -52,15 +52,7 @@ public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableSche
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        new TaskTriggerInfo
-        {
-#if NET8_0
-            Type = TaskTriggerInfo.TriggerInterval,
-#else
-            Type = TaskTriggerInfoType.IntervalTrigger,
-#endif
-            IntervalTicks = TimeSpan.FromDays(30).Ticks,
-        },
+        HarmonieTriggers.Interval(TimeSpan.FromDays(30)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

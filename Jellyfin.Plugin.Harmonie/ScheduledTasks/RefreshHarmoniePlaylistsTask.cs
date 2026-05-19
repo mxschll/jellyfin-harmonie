@@ -48,15 +48,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        new TaskTriggerInfo
-        {
-#if NET8_0
-            Type = TaskTriggerInfo.TriggerDaily,
-#else
-            Type = TaskTriggerInfoType.DailyTrigger,
-#endif
-            TimeOfDayTicks = TimeSpan.FromHours(3).Ticks,
-        },
+        HarmonieTriggers.Daily(TimeSpan.FromHours(3)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

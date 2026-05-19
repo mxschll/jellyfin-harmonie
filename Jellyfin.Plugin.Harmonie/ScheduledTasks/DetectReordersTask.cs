@@ -48,23 +48,8 @@ public class DetectReordersTask : IScheduledTask, IConfigurableScheduledTask
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        new TaskTriggerInfo
-        {
-#if NET8_0
-            Type = TaskTriggerInfo.TriggerInterval,
-#else
-            Type = TaskTriggerInfoType.IntervalTrigger,
-#endif
-            IntervalTicks = TimeSpan.FromMinutes(15).Ticks,
-        },
-        new TaskTriggerInfo
-        {
-#if NET8_0
-            Type = TaskTriggerInfo.TriggerStartup,
-#else
-            Type = TaskTriggerInfoType.StartupTrigger,
-#endif
-        },
+        HarmonieTriggers.Interval(TimeSpan.FromMinutes(15)),
+        HarmonieTriggers.Startup(),
     };
 
     public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

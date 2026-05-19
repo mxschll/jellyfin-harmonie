@@ -99,7 +99,7 @@ public class HarmonieController : ControllerBase
         var refreshed = await _prefixService.RefreshOneByIdAsync(playlistId, ct).ConfigureAwait(false);
         if (!refreshed)
         {
-            return NotFound(new { error = "Playlist not found, or its name does not start with [RADIO] or [DRIFT]." });
+            return NotFound(new { error = "Playlist not found, or its name does not start with [RADIO], [DRIFT], or [MIX]." });
         }
 
         return Ok(new { status = "refreshed" });

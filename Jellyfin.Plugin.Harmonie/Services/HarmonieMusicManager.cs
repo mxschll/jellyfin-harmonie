@@ -146,6 +146,13 @@ public class HarmonieMusicManager : IMusicManager
             // localhost:8842 and harmonie not running, this fails fast
             // (5s timeout inside HarmonieClient) instead of throwing
             // a connection-refused stack trace per request.
+            //
+            // Sync-over-async (.GetAwaiter().GetResult()) is forced
+            // here and below because IMusicManager is a sync interface.
+            // Safe under ASP.NET Core: there's no synchronization
+            // context, so blocking the request thread on a Task can't
+            // self-deadlock. Don't "fix" this without first making
+            // IMusicManager async upstream in Jellyfin.
             if (!_client.IsReachableAsync(cts.Token).ConfigureAwait(false).GetAwaiter().GetResult())
             {
                 _logger.LogDebug(
