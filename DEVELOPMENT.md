@@ -41,15 +41,23 @@ If tags are clean this works without any path config. If tags don't match, the p
 
 Versioning is tag-driven. Every push to `main` that touches plugin code computes the next semver tag from the most recent `v*.*.*`, pushes the new tag, builds both ABIs, attaches the ZIPs to a GitHub Release, and commits the updated `manifest.json` back to `main`.
 
-Default bump is patch. Override on the **subject line** of the commit:
+Bump level is derived from the **Conventional Commits prefix** on the subject line of the HEAD commit:
 
-| Marker | Effect |
+| Subject prefix | Effect |
 | --- | --- |
-| `[bump minor]` | `X.Y.Z` → `X.(Y+1).0` |
-| `[bump major]` | `X.Y.Z` → `(X+1).0.0` |
-| `[skip release]` (or `[skip ci]`) | No tag, no release |
+| `feat!:` (or `feat(scope)!:`) | Major bump (`1.2.3` → `2.0.0`) |
+| `feat:` (or `feat(scope):`) | Minor bump (`1.2.3` → `1.3.0`) |
+| `docs:`, `chore:`, `ci:` | Skipped (no tag, no release) |
+| `fix:`, `refactor:`, `perf:`, `test:`, `style:`, `build:`, anything else | Patch bump |
 
-Subject-only matching is deliberate: markers in the body, code blocks, or a quoted PR description don't fire. For PR merges, put the marker in the squash commit's subject (the easiest is to include it in the PR title).
+Subject-only matching is deliberate: prefixes inside the body, code blocks, or a quoted PR description don't fire. For PR merges, set the squash commit's subject (the easiest is to use the PR title).
+
+To ship a release manually without changing the convention (e.g. an out-of-band major), push a tag directly:
+
+```
+git tag v2.0.0
+git push origin v2.0.0
+```
 
 The Actions UI's **Run workflow** button takes a `level` input (`patch` / `minor` / `major`) for ad-hoc bumps without a code change.
 
