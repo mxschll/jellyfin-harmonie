@@ -40,6 +40,7 @@ public class PrefixPlaylistService
     private readonly ListenHistoryProvider _listenHistory;
     private readonly PlaylistContentReplacer _contentReplacer;
     private readonly CoverRefreshQueuer _coverRefresh;
+    private readonly IHarmonieConfigProvider _configProvider;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
     private readonly ILogger<PrefixPlaylistService> _logger;
@@ -56,6 +57,7 @@ public class PrefixPlaylistService
         ListenHistoryProvider listenHistory,
         PlaylistContentReplacer contentReplacer,
         CoverRefreshQueuer coverRefresh,
+        IHarmonieConfigProvider configProvider,
         ILibraryManager libraryManager,
         IUserManager userManager,
         ILogger<PrefixPlaylistService> logger)
@@ -65,6 +67,7 @@ public class PrefixPlaylistService
         _listenHistory = listenHistory;
         _contentReplacer = contentReplacer;
         _coverRefresh = coverRefresh;
+        _configProvider = configProvider;
         _libraryManager = libraryManager;
         _userManager = userManager;
         _logger = logger;
@@ -84,8 +87,7 @@ public class PrefixPlaylistService
     /// </summary>
     public async Task RefreshAllAsync(IProgress<double>? progress, CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = _configProvider.GetConfiguration();
         var pathMapper = new PathMapper(config.PathMappings);
 
         var query = new InternalItemsQuery
@@ -148,8 +150,7 @@ public class PrefixPlaylistService
     /// </summary>
     public async Task<bool> RefreshOneByIdAsync(Guid playlistId, CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = _configProvider.GetConfiguration();
         var pathMapper = new PathMapper(config.PathMappings);
 
         if (_libraryManager.GetItemById(playlistId) is not Playlist playlist)
@@ -190,8 +191,7 @@ public class PrefixPlaylistService
             return;
         }
 
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = _configProvider.GetConfiguration();
 
         var owner = ResolveOwner(playlist);
         if (owner is null)

@@ -23,17 +23,17 @@ public class HarmonieClient
     };
 
     private readonly HttpClient _httpClient;
+    private readonly IHarmonieConfigProvider _configProvider;
     private readonly ILogger<HarmonieClient> _logger;
 
-    public HarmonieClient(HttpClient httpClient, ILogger<HarmonieClient> logger)
+    public HarmonieClient(HttpClient httpClient, IHarmonieConfigProvider configProvider, ILogger<HarmonieClient> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    private static PluginConfiguration RequireConfig()
-        => HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+    private PluginConfiguration RequireConfig() => _configProvider.GetConfiguration();
 
     private static Uri BuildUri(string baseUrl, string path)
     {
@@ -66,8 +66,17 @@ public class HarmonieClient
     /// </summary>
     public async Task<bool> IsReachableAsync(CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration;
-        if (config is null || string.IsNullOrWhiteSpace(config.HarmonieUrl))
+        PluginConfiguration config;
+        try
+        {
+            config = _configProvider.GetConfiguration();
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(config.HarmonieUrl))
         {
             return false;
         }

@@ -49,6 +49,7 @@ public class StylePlaylistService
     private readonly IPlaylistManager _playlistManager;
     private readonly PlaylistContentReplacer _contentReplacer;
     private readonly CoverRefreshQueuer _coverRefresh;
+    private readonly IHarmonieConfigProvider _configProvider;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
     private readonly ILogger<StylePlaylistService> _logger;
@@ -61,6 +62,7 @@ public class StylePlaylistService
         IPlaylistManager playlistManager,
         PlaylistContentReplacer contentReplacer,
         CoverRefreshQueuer coverRefresh,
+        IHarmonieConfigProvider configProvider,
         ILibraryManager libraryManager,
         IUserManager userManager,
         ILogger<StylePlaylistService> logger)
@@ -72,6 +74,7 @@ public class StylePlaylistService
         _playlistManager = playlistManager;
         _contentReplacer = contentReplacer;
         _coverRefresh = coverRefresh;
+        _configProvider = configProvider;
         _libraryManager = libraryManager;
         _userManager = userManager;
         _logger = logger;
@@ -83,8 +86,7 @@ public class StylePlaylistService
     /// </summary>
     public async Task RefreshAllAsync(CancellationToken ct)
     {
-        var config = HarmoniePlugin.Instance?.Configuration
-            ?? throw new InvalidOperationException("Plugin not initialized.");
+        var config = _configProvider.GetConfiguration();
 
         if (!config.EnableStylePlaylists || config.StylePlaylistCount <= 0)
         {

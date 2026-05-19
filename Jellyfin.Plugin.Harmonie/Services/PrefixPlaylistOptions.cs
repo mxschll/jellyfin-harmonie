@@ -63,41 +63,41 @@ public class PrefixPlaylistOptions
     /// <summary>
     /// Mode this playlist runs in.
     /// </summary>
-    public HarmonieMode Mode { get; set; }
+    public HarmonieMode Mode { get; init; }
 
     /// <summary>
     /// Total tracks in the resulting playlist as parsed from the title.
     /// Null when the title omits <c>n=N</c>; the service falls back to
     /// the configured default for the mode.
     /// </summary>
-    public int? N { get; set; }
+    public int? N { get; init; }
 
     /// <summary>
     /// Window in days for mix-mode listening history. Null when not
     /// overridden in the title; service uses the configured default.
     /// Mix mode only.
     /// </summary>
-    public int? Days { get; set; }
+    public int? Days { get; init; }
 
     /// <summary>
     /// True if the title contains the <c>top</c> token (force top-played
     /// seed selection). False if the title contains a <c>recent</c> hint
     /// or no selection token. Null = use config default. Mix mode only.
     /// </summary>
-    public bool? UseTopPlayed { get; set; }
+    public bool? UseTopPlayed { get; init; }
 
     /// <summary>
     /// Cap when <c>top=N</c> is used in the title. Null = use config
     /// <c>DefaultMixSeedCap</c>. Mix mode only.
     /// </summary>
-    public int? SeedCap { get; set; }
+    public int? SeedCap { get; init; }
 
     /// <summary>
     /// True if the title contains the <c>drift</c> token. False if the
     /// title contains <c>similar</c> hint, no flag = null = use config
     /// default. Mix mode only.
     /// </summary>
-    public bool? UsesDrift { get; set; }
+    public bool? UsesDrift { get; init; }
 
     /// <summary>
     /// Parses a playlist name. Returns null if the name doesn't start
@@ -135,16 +135,17 @@ public class PrefixPlaylistOptions
             return null;
         }
 
-        var options = new PrefixPlaylistOptions
-        {
-            Mode = mode,
-        };
-
         var rest = match.Groups["rest"].Value;
         if (string.IsNullOrWhiteSpace(rest))
         {
-            return options;
+            return new PrefixPlaylistOptions { Mode = mode };
         }
+
+        int? parsedN = null;
+        int? parsedDays = null;
+        bool? parsedUseTopPlayed = null;
+        int? parsedSeedCap = null;
+        bool? parsedUsesDrift = null;
 
         foreach (var raw in rest.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -158,7 +159,7 @@ public class PrefixPlaylistOptions
                     if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
                         && n is > 0 and <= 500)
                     {
-                        options.N = n;
+                        parsedN = n;
                     }
 
                     break;
@@ -167,23 +168,23 @@ public class PrefixPlaylistOptions
                     if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d)
                         && d is > 0 and <= 365)
                     {
-                        options.Days = d;
+                        parsedDays = d;
                     }
 
                     break;
 
                 case "top" when mode == HarmonieMode.Mix:
-                    options.UseTopPlayed = true;
+                    parsedUseTopPlayed = true;
                     if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c)
                         && c is > 0 and <= 100)
                     {
-                        options.SeedCap = c;
+                        parsedSeedCap = c;
                     }
 
                     break;
 
                 case "drift" when mode == HarmonieMode.Mix:
-                    options.UsesDrift = true;
+                    parsedUsesDrift = true;
                     break;
 
                 default:
@@ -192,6 +193,14 @@ public class PrefixPlaylistOptions
             }
         }
 
-        return options;
+        return new PrefixPlaylistOptions
+        {
+            Mode = mode,
+            N = parsedN,
+            Days = parsedDays,
+            UseTopPlayed = parsedUseTopPlayed,
+            SeedCap = parsedSeedCap,
+            UsesDrift = parsedUsesDrift,
+        };
     }
 }

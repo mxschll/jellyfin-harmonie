@@ -13,6 +13,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<IHarmonieConfigProvider, DefaultHarmonieConfigProvider>();
         serviceCollection.AddHttpClient<HarmonieClient>();
         serviceCollection.AddSingleton<LibraryResolver>();
         serviceCollection.AddSingleton<ListenHistoryProvider>();

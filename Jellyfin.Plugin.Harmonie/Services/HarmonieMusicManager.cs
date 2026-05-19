@@ -70,17 +70,20 @@ public class HarmonieMusicManager : IMusicManager
     private readonly ILibraryManager _libraryManager;
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
+    private readonly IHarmonieConfigProvider _configProvider;
     private readonly ILogger<HarmonieMusicManager> _logger;
 
     public HarmonieMusicManager(
         ILibraryManager libraryManager,
         HarmonieClient client,
         LibraryResolver libraryResolver,
+        IHarmonieConfigProvider configProvider,
         ILogger<HarmonieMusicManager> logger)
     {
         _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _libraryResolver = libraryResolver ?? throw new ArgumentNullException(nameof(libraryResolver));
+        _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -116,9 +119,9 @@ public class HarmonieMusicManager : IMusicManager
             return new List<BaseItem>();
         }
 
-        var config = HarmoniePlugin.Instance?.Configuration;
+        var config = _configProvider.GetConfiguration();
 
-        if (config?.EnableInstantMixOverride == true && item is Audio audio)
+        if (config.EnableInstantMixOverride && item is Audio audio)
         {
             var harmonieResult = TryHarmonieSimilarity(audio, config);
             if (harmonieResult is not null)
