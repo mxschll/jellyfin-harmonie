@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.2.4.1",
+        "changelog": " ### Bug Fixes  - Stop playlist growing on every refresh (#10) (ffa1661)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.4/jellyfin-harmonie_1.2.4.1.zip",
+        "checksum": "2dfb84d857e4fc1d64e71a180047c664",
+        "timestamp": "2026-05-23T17:13:13Z"
+      },
+      {
+        "version": "1.2.4.0",
+        "changelog": " ### Bug Fixes  - Stop playlist growing on every refresh (#10) (ffa1661)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.4/jellyfin-harmonie_1.2.4.0.zip",
+        "checksum": "b9dff7b94486d5ac097fba6e605e86bb",
+        "timestamp": "2026-05-23T17:13:13Z"
+      },
+      {
         "version": "1.2.3.1",
         "changelog": " ### Bug Fixes  - Pin skiasharp to jellyfin host version (#9) (11dd02e)  ",
         "targetAbi": "10.11.0.0",
