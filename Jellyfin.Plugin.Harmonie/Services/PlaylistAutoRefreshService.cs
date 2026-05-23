@@ -73,9 +73,78 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         _libraryManager.ItemUpdated += OnItemUpdated;
         _prefixService.RefreshCompleted += OnPrefixRefreshCompleted;
         _started = true;
+
+        // Snapshot every existing Harmonie playlist's current state
+        // before we listen for any events. Without this baseline,
+        // the first ItemUpdated event after startup compares "primed"
+        // (no previous snapshot) and we skip it — which means a
+        // rename done after the most recent restart goes unobserved
+        // until the next daily refresh task. The first-sight cost is
+        // one library walk; cheap.
+        PrimeSnapshotsFromLibrary();
+
         _logger.LogInformation(
             "Harmonie auto-refresh observer attached (event-driven; reorder polling runs as a scheduled task).");
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Walks every Harmonie-prefixed playlist on the server once and
+    /// records its current name and ordered child paths. Establishes
+    /// the baseline against which subsequent <c>ItemUpdated</c>
+    /// events are compared.
+    /// </summary>
+    private void PrimeSnapshotsFromLibrary()
+    {
+        try
+        {
+            var primed = 0;
+            foreach (var playlist in EnumerateHarmoniePlaylists())
+            {
+                RecordSnapshot(playlist);
+                primed++;
+            }
+
+            if (primed > 0)
+            {
+                _logger.LogDebug(
+                    "Primed snapshots for {Count} Harmonie playlist(s) at startup.",
+                    primed);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Snapshot priming is a "best effort" startup task. If it
+            // fails (library not yet ready, transient DB error), we
+            // fall back to the per-event prime path — a minor
+            // regression to "first event after restart misses" but
+            // not a hard failure.
+            _logger.LogDebug(ex, "Failed to prime snapshots at startup.");
+        }
+    }
+
+    private IEnumerable<Playlist> EnumerateHarmoniePlaylists()
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = new[] { BaseItemKind.Playlist },
+            Recursive = true,
+        };
+
+        foreach (var item in _libraryManager.GetItemList(query))
+        {
+            if (item is not Playlist playlist)
+            {
+                continue;
+            }
+
+            if (HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
+            {
+                continue;
+            }
+
+            yield return playlist;
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
