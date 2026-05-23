@@ -69,8 +69,9 @@ public sealed class PlaylistAutoRefreshService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _libraryManager.ItemAdded += OnItemEvent;
-        _libraryManager.ItemUpdated += OnItemEvent;
+        _libraryManager.ItemAdded += OnItemAdded;
+        _libraryManager.ItemUpdated += OnItemUpdated;
+        _prefixService.RefreshCompleted += OnPrefixRefreshCompleted;
         _started = true;
         _logger.LogInformation(
             "Harmonie auto-refresh observer attached (event-driven; reorder polling runs as a scheduled task).");
@@ -81,8 +82,9 @@ public sealed class PlaylistAutoRefreshService : IHostedService
     {
         if (_started)
         {
-            _libraryManager.ItemAdded -= OnItemEvent;
-            _libraryManager.ItemUpdated -= OnItemEvent;
+            _libraryManager.ItemAdded -= OnItemAdded;
+            _libraryManager.ItemUpdated -= OnItemUpdated;
+            _prefixService.RefreshCompleted -= OnPrefixRefreshCompleted;
             _started = false;
         }
 
@@ -94,7 +96,14 @@ public sealed class PlaylistAutoRefreshService : IHostedService
     // Event-driven path.
     // ---------------------------------------------------------------
 
-    private void OnItemEvent(object? sender, ItemChangeEventArgs e)
+    /// <summary>
+    /// Fires when a brand-new playlist appears in the library. New
+    /// playlists have no prior snapshot to compare against, so we
+    /// always schedule a refresh — but we also prime the snapshot so
+    /// the cascade of follow-up <c>ItemUpdated</c> events from the
+    /// initial save doesn't trigger a second refresh.
+    /// </summary>
+    private void OnItemAdded(object? sender, ItemChangeEventArgs e)
     {
         if (e?.Item is not Playlist playlist)
         {
@@ -106,23 +115,48 @@ public sealed class PlaylistAutoRefreshService : IHostedService
             return;
         }
 
-        // Skip events whose only reason is ImageUpdate. Those come from
-        // our own cover regeneration: when the playlist refresh queues
-        // an image refresh, Jellyfin saves the new image and fires
-        // ItemUpdated. Without this filter, that event would schedule
-        // another content refresh, which would queue another image
-        // refresh — an infinite loop.
-        if (e.UpdateReason == ItemUpdateType.ImageUpdate)
+        _logger.LogInformation(
+            "Saw ItemAdded for {Name} (id={Id}, children={Count})",
+            playlist.Name,
+            playlist.Id,
+            playlist.LinkedChildren?.Length ?? 0);
+
+        if (_prefixService.IsCurrentlyRefreshing(playlist.Id))
         {
             return;
         }
 
-        _logger.LogInformation(
-            "Saw {Reason} for {Name} (id={Id}, children={Count})",
-            e.UpdateReason,
-            playlist.Name,
-            playlist.Id,
-            playlist.LinkedChildren?.Length ?? 0);
+        // Prime the snapshot so subsequent ItemUpdated events from
+        // post-creation processing (cover regen, metadata commits)
+        // compare against the just-created state and bail.
+        RecordSnapshot(playlist);
+        ScheduleRefresh(playlist.Id, playlist.Name, DebounceDelay);
+    }
+
+    /// <summary>
+    /// Fires when an existing playlist is modified. Many sources can
+    /// raise this event without anything user-visible having changed —
+    /// cover regeneration, periodic metadata refresh, image cache
+    /// invalidation, even our own playlist edits whose cascade arrives
+    /// asynchronously after we've cleared <c>IsCurrentlyRefreshing</c>.
+    /// We therefore only schedule a refresh when the playlist's name
+    /// or its ordered child list actually differs from the snapshot
+    /// recorded after the last refresh. <see cref="ItemUpdateType"/>
+    /// flags are not reliable for this — Jellyfin combines them and
+    /// the same flag combination can mean either "user added a track"
+    /// or "we re-saved the cover image".
+    /// </summary>
+    private void OnItemUpdated(object? sender, ItemChangeEventArgs e)
+    {
+        if (e?.Item is not Playlist playlist)
+        {
+            return;
+        }
+
+        if (HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
+        {
+            return;
+        }
 
         if (_prefixService.IsCurrentlyRefreshing(playlist.Id))
         {
@@ -130,12 +164,49 @@ public sealed class PlaylistAutoRefreshService : IHostedService
             return;
         }
 
-        // A rename is a single user action with no follow-up burst, so
-        // there's nothing to coalesce. Fire immediately. Track-add and
-        // reorder events still go through the debounce so a drag-drop
-        // of N tracks doesn't kick off N refreshes.
-        var delay = WasRenamed(playlist.Id, playlist.Name) ? TimeSpan.Zero : DebounceDelay;
+        var change = DetectChangesAndSnapshot(playlist);
+        if (!change.Renamed && !change.OrderChanged)
+        {
+            _logger.LogDebug(
+                "Skipping {Reason} for {Name} (no name/order change since last snapshot).",
+                e.UpdateReason,
+                playlist.Name);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Saw {Reason} for {Name} (id={Id}, children={Count}, renamed={Renamed}, orderChanged={OrderChanged})",
+            e.UpdateReason,
+            playlist.Name,
+            playlist.Id,
+            playlist.LinkedChildren?.Length ?? 0,
+            change.Renamed,
+            change.OrderChanged);
+
+        // Renames are single user actions with no follow-up burst, so
+        // there's nothing to coalesce — fire immediately. Track-add
+        // and reorder events still go through the debounce so a
+        // drag-drop of N tracks doesn't kick off N refreshes.
+        var delay = change.Renamed ? TimeSpan.Zero : DebounceDelay;
         ScheduleRefresh(playlist.Id, playlist.Name, delay);
+    }
+
+    /// <summary>
+    /// Subscribed to <see cref="PrefixPlaylistService.RefreshCompleted"/>.
+    /// Fires inside the refresh's <c>finally</c>, before
+    /// <c>IsCurrentlyRefreshing</c> flips back to false. Brings the
+    /// post-refresh snapshot up to date so the cascade of
+    /// <c>ItemUpdated</c> events that arrive afterwards compares
+    /// against the actual current state and short-circuits.
+    /// </summary>
+    private void OnPrefixRefreshCompleted(object? sender, PlaylistRefreshedEventArgs e)
+    {
+        if (e?.Playlist is null)
+        {
+            return;
+        }
+
+        RecordSnapshot(e.Playlist);
     }
 
     // ---------------------------------------------------------------
@@ -254,19 +325,55 @@ public sealed class PlaylistAutoRefreshService : IHostedService
     }
 
     /// <summary>
-    /// Records the playlist's current name and returns whether it
-    /// changed since the last time we saw it. The first time a
-    /// playlist appears (no previous name on file) is not treated as
-    /// a rename — there's nothing to rename from.
+    /// Reads the playlist's current (name, ordered child list),
+    /// compares each against the last snapshot under their respective
+    /// locks, and updates both snapshots to the current values. The
+    /// first time a playlist is seen there is nothing to compare
+    /// against — both fields are reported as "unchanged" and only the
+    /// snapshot is primed, so a fresh server start doesn't fire a
+    /// burst of refreshes for already-existing playlists.
     /// </summary>
-    private bool WasRenamed(Guid playlistId, string currentName)
+    private (bool Renamed, bool OrderChanged) DetectChangesAndSnapshot(Playlist playlist)
     {
+        var currentName = playlist.Name ?? string.Empty;
+        bool renamed;
         lock (_nameLock)
         {
-            _lastSeenName.TryGetValue(playlistId, out var previous);
-            _lastSeenName[playlistId] = currentName;
-            return previous is not null
+            renamed = _lastSeenName.TryGetValue(playlist.Id, out var previous)
                 && !string.Equals(previous, currentName, StringComparison.Ordinal);
+            _lastSeenName[playlist.Id] = currentName;
+        }
+
+        var currentOrder = SnapshotChildren(playlist);
+        bool orderChanged;
+        lock (_orderLock)
+        {
+            orderChanged = _lastSeenOrder.TryGetValue(playlist.Id, out var previous)
+                && !OrderEquals(previous, currentOrder);
+            _lastSeenOrder[playlist.Id] = currentOrder;
+        }
+
+        return (renamed, orderChanged);
+    }
+
+    /// <summary>
+    /// Stores the playlist's current name and ordered children as the
+    /// new baseline. Used by the post-refresh hook and for priming on
+    /// <c>ItemAdded</c>.
+    /// </summary>
+    private void RecordSnapshot(Playlist playlist)
+    {
+        var currentName = playlist.Name ?? string.Empty;
+        var currentOrder = SnapshotChildren(playlist);
+
+        lock (_nameLock)
+        {
+            _lastSeenName[playlist.Id] = currentName;
+        }
+
+        lock (_orderLock)
+        {
+            _lastSeenOrder[playlist.Id] = currentOrder;
         }
     }
 
@@ -383,15 +490,16 @@ public sealed class PlaylistAutoRefreshService : IHostedService
 
     private void UpdateSnapshotFor(Guid playlistId)
     {
+        // Defensive sync: covers the case where RefreshCompleted didn't
+        // fire (refresh threw before reaching the finally, or the path
+        // doesn't run through PrefixPlaylistService at all). Captures
+        // both name and order to keep the two halves of the snapshot
+        // consistent.
         try
         {
             if (_libraryManager.GetItemById(playlistId) is Playlist refreshed)
             {
-                var order = SnapshotChildren(refreshed);
-                lock (_orderLock)
-                {
-                    _lastSeenOrder[playlistId] = order;
-                }
+                RecordSnapshot(refreshed);
             }
         }
         catch (Exception ex)
