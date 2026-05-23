@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -223,6 +225,15 @@ public class PrefixPlaylistService
         {
             await RefreshVibePlaylistAsync(playlist, owner, options, pathMapper, config, ct)
                 .ConfigureAwait(false);
+            return;
+        }
+
+        // [HARMONIE] is an index playlist: it stays empty, and its
+        // Overview is populated with the catalog of genres and styles
+        // harmonie has indexed. Nothing else like the other modes.
+        if (options.Mode == HarmonieMode.Index)
+        {
+            await RefreshHarmonieIndexPlaylistAsync(playlist, owner, ct).ConfigureAwait(false);
             return;
         }
 
@@ -551,6 +562,136 @@ public class PrefixPlaylistService
             result.Items.Count);
 
         _coverRefresh.Queue(playlist.Id);
+    }
+
+    /// <summary>
+    /// Builds a <c>[HARMONIE]</c> index playlist: an empty playlist
+    /// whose <c>Overview</c> is set to a human-readable list of every
+    /// genre and style harmonie has indexed, separated by <c>&lt;br&gt;</c>.
+    /// Users open the playlist on any client to see the catalog of
+    /// names they can plug into a <c>[GENRE] X</c> or <c>[STYLE] Y</c>
+    /// playlist.
+    /// </summary>
+    private async Task RefreshHarmonieIndexPlaylistAsync(
+        Playlist playlist,
+        User owner,
+        CancellationToken ct)
+    {
+        GenreList genres;
+        StyleList styles;
+        try
+        {
+            // Sequential, not parallel — harmonie is local on most
+            // setups and the responses are tiny. Keeping it serial
+            // simplifies error handling.
+            genres = await _client.ListGenresAsync(ct).ConfigureAwait(false);
+            styles = await _client.ListStylesAsync(genre: null, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Playlist {Name}: failed to fetch genre/style index from harmonie.",
+                playlist.Name);
+            return;
+        }
+
+        var overview = BuildHarmonieIndexOverview(genres, styles);
+
+        lock (_refreshingLock)
+        {
+            _refreshing.Add(playlist.Id);
+        }
+
+        try
+        {
+            // 1. Wipe any tracks the user might have added — index
+            //    playlists stay empty, the catalog lives in Overview.
+            await _contentReplacer
+                .ReplaceContentsAsync(playlist, owner.Id, Array.Empty<Guid>(), ct)
+                .ConfigureAwait(false);
+
+            // 2. Update the Overview field with the freshly built list.
+            //    UpdateToRepositoryAsync(MetadataEdit) persists the
+            //    change and surfaces it in the UI.
+            playlist.Overview = overview;
+            await playlist
+                .UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, ct)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            // See note in RefreshOneAsync's finally — fire the event
+            // while IsCurrentlyRefreshing still gates downstream events.
+            RefreshCompleted?.Invoke(this, new PlaylistRefreshedEventArgs(playlist));
+            lock (_refreshingLock)
+            {
+                _refreshing.Remove(playlist.Id);
+            }
+        }
+
+        _logger.LogInformation(
+            "Refreshed playlist {Name} (HARMONIE index): {Genres} genres, {Styles} styles.",
+            playlist.Name,
+            genres.Items.Count,
+            styles.Items.Count);
+
+        _coverRefresh.Queue(playlist.Id);
+    }
+
+    /// <summary>
+    /// Renders the catalog of genres and styles as a single string
+    /// using <c>&lt;br&gt;</c> as the line separator. Jellyfin's
+    /// overview renderer collapses literal newlines into one paragraph,
+    /// so we need explicit break tags to get a list.
+    /// </summary>
+    public static string BuildHarmonieIndexOverview(GenreList genres, StyleList styles)
+    {
+        ArgumentNullException.ThrowIfNull(genres);
+        ArgumentNullException.ThrowIfNull(styles);
+
+        var sb = new StringBuilder();
+        const string Br = "<br>";
+        const string Para = "<br><br>";
+
+        sb.Append("Genres in your library:").Append(Br);
+        foreach (var g in genres.Items)
+        {
+            sb.Append(WebUtility.HtmlEncode(g.Genre))
+                .Append(" (")
+                .Append(g.TrackCount.ToString("N0", CultureInfo.InvariantCulture))
+                .Append(" tracks)")
+                .Append(Br);
+        }
+
+        if (genres.Items.Count == 0)
+        {
+            sb.Append("(none — has harmonie scanned your library yet?)").Append(Br);
+        }
+
+        sb.Append(Para);
+
+        sb.Append("Styles in your library:").Append(Br);
+        foreach (var s in styles.Items)
+        {
+            sb.Append(WebUtility.HtmlEncode(s.Style))
+                .Append(" (")
+                .Append(s.TrackCount.ToString("N0", CultureInfo.InvariantCulture))
+                .Append(" tracks)")
+                .Append(Br);
+        }
+
+        if (styles.Items.Count == 0)
+        {
+            sb.Append("(none)").Append(Br);
+        }
+
+        sb.Append(Para);
+        sb.Append(
+            "Name a playlist [GENRE] Electronic or [STYLE] House to fill it with " +
+            "tracks from that genre or style.");
+
+        return sb.ToString();
     }
 
     /// <summary>

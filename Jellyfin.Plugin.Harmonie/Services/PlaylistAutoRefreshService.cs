@@ -73,9 +73,78 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         _libraryManager.ItemUpdated += OnItemUpdated;
         _prefixService.RefreshCompleted += OnPrefixRefreshCompleted;
         _started = true;
+
+        // Snapshot every existing Harmonie playlist's current state
+        // before we listen for any events. Without this baseline,
+        // the first ItemUpdated event after startup compares "primed"
+        // (no previous snapshot) and we skip it — which means a
+        // rename done after the most recent restart goes unobserved
+        // until the next daily refresh task. The first-sight cost is
+        // one library walk; cheap.
+        PrimeSnapshotsFromLibrary();
+
         _logger.LogInformation(
             "Harmonie auto-refresh observer attached (event-driven; reorder polling runs as a scheduled task).");
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Walks every Harmonie-prefixed playlist on the server once and
+    /// records its current name and ordered child paths. Establishes
+    /// the baseline against which subsequent <c>ItemUpdated</c>
+    /// events are compared.
+    /// </summary>
+    private void PrimeSnapshotsFromLibrary()
+    {
+        try
+        {
+            var primed = 0;
+            foreach (var playlist in EnumerateHarmoniePlaylists())
+            {
+                RecordSnapshot(playlist);
+                primed++;
+            }
+
+            if (primed > 0)
+            {
+                _logger.LogDebug(
+                    "Primed snapshots for {Count} Harmonie playlist(s) at startup.",
+                    primed);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Snapshot priming is a "best effort" startup task. If it
+            // fails (library not yet ready, transient DB error), we
+            // fall back to the per-event prime path — a minor
+            // regression to "first event after restart misses" but
+            // not a hard failure.
+            _logger.LogDebug(ex, "Failed to prime snapshots at startup.");
+        }
+    }
+
+    private IEnumerable<Playlist> EnumerateHarmoniePlaylists()
+    {
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = new[] { BaseItemKind.Playlist },
+            Recursive = true,
+        };
+
+        foreach (var item in _libraryManager.GetItemList(query))
+        {
+            if (item is not Playlist playlist)
+            {
+                continue;
+            }
+
+            if (HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
+            {
+                continue;
+            }
+
+            yield return playlist;
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -170,7 +239,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         }
 
         var change = DetectChangesAndSnapshot(playlist);
-        if (!change.Renamed && !change.OrderChanged)
+        if (!change.FirstSight && !change.Renamed && !change.OrderChanged)
         {
             _logger.LogDebug(
                 "Skipping {Reason} for {Name} (no name/order change since last snapshot).",
@@ -180,19 +249,22 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         }
 
         _logger.LogInformation(
-            "Saw {Reason} for {Name} (id={Id}, children={Count}, renamed={Renamed}, orderChanged={OrderChanged})",
+            "Saw {Reason} for {Name} (id={Id}, children={Count}, firstSight={FirstSight}, renamed={Renamed}, orderChanged={OrderChanged})",
             e.UpdateReason,
             playlist.Name,
             playlist.Id,
             playlist.LinkedChildren?.Length ?? 0,
+            change.FirstSight,
             change.Renamed,
             change.OrderChanged);
 
-        // Renames are single user actions with no follow-up burst, so
-        // there's nothing to coalesce — fire immediately. Track-add
-        // and reorder events still go through the debounce so a
-        // drag-drop of N tracks doesn't kick off N refreshes.
-        var delay = change.Renamed ? TimeSpan.Zero : DebounceDelay;
+        // Discrete events (a rename, or first time we've seen this
+        // playlist as Harmonie) fire immediately — no follow-up burst
+        // to coalesce. Track-add/reorder events still go through the
+        // debounce so a drag-drop of N tracks doesn't kick off N
+        // refreshes.
+        var immediate = change.FirstSight || change.Renamed;
+        var delay = immediate ? TimeSpan.Zero : DebounceDelay;
         ScheduleRefresh(playlist.Id, playlist.Name, delay);
     }
 
@@ -341,35 +413,50 @@ public sealed class PlaylistAutoRefreshService : IHostedService
     }
 
     /// <summary>
-    /// Reads the playlist's current (name, ordered child list),
-    /// compares each against the last snapshot under their respective
-    /// locks, and updates both snapshots to the current values. The
-    /// first time a playlist is seen there is nothing to compare
-    /// against — both fields are reported as "unchanged" and only the
-    /// snapshot is primed, so a fresh server start doesn't fire a
-    /// burst of refreshes for already-existing playlists.
+    /// Compares the playlist's current name and ordered child paths
+    /// against the last snapshot under their respective locks, then
+    /// updates the snapshot to the current values.
+    ///
+    /// <para>
+    /// Returns three flags. <c>FirstSight</c> means we had no
+    /// baseline for this playlist (newly Harmonie-renamed, or missed
+    /// by startup priming). <c>Renamed</c> means we had a baseline
+    /// and the name differs. <c>OrderChanged</c> means the ordered
+    /// child paths differ. The caller decides what to do based on
+    /// the combination — see <see cref="OnItemUpdated"/> for the
+    /// dispatch rules.
+    /// </para>
     /// </summary>
-    private (bool Renamed, bool OrderChanged) DetectChangesAndSnapshot(Playlist playlist)
+    private (bool FirstSight, bool Renamed, bool OrderChanged) DetectChangesAndSnapshot(
+        Playlist playlist)
     {
         var currentName = playlist.Name ?? string.Empty;
-        bool renamed;
+        bool hadName, renamed;
         lock (_nameLock)
         {
-            renamed = _lastSeenName.TryGetValue(playlist.Id, out var previous)
-                && !string.Equals(previous, currentName, StringComparison.Ordinal);
+            hadName = _lastSeenName.TryGetValue(playlist.Id, out var previousName);
+            renamed = hadName
+                && !string.Equals(previousName, currentName, StringComparison.Ordinal);
             _lastSeenName[playlist.Id] = currentName;
         }
 
         var currentOrder = SnapshotChildren(playlist);
-        bool orderChanged;
+        bool hadOrder, orderChanged;
         lock (_orderLock)
         {
-            orderChanged = _lastSeenOrder.TryGetValue(playlist.Id, out var previous)
-                && !OrderEquals(previous, currentOrder);
+            hadOrder = _lastSeenOrder.TryGetValue(playlist.Id, out var previousOrder);
+            orderChanged = hadOrder && !OrderEquals(previousOrder!, currentOrder);
             _lastSeenOrder[playlist.Id] = currentOrder;
         }
 
-        return (renamed, orderChanged);
+        // First sight = no baseline at all. Either the playlist was
+        // just renamed *into* a Harmonie prefix from a non-Harmonie
+        // name (so PrimeSnapshotsFromLibrary skipped it), or the
+        // priming pass at startup missed it for some other reason.
+        // Either way, treat it as a discrete "fill this" event.
+        var firstSight = !hadName || !hadOrder;
+
+        return (firstSight, renamed, orderChanged);
     }
 
     /// <summary>

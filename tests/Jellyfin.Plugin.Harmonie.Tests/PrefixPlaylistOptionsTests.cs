@@ -343,4 +343,35 @@ public class PrefixPlaylistOptionsTests
         Assert.Null(PrefixPlaylistOptions.TryParse("[DRIFT] Long Mix")!.FilterValue);
         Assert.Null(PrefixPlaylistOptions.TryParse("[MIX] Today")!.FilterValue);
     }
+
+    // ---------------------------------------------------------------
+    // Index mode ([HARMONIE]).
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void Bare_harmonie_prefix_yields_index_mode()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[HARMONIE]");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Index, opts!.Mode);
+        Assert.Null(opts.FilterValue);
+    }
+
+    [Fact]
+    public void Harmonie_prefix_match_is_case_insensitive()
+    {
+        Assert.Equal(HarmonieMode.Index, PrefixPlaylistOptions.TryParse("[harmonie]")!.Mode);
+        Assert.Equal(HarmonieMode.Index, PrefixPlaylistOptions.TryParse("[Harmonie]")!.Mode);
+    }
+
+    [Fact]
+    public void Harmonie_prefix_ignores_post_bracket_text_as_label_only()
+    {
+        // Index mode has no filter value; trailing text is just a
+        // human-readable label, parsed but not used.
+        var opts = PrefixPlaylistOptions.TryParse("[HARMONIE] My Music Index");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Index, opts!.Mode);
+        Assert.Null(opts.FilterValue);
+    }
 }

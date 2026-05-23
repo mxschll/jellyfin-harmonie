@@ -33,7 +33,8 @@ internal static class HarmoniePlaylistFilter
     /// managed and rebuilt on its own schedule, so user edits to its
     /// body don't apply. STYLE and GENRE are also plugin-managed: their
     /// content is a vibe-mode query result, the user only changes the
-    /// filter by renaming the playlist.
+    /// filter by renaming the playlist. HARMONIE is an empty index
+    /// playlist; its body is irrelevant.
     /// </summary>
     public static bool IsWatched(Playlist playlist)
     {
@@ -41,6 +42,7 @@ internal static class HarmoniePlaylistFilter
         return options is not null
             && options.Mode != HarmonieMode.Mix
             && options.Mode != HarmonieMode.Style
-            && options.Mode != HarmonieMode.Genre;
+            && options.Mode != HarmonieMode.Genre
+            && options.Mode != HarmonieMode.Index;
     }
 }
