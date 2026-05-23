@@ -215,6 +215,47 @@ public class HarmonieClient
         => PostPlaylistAsync(request, ct);
 
     /// <summary>
+    /// Lists the top-level genres in harmonie's library. The
+    /// <c>[HARMONIE]</c> index playlist uses this.
+    /// </summary>
+    public async Task<GenreList> ListGenresAsync(CancellationToken ct)
+    {
+        var config = RequireConfig();
+
+        using var req = NewRequest(HttpMethod.Get, "/api/v1/genres", config);
+        using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<GenreList>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new GenreList();
+    }
+
+    /// <summary>
+    /// Lists styles present in harmonie's library, optionally scoped
+    /// to one genre branch. Pass <paramref name="genre"/> to only
+    /// return styles under that genre.
+    /// </summary>
+    public async Task<StyleList> ListStylesAsync(string? genre, CancellationToken ct)
+    {
+        var config = RequireConfig();
+
+        var path = "/api/v1/styles";
+        if (!string.IsNullOrEmpty(genre))
+        {
+            var qs = HttpUtility.ParseQueryString(string.Empty);
+            qs["genre"] = genre;
+            path = path + "?" + qs;
+        }
+
+        using var req = NewRequest(HttpMethod.Get, path, config);
+        using var resp = await SendAsync(req, config, ct).ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content
+            .ReadFromJsonAsync<StyleList>(JsonOptions, ct)
+            .ConfigureAwait(false) ?? new StyleList();
+    }
+
+    /// <summary>
     /// Resolves a single harmonie track by tags and/or path via
     /// <c>GET /api/v1/tracks/resolve</c>. Returns null on 404.
     /// </summary>

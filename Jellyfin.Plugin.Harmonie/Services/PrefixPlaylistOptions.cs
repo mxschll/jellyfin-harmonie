@@ -45,22 +45,33 @@ public enum HarmonieMode
     /// <c>Genre---Style</c>) — e.g. "Electronic", "Hip Hop".
     /// </summary>
     Genre,
+
+    /// <summary>
+    /// <c>[HARMONIE]</c>. An index playlist that stays empty. The
+    /// plugin writes the list of genres and styles harmonie has
+    /// indexed into the playlist's <c>Overview</c> field, so the
+    /// playlist detail page becomes a browsable catalog of names a
+    /// user can plug into <see cref="Genre"/> or <see cref="Style"/>
+    /// playlists.
+    /// </summary>
+    Index,
 }
 
 /// <summary>
 /// Parses a Jellyfin playlist name into a strongly-typed options object.
-/// The plugin recognises five fixed prefixes:
+/// The plugin recognises six fixed prefixes:
 ///
-///   [RADIO] — similar-mode radio, seeded by user-added tracks.
-///   [DRIFT] — drifting walk, seeded by one user-added track.
-///   [MIX]   — listen-history mix, no manual seeding.
-///   [STYLE] — vibe playlist filtered to one Discogs style.
-///   [GENRE] — vibe playlist filtered to one Discogs genre.
+///   [RADIO]    — similar-mode radio, seeded by user-added tracks.
+///   [DRIFT]    — drifting walk, seeded by one user-added track.
+///   [MIX]      — listen-history mix, no manual seeding.
+///   [STYLE]    — vibe playlist filtered to one Discogs style.
+///   [GENRE]    — vibe playlist filtered to one Discogs genre.
+///   [HARMONIE] — index playlist; lists genres/styles in the overview.
 ///
-/// For [RADIO]/[DRIFT]/[MIX], anything after the closing bracket is a
-/// human-readable label and is ignored by the parser. For
-/// [STYLE]/[GENRE] the post-bracket text is the filter value — the
-/// playlist <c>[GENRE] Hip Hop</c> filters on genre "Hip Hop".
+/// For [RADIO]/[DRIFT]/[MIX]/[HARMONIE], anything after the closing
+/// bracket is a human-readable label and is ignored by the parser.
+/// For [STYLE]/[GENRE] the post-bracket text is the filter value —
+/// the playlist <c>[GENRE] Hip Hop</c> filters on genre "Hip Hop".
 ///
 /// Optional tokens inside the brackets after the mode word, separated
 /// by spaces. The set of accepted tokens depends on the mode.
@@ -72,7 +83,7 @@ public enum HarmonieMode
 ///   drift              use harmonie's drift mode for expansion (mix only).
 ///   style_min=&lt;f&gt;   minimum classifier probability (style/genre only).
 ///
-/// Returns null if the name doesn't open with one of the five prefixes.
+/// Returns null if the name doesn't open with one of the six prefixes.
 /// </summary>
 public class PrefixPlaylistOptions
 {
@@ -81,6 +92,7 @@ public class PrefixPlaylistOptions
     public const string MixPrefix = "[MIX]";
     public const string StylePrefix = "[STYLE]";
     public const string GenrePrefix = "[GENRE]";
+    public const string IndexPrefix = "[HARMONIE]";
 
     private static readonly Regex BracketPattern = new(
         @"^\[(?<word>[A-Za-z]+)(?<rest>[^\]]*)\]",
@@ -178,6 +190,10 @@ public class PrefixPlaylistOptions
         else if (string.Equals(bracketWord, "GENRE", StringComparison.OrdinalIgnoreCase))
         {
             mode = HarmonieMode.Genre;
+        }
+        else if (string.Equals(bracketWord, "HARMONIE", StringComparison.OrdinalIgnoreCase))
+        {
+            mode = HarmonieMode.Index;
         }
         else
         {

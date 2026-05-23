@@ -160,6 +160,7 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         HarmonieMode.Mix => "MIX",
         HarmonieMode.Style => "STYLE",
         HarmonieMode.Genre => "GENRE",
+        HarmonieMode.Index => "HARMONIE",
         _ => "HARMONIE",
     };
 

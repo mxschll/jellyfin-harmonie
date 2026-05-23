@@ -59,7 +59,7 @@ The plugin's settings page shows live harmonie scan progress and counters.
 
 ## Use it
 
-Make a normal Jellyfin playlist and prefix the name with `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, or `[GENRE]`. The plugin watches for edits and refreshes the playlist in the background five seconds later.
+Make a normal Jellyfin playlist and prefix the name with `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, `[GENRE]`, or `[HARMONIE]`. The plugin watches for edits and refreshes the playlist in the background five seconds later.
 
 Radio playlists treat the first N tracks as seeds (N is configurable, default 5). The first seed is the strongest anchor. Drag a track into the top to make it a seed; remove it to demote it.
 
@@ -68,6 +68,8 @@ Drift playlists take one seed (the first track) and walk away from it in chunks.
 Mix playlists seed themselves from your Jellyfin listening history, so you don't add tracks. Anything you do add gets wiped on the next refresh. The default is "today's mix" from the last week.
 
 Style and genre playlists fill themselves with 100 tracks (default, configurable) of one Discogs style or genre — the part of the name after the closing bracket is the filter value. `[GENRE] Hip Hop` returns 100 hip-hop tracks; `[STYLE] House` returns 100 house tracks across every genre. Each refresh shuffles the matching pool fresh, so the playlist feels different every day. Anything you add gets wiped.
+
+A `[HARMONIE]` playlist is a discovery aid: it stays empty, but its description lists every genre and style harmonie has indexed in your library, with track counts. Open it in any Jellyfin client to see the catalog of names you can plug into a `[GENRE] X` or `[STYLE] Y` playlist. Refreshes on the daily task.
 
 You can override settings per playlist with tokens inside the brackets:
 

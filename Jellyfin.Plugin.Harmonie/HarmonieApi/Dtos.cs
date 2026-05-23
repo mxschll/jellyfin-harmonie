@@ -263,6 +263,73 @@ public class VibePlaylistRequest
 }
 
 /// <summary>
+/// One row in <c>GET /api/v1/genres</c>. A "genre" is the left side of
+/// a Discogs <c>Genre---Style</c> label (<c>Electronic</c>,
+/// <c>Hip Hop</c>, ...).
+/// </summary>
+public class GenreEnumeration
+{
+    [JsonPropertyName("genre")]
+    public string Genre { get; set; } = string.Empty;
+
+    [JsonPropertyName("track_count")]
+    public int TrackCount { get; set; }
+
+    [JsonPropertyName("style_count")]
+    public int StyleCount { get; set; }
+
+    [JsonPropertyName("mean_probability")]
+    public double MeanProbability { get; set; }
+
+    [JsonPropertyName("max_probability")]
+    public double MaxProbability { get; set; }
+}
+
+/// <summary>
+/// Wrapper for the <c>GET /api/v1/genres</c> response.
+/// </summary>
+public class GenreList
+{
+    [JsonPropertyName("items")]
+    public List<GenreEnumeration> Items { get; set; } = new();
+
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+}
+
+/// <summary>
+/// One row in <c>GET /api/v1/styles</c>. A "style" is the right side
+/// of a Discogs <c>Genre---Style</c> label (<c>House</c>,
+/// <c>Hard Techno</c>, ...).
+/// </summary>
+public class StyleEnumeration
+{
+    [JsonPropertyName("style")]
+    public string Style { get; set; } = string.Empty;
+
+    [JsonPropertyName("track_count")]
+    public int TrackCount { get; set; }
+
+    [JsonPropertyName("mean_probability")]
+    public double MeanProbability { get; set; }
+
+    [JsonPropertyName("max_probability")]
+    public double MaxProbability { get; set; }
+}
+
+/// <summary>
+/// Wrapper for the <c>GET /api/v1/styles</c> response.
+/// </summary>
+public class StyleList
+{
+    [JsonPropertyName("items")]
+    public List<StyleEnumeration> Items { get; set; } = new();
+
+    [JsonPropertyName("total")]
+    public int Total { get; set; }
+}
+
+/// <summary>
 /// Subset of harmonie's <c>GET /api/v1/status</c> response. Combines
 /// what used to be split across <c>/info</c> and <c>/stats</c>; the
 /// plugin renders all of it on the config page so users can see the
