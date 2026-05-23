@@ -74,6 +74,20 @@ public class PrefixPlaylistService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Raised after a refresh has finished modifying a playlist's
+    /// content and metadata, just before the playlist is removed from
+    /// the in-flight set. Subscribers (notably
+    /// <c>PlaylistAutoRefreshService</c>) use this to keep their
+    /// post-refresh state snapshots in sync, so the cascade of
+    /// <c>ItemUpdated</c> events that Jellyfin fires asynchronously
+    /// after the refresh doesn't get mistaken for a fresh user edit.
+    /// Handlers run synchronously inside the refresh's <c>finally</c>
+    /// block while <see cref="IsCurrentlyRefreshing"/> still returns
+    /// <c>true</c>.
+    /// </summary>
+    public event EventHandler<PlaylistRefreshedEventArgs>? RefreshCompleted;
+
     public bool IsCurrentlyRefreshing(Guid playlistId)
     {
         lock (_refreshingLock)
@@ -380,6 +394,11 @@ public class PrefixPlaylistService
         }
         finally
         {
+            // Notify subscribers BEFORE clearing the in-flight flag.
+            // Snapshot updates in handlers (e.g. PlaylistAutoRefreshService)
+            // need to land while events that fire as a result are still
+            // gated by IsCurrentlyRefreshing.
+            RefreshCompleted?.Invoke(this, new PlaylistRefreshedEventArgs(playlist));
             lock (_refreshingLock)
             {
                 _refreshing.Remove(playlist.Id);
@@ -514,6 +533,9 @@ public class PrefixPlaylistService
         }
         finally
         {
+            // See note in RefreshOneAsync's finally — fire the event
+            // while IsCurrentlyRefreshing still gates downstream events.
+            RefreshCompleted?.Invoke(this, new PlaylistRefreshedEventArgs(playlist));
             lock (_refreshingLock)
             {
                 _refreshing.Remove(playlist.Id);
