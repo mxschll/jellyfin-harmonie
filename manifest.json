@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.2.3.1",
+        "changelog": " ### Bug Fixes  - Pin skiasharp to jellyfin host version (#9) (11dd02e)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.3/jellyfin-harmonie_1.2.3.1.zip",
+        "checksum": "703f1a892575e635b7a617a251373e41",
+        "timestamp": "2026-05-23T16:39:07Z"
+      },
+      {
+        "version": "1.2.3.0",
+        "changelog": " ### Bug Fixes  - Pin skiasharp to jellyfin host version (#9) (11dd02e)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.3/jellyfin-harmonie_1.2.3.0.zip",
+        "checksum": "4af11e3a5e4ca1bd9b0ebaf09446f65b",
+        "timestamp": "2026-05-23T16:39:07Z"
+      },
+      {
         "version": "1.2.2.1",
         "changelog": " ### Bug Fixes  - Stop auto-refresh feedback loop on cover regen (#8) (28fc450)  ",
         "targetAbi": "10.11.0.0",
