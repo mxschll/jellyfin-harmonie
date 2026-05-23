@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.2.5.1",
+        "changelog": " ### Bug Fixes  - Set debounce to 0 for new playlists (#11) (47c4f7d)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.5/jellyfin-harmonie_1.2.5.1.zip",
+        "checksum": "361fa1958556218b9edc750eafd3579e",
+        "timestamp": "2026-05-23T17:19:35Z"
+      },
+      {
+        "version": "1.2.5.0",
+        "changelog": " ### Bug Fixes  - Set debounce to 0 for new playlists (#11) (47c4f7d)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.5/jellyfin-harmonie_1.2.5.0.zip",
+        "checksum": "02fe2706db90512a834d16f2c00dfd9c",
+        "timestamp": "2026-05-23T17:19:35Z"
+      },
+      {
         "version": "1.2.4.1",
         "changelog": " ### Bug Fixes  - Stop playlist growing on every refresh (#10) (ffa1661)  ",
         "targetAbi": "10.11.0.0",
