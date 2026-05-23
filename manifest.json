@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.2.1.1",
+        "changelog": " ### Other  - Bump xunit.runner.visualstudio from 3.0.1 to 3.1.5 (#6)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (e544bd1) - Bump Microsoft.NET.Test.Sdk from 17.13.0 to 18.5.1 (#5)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (b457634)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.1/jellyfin-harmonie_1.2.1.1.zip",
+        "checksum": "d015a25a096e871c0d7b6024e0139f88",
+        "timestamp": "2026-05-23T15:06:42Z"
+      },
+      {
+        "version": "1.2.1.0",
+        "changelog": " ### Other  - Bump xunit.runner.visualstudio from 3.0.1 to 3.1.5 (#6)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (e544bd1) - Bump Microsoft.NET.Test.Sdk from 17.13.0 to 18.5.1 (#5)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (b457634)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.2.1/jellyfin-harmonie_1.2.1.0.zip",
+        "checksum": "b218b8fb05afd542308d3b78573b0f1a",
+        "timestamp": "2026-05-23T15:06:42Z"
+      },
+      {
         "version": "1.1.1.1",
         "changelog": " ### CI  - Switch release bump to conventional-commit prefixes (be2c6d0)  ### Refactor  - Add config provider interface and make prefixplaylistoptions immutable (4fef4f8) - Extract audiometadata and harmonieplaylistfilter helpers (e236d63) - Consolidate config access and scheduled-task triggers (dbb2d66)  ",
         "targetAbi": "10.11.0.0",
