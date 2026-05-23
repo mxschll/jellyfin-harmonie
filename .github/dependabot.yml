@@ -14,9 +14,18 @@ updates:
         patterns:
           - "*Analyzer*"
           - "StyleCop.*"
-      skiasharp:
-        patterns:
-          - "SkiaSharp*"
+    # SkiaSharp's runtime is supplied by the Jellyfin host, so the
+    # plugin's reference must EXACTLY match Jellyfin's pinned version
+    # per ABI (see comment in Jellyfin.Plugin.Harmonie.csproj). We
+    # never want Dependabot to bump these — bumps cause the plugin
+    # DLL to fail to load with status NotSupported on hosts that ship
+    # an older SkiaSharp. When Jellyfin itself bumps, we bump
+    # manually in the same PR that updates the Jellyfin.Controller
+    # version. SkiaSharp.HarfBuzz and the NativeAssets.* siblings are
+    # included so the family stays in lockstep.
+    ignore:
+      - dependency-name: "SkiaSharp"
+      - dependency-name: "SkiaSharp.*"
 
   # Keep workflow Action versions current (e.g. actions/checkout@v4 → v5).
   - package-ecosystem: github-actions
