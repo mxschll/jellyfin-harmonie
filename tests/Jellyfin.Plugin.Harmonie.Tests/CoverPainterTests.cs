@@ -152,6 +152,8 @@ public class CoverPainterTests
     [InlineData(HarmonieMode.Radio, "Workout", "RADIO")]
     [InlineData(HarmonieMode.Drift, "Long Mix", "DRIFT")]
     [InlineData(HarmonieMode.Mix, "Today", "MIX")]
+    [InlineData(HarmonieMode.Style, "House", "STYLE")]
+    [InlineData(HarmonieMode.Genre, "Hip Hop", "GENRE")]
     public void RenderPrimary_covers_all_modes(HarmonieMode mode, string title, string badge)
     {
         var painter = new CoverPainter();

@@ -194,6 +194,17 @@
                         </div>
                     </div>
 
+                    <h2>[STYLE] / [GENRE] defaults</h2>
+                    <div class="fieldDescription">
+                        Style and genre playlists fill themselves from harmonie's track library, filtered by the name after the prefix. Name a playlist <code>[GENRE] Hip Hop</code> or <code>[STYLE] House</code>; the plugin reshuffles fresh tracks on every refresh.
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleGenreN">Default style/genre length (n)</label>
+                        <input id="DefaultStyleGenreN" name="DefaultStyleGenreN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks in a <code>[STYLE]</code> or <code>[GENRE]</code> playlist. 1&ndash;500.</div>
+                    </div>
+
                     <h2>Instant Mix / Song Radio</h2>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -292,6 +303,7 @@
                             document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
                             document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
                             document.querySelector('#DefaultMixUsesDrift').checked = !!config.DefaultMixUsesDrift;
+                            document.querySelector('#DefaultStyleGenreN').value = config.DefaultStyleGenreN || 100;
                             document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
@@ -337,6 +349,8 @@
                                 parseInt(document.querySelector('#DefaultMixSeedCap').value, 10) || 10;
                             config.DefaultMixUseTopPlayed = document.querySelector('#DefaultMixUseTopPlayed').checked;
                             config.DefaultMixUsesDrift = document.querySelector('#DefaultMixUsesDrift').checked;
+                            config.DefaultStyleGenreN =
+                                parseInt(document.querySelector('#DefaultStyleGenreN').value, 10) || 100;
                             config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
                             config.StylePlaylistCount =
                                 parseInt(document.querySelector('#StylePlaylistCount').value, 10);

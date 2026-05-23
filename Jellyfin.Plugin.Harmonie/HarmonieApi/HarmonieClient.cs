@@ -206,6 +206,15 @@ public class HarmonieClient
         => PostPlaylistAsync(request, ct);
 
     /// <summary>
+    /// Builds a vibe-mode playlist. No seeds — the request's
+    /// <see cref="VibePlaylistRequest.Filter"/> narrows the pool and
+    /// harmonie shuffles it. The plugin's <c>[GENRE]</c> and
+    /// <c>[STYLE]</c> playlists use this.
+    /// </summary>
+    public Task<PlaylistResult> VibePlaylistAsync(VibePlaylistRequest request, CancellationToken ct)
+        => PostPlaylistAsync(request, ct);
+
+    /// <summary>
     /// Resolves a single harmonie track by tags and/or path via
     /// <c>GET /api/v1/tracks/resolve</c>. Returns null on 404.
     /// </summary>

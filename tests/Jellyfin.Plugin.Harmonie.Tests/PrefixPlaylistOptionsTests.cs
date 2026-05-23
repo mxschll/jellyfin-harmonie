@@ -229,4 +229,118 @@ public class PrefixPlaylistOptionsTests
         Assert.NotNull(opts);
         Assert.Null(opts!.Days);
     }
+
+    // ---------------------------------------------------------------
+    // Style / Genre modes (vibe-driven, post-bracket text is the value).
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void Style_prefix_captures_post_bracket_text_as_filter_value()
+    {
+        // The whole feature: "[STYLE] House" filters on style "House".
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE] House");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Style, opts!.Mode);
+        Assert.Equal("House", opts.FilterValue);
+    }
+
+    [Fact]
+    public void Genre_prefix_captures_post_bracket_text_as_filter_value()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[GENRE] Hip Hop");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Genre, opts!.Mode);
+        Assert.Equal("Hip Hop", opts.FilterValue);
+    }
+
+    [Fact]
+    public void Style_filter_value_preserves_internal_spaces()
+    {
+        // Multi-word style names ("Hard Techno", "Drum and Bass") are
+        // a primary use case. Trim only the surrounding whitespace.
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE]   Hard Techno  ");
+        Assert.NotNull(opts);
+        Assert.Equal("Hard Techno", opts!.FilterValue);
+    }
+
+    [Fact]
+    public void Style_prefix_with_no_value_leaves_filter_value_null()
+    {
+        // The service uses null FilterValue as the signal to skip the
+        // refresh entirely. A bare "[STYLE]" must not be parsed as
+        // matching the empty string and trigger a 400 from harmonie.
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE]");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Style, opts!.Mode);
+        Assert.Null(opts.FilterValue);
+    }
+
+    [Fact]
+    public void Style_prefix_with_only_tokens_and_no_value_leaves_filter_value_null()
+    {
+        // Tokens inside the brackets, nothing after — still no value.
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE n=50]");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Style, opts!.Mode);
+        Assert.Equal(50, opts.N);
+        Assert.Null(opts.FilterValue);
+    }
+
+    [Fact]
+    public void Style_n_token_combines_with_filter_value()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE n=200] House");
+        Assert.NotNull(opts);
+        Assert.Equal(HarmonieMode.Style, opts!.Mode);
+        Assert.Equal(200, opts.N);
+        Assert.Equal("House", opts.FilterValue);
+    }
+
+    [Fact]
+    public void Style_min_token_parses_floats_in_unit_range()
+    {
+        var opts = PrefixPlaylistOptions.TryParse("[STYLE style_min=0.5] House");
+        Assert.NotNull(opts);
+        Assert.Equal(0.5, opts!.StyleMin);
+    }
+
+    [Theory]
+    [InlineData("[STYLE style_min=1.5] House")]    // > 1.0
+    [InlineData("[STYLE style_min=-0.1] House")]   // < 0.0
+    [InlineData("[STYLE style_min=abc] House")]    // unparseable
+    public void Style_min_invalid_values_leave_style_min_unset(string title)
+    {
+        var opts = PrefixPlaylistOptions.TryParse(title);
+        Assert.NotNull(opts);
+        Assert.Null(opts!.StyleMin);
+    }
+
+    [Fact]
+    public void Style_min_does_not_apply_to_other_modes()
+    {
+        // style_min is style/genre-only. Anywhere else it's an unknown
+        // token and silently ignored, leaving StyleMin null.
+        var radio = PrefixPlaylistOptions.TryParse("[RADIO style_min=0.5]");
+        Assert.NotNull(radio);
+        Assert.Null(radio!.StyleMin);
+    }
+
+    [Fact]
+    public void Style_prefix_match_is_case_insensitive()
+    {
+        Assert.Equal(HarmonieMode.Style, PrefixPlaylistOptions.TryParse("[style] House")!.Mode);
+        Assert.Equal(HarmonieMode.Style, PrefixPlaylistOptions.TryParse("[Style] House")!.Mode);
+        Assert.Equal(HarmonieMode.Genre, PrefixPlaylistOptions.TryParse("[genre] Rock")!.Mode);
+        Assert.Equal(HarmonieMode.Genre, PrefixPlaylistOptions.TryParse("[Genre] Rock")!.Mode);
+    }
+
+    [Fact]
+    public void Filter_value_is_null_for_non_style_genre_modes()
+    {
+        // FilterValue is meaningful only for Style/Genre. For RADIO,
+        // DRIFT, MIX the post-bracket text is just a label.
+        Assert.Null(PrefixPlaylistOptions.TryParse("[RADIO] Workout")!.FilterValue);
+        Assert.Null(PrefixPlaylistOptions.TryParse("[DRIFT] Long Mix")!.FilterValue);
+        Assert.Null(PrefixPlaylistOptions.TryParse("[MIX] Today")!.FilterValue);
+    }
 }

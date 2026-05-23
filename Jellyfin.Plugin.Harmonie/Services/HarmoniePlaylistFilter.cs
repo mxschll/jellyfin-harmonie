@@ -31,11 +31,16 @@ internal static class HarmoniePlaylistFilter
     /// True for Harmonie playlists whose user edits the auto-refresh
     /// service should react to. RADIO and DRIFT only — MIX is plugin-
     /// managed and rebuilt on its own schedule, so user edits to its
-    /// body don't apply.
+    /// body don't apply. STYLE and GENRE are also plugin-managed: their
+    /// content is a vibe-mode query result, the user only changes the
+    /// filter by renaming the playlist.
     /// </summary>
     public static bool IsWatched(Playlist playlist)
     {
         var options = TryGetOptions(playlist);
-        return options is not null && options.Mode != HarmonieMode.Mix;
+        return options is not null
+            && options.Mode != HarmonieMode.Mix
+            && options.Mode != HarmonieMode.Style
+            && options.Mode != HarmonieMode.Genre;
     }
 }
