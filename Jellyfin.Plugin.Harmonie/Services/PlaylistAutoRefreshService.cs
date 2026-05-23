@@ -46,7 +46,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
 
     // Last-seen ordered child guids per playlist. Used by the polling
     // task to detect reorders that didn't surface as ItemUpdated events.
-    private readonly Dictionary<Guid, IReadOnlyList<Guid>> _lastSeenOrder = new();
+    private readonly Dictionary<Guid, IReadOnlyList<string>> _lastSeenOrder = new();
     private readonly object _orderLock = new();
 
     // Last-seen name per playlist. Used to recognise a rename event so
@@ -244,7 +244,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
     private void CheckPlaylistForChange(Playlist playlist)
     {
         var current = SnapshotChildren(playlist);
-        IReadOnlyList<Guid>? previous;
+        IReadOnlyList<string>? previous;
         lock (_orderLock)
         {
             _lastSeenOrder.TryGetValue(playlist.Id, out previous);
@@ -305,23 +305,34 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         }
     }
 
-    private static IReadOnlyList<Guid> SnapshotChildren(Playlist playlist)
+    /// <summary>
+    /// Captures the playlist's current child list as an ordered
+    /// sequence of paths. <c>LinkedChild.Path</c> is set by
+    /// <c>LinkedChild.Create</c> and is stable across metadata
+    /// refreshes; <c>LinkedChild.ItemId</c> is reset to null on every
+    /// metadata refresh by <c>Folder.RefreshLinkedChildren</c> and
+    /// can't be used as a stable identity. Children whose Path is
+    /// null or empty (rare; would indicate a corrupt entry) are
+    /// dropped from the snapshot — those are inert from a "did the
+    /// playlist change" perspective.
+    /// </summary>
+    private static IReadOnlyList<string> SnapshotChildren(Playlist playlist)
     {
         if (playlist.LinkedChildren is null)
         {
-            return Array.Empty<Guid>();
+            return Array.Empty<string>();
         }
 
-        var ids = new List<Guid>(playlist.LinkedChildren.Length);
+        var paths = new List<string>(playlist.LinkedChildren.Length);
         foreach (var child in playlist.LinkedChildren)
         {
-            if (child.ItemId is { } id)
+            if (!string.IsNullOrEmpty(child.Path))
             {
-                ids.Add(id);
+                paths.Add(child.Path);
             }
         }
 
-        return ids;
+        return paths;
     }
 
     /// <summary>
@@ -377,7 +388,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         }
     }
 
-    private static bool OrderEquals(IReadOnlyList<Guid> a, IReadOnlyList<Guid> b)
+    private static bool OrderEquals(IReadOnlyList<string> a, IReadOnlyList<string> b)
     {
         if (a.Count != b.Count)
         {
@@ -386,7 +397,7 @@ public sealed class PlaylistAutoRefreshService : IHostedService
 
         for (var i = 0; i < a.Count; i++)
         {
-            if (a[i] != b[i])
+            if (!string.Equals(a[i], b[i], StringComparison.Ordinal))
             {
                 return false;
             }
