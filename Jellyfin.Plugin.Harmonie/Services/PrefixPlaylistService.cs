@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -200,6 +201,17 @@ public class PrefixPlaylistService
             return;
         }
 
+        // Style/Genre are vibe-mode playlists. They take no seeds — the
+        // playlist name supplies the filter and harmonie shuffles the
+        // matching pool fresh on every refresh. Branch here, before any
+        // of the seed-extraction logic below.
+        if (options.Mode == HarmonieMode.Style || options.Mode == HarmonieMode.Genre)
+        {
+            await RefreshVibePlaylistAsync(playlist, owner, options, pathMapper, config, ct)
+                .ConfigureAwait(false);
+            return;
+        }
+
         // Pick seeds. Radio: first N items in playlist order (user
         // controls which by reordering). Drift: first item only.
         // Mix: derived from listening history.
@@ -386,6 +398,136 @@ public class PrefixPlaylistService
         // The cover depends on the playlist title + mode + style label,
         // which all live in the name. Without this, renaming a smart
         // playlist leaves the old cover cached in place.
+        _coverRefresh.Queue(playlist.Id);
+    }
+
+    /// <summary>
+    /// Builds a <c>[STYLE]</c> or <c>[GENRE]</c> playlist by calling
+    /// harmonie's vibe mode with the playlist name as filter value. No
+    /// seeds; harmonie shuffles the matching pool and returns N tracks.
+    /// </summary>
+    private async Task RefreshVibePlaylistAsync(
+        Playlist playlist,
+        User owner,
+        PrefixPlaylistOptions options,
+        PathMapper pathMapper,
+        PluginConfiguration config,
+        CancellationToken ct)
+    {
+        var filterValue = options.FilterValue;
+        if (string.IsNullOrWhiteSpace(filterValue))
+        {
+            _logger.LogWarning(
+                "Playlist {Name}: missing filter value. Name a {Mode} playlist like \"[{Mode}] Electronic\".",
+                playlist.Name,
+                options.Mode == HarmonieMode.Style ? "STYLE" : "GENRE",
+                options.Mode == HarmonieMode.Style ? "STYLE" : "GENRE");
+            return;
+        }
+
+        if (filterValue.Contains("---", StringComparison.Ordinal))
+        {
+            // harmonie rejects values containing the internal label
+            // separator with 400. Catch this on the plugin side so the
+            // user gets a useful message instead of a stack trace.
+            _logger.LogWarning(
+                "Playlist {Name}: filter value '{Value}' contains '---'; this is harmonie's internal separator and is not allowed. Use one of [STYLE] or [GENRE] alone.",
+                playlist.Name,
+                filterValue);
+            return;
+        }
+
+        var filter = new TrackFilter
+        {
+            StyleMin = options.StyleMin,
+        };
+        if (options.Mode == HarmonieMode.Style)
+        {
+            filter.Style = new List<string> { filterValue };
+        }
+        else
+        {
+            filter.Genre = new List<string> { filterValue };
+        }
+
+        var request = new VibePlaylistRequest
+        {
+            N = options.N ?? config.DefaultStyleGenreN,
+            Filter = filter,
+            // Shuffle = true and RngSeed = null are the defaults; that's
+            // exactly what we want — fresh randomness every refresh.
+        };
+
+        PlaylistResult result;
+        try
+        {
+            result = await _client.VibePlaylistAsync(request, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Playlist {Name}: harmonie rejected the {Mode} request for '{Value}' — check the spelling against /api/v1/{Endpoint}.",
+                playlist.Name,
+                options.Mode,
+                filterValue,
+                options.Mode == HarmonieMode.Style ? "styles" : "genres");
+            return;
+        }
+
+        if (result.Items.Count == 0)
+        {
+            _logger.LogInformation(
+                "Playlist {Name}: harmonie returned no matches for {Mode}='{Value}'.",
+                playlist.Name,
+                options.Mode,
+                filterValue);
+            // Fall through to ReplacePlaylist with empty new items —
+            // wipes any leftover content so the user sees the empty
+            // result rather than stale tracks.
+        }
+
+        // Resolve each match to a Jellyfin Audio item. No seed dedup
+        // needed — vibe playlists have no seeds in the first place.
+        var resolvedNew = new List<Guid>(result.Items.Count);
+        var seen = new HashSet<Guid>();
+        foreach (var match in result.Items)
+        {
+            var audio = _libraryResolver.Resolve(match, pathMapper);
+            if (audio is null || !seen.Add(audio.Id))
+            {
+                continue;
+            }
+
+            resolvedNew.Add(audio.Id);
+        }
+
+        lock (_refreshingLock)
+        {
+            _refreshing.Add(playlist.Id);
+        }
+
+        try
+        {
+            await ReplacePlaylistAsync(playlist, owner, new List<Guid>(), resolvedNew, ct)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_refreshingLock)
+            {
+                _refreshing.Remove(playlist.Id);
+            }
+        }
+
+        _logger.LogInformation(
+            "Refreshed playlist {Name} ({Mode}='{Value}'): {Count} match(es) (harmonie returned {Returned}).",
+            playlist.Name,
+            options.Mode,
+            filterValue,
+            resolvedNew.Count,
+            result.Items.Count);
+
         _coverRefresh.Queue(playlist.Id);
     }
 

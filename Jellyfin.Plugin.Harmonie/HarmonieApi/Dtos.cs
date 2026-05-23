@@ -184,6 +184,85 @@ public class DriftPlaylistRequest
 }
 
 /// <summary>
+/// Hard-constraint filter block on a harmonie playlist body. All fields
+/// are optional; missing fields mean "no constraint". Mirrors
+/// harmonie's <c>FilterBody</c> shape from <c>harmonie/api/filters.py</c>.
+/// The plugin only uses the <c>genre</c>/<c>style</c> axes today (for
+/// <c>[GENRE]</c> and <c>[STYLE]</c> playlists) but the rest of the
+/// shape is modelled so the DTO matches harmonie 1:1 if the plugin
+/// later wants BPM/key constraints.
+/// </summary>
+public class TrackFilter
+{
+    /// <summary>
+    /// Gets or sets one or more Discogs genre names — left side of a
+    /// <c>Genre---Style</c> label. Each entry matches every
+    /// <c>Genre---*</c> row. Values must not contain <c>---</c>.
+    /// </summary>
+    [JsonPropertyName("genre")]
+    public List<string>? Genre { get; set; }
+
+    /// <summary>
+    /// Gets or sets one or more Discogs style names — right side of a
+    /// <c>Genre---Style</c> label. Each entry matches every
+    /// <c>*---Style</c> row across genres. Combine with
+    /// <see cref="Genre"/> for an exact label.
+    /// </summary>
+    [JsonPropertyName("style")]
+    public List<string>? Style { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum classifier probability for a style row
+    /// to count. 0.0–1.0. Null omits the field and lets harmonie apply
+    /// its default (currently 0.0).
+    /// </summary>
+    [JsonPropertyName("style_min")]
+    public double? StyleMin { get; set; }
+
+    /// <summary>
+    /// Gets or sets the match mode for the genre/style constraints:
+    /// <c>any</c> (default) or <c>all</c>. Null omits the field.
+    /// </summary>
+    [JsonPropertyName("style_mode")]
+    public string? StyleMode { get; set; }
+}
+
+/// <summary>
+/// Body for harmonie's <c>POST /api/v1/playlists</c> with
+/// <c>mode = "vibe"</c>. Descriptor-driven: no seeds, the
+/// <see cref="Filter"/> narrows the candidate pool and harmonie
+/// shuffles it. The plugin's <c>[GENRE]</c> and <c>[STYLE]</c>
+/// playlists use this.
+/// </summary>
+public class VibePlaylistRequest
+{
+    [JsonPropertyName("mode")]
+    public string Mode => "vibe";
+
+    [JsonPropertyName("n")]
+    public int N { get; set; } = 100;
+
+    [JsonPropertyName("filter")]
+    public TrackFilter? Filter { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether harmonie shuffles the
+    /// pool before truncating to <c>N</c>. The plugin always sets this
+    /// true: every refresh re-shuffles, which is how the playlist
+    /// "feels different" on each run.
+    /// </summary>
+    [JsonPropertyName("shuffle")]
+    public bool Shuffle { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets an optional shuffle seed. Null = fresh randomness
+    /// on every call, which is the behaviour the plugin wants.
+    /// </summary>
+    [JsonPropertyName("rng_seed")]
+    public int? RngSeed { get; set; }
+}
+
+/// <summary>
 /// Subset of harmonie's <c>GET /api/v1/status</c> response. Combines
 /// what used to be split across <c>/info</c> and <c>/stats</c>; the
 /// plugin renders all of it on the config page so users can see the

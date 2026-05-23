@@ -56,6 +56,12 @@ public class PluginConfiguration : BasePluginConfiguration
         StylePlaylistDays = 30;
         StylePlaylistN = 20;
 
+        // Defaults for [STYLE]/[GENRE] vibe-mode playlists. 100 tracks
+        // is enough to feel like a real "browse this style" playlist
+        // without filling the playlist UI; the user can override per
+        // playlist with n=N.
+        DefaultStyleGenreN = 100;
+
         // Replace Jellyfin's built-in InstantMix / Song Radio with
         // audio-similarity matches sourced from harmonie. Affects every
         // client that calls /Songs/{id}/InstantMix and the related
@@ -188,6 +194,13 @@ public class PluginConfiguration : BasePluginConfiguration
     /// 1–500.
     /// </summary>
     public int StylePlaylistN { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default number of tracks for <c>[STYLE]</c>
+    /// and <c>[GENRE]</c> vibe-mode playlists when the title does not
+    /// include <c>n=N</c>. 1–500.
+    /// </summary>
+    public int DefaultStyleGenreN { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the plugin replaces

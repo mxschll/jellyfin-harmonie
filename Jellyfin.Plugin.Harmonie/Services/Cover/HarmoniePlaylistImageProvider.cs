@@ -134,10 +134,19 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         var options = HarmoniePlaylistFilter.TryGetOptions(playlist);
         if (options is not null)
         {
+            // Style/Genre playlists carry their colour from the filter
+            // value (e.g. [STYLE] House → House-toned cover) so the
+            // cover hints at what's inside, just like the per-user
+            // Personal Mix covers do.
+            var color = (options.Mode == HarmonieMode.Style || options.Mode == HarmonieMode.Genre)
+                && !string.IsNullOrEmpty(options.FilterValue)
+                ? CoverPalette.StyleColor(options.FilterValue)
+                : CoverPalette.ModeColor(options.Mode);
+
             return new CoverSpec(
                 Title: StripBracketPrefix(playlist.Name),
                 Badge: BadgeFor(options.Mode),
-                Color: CoverPalette.ModeColor(options.Mode),
+                Color: color,
                 IsPersonalMix: false);
         }
 
@@ -149,6 +158,8 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         HarmonieMode.Radio => "RADIO",
         HarmonieMode.Drift => "DRIFT",
         HarmonieMode.Mix => "MIX",
+        HarmonieMode.Style => "STYLE",
+        HarmonieMode.Genre => "GENRE",
         _ => "HARMONIE",
     };
 

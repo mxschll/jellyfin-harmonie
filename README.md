@@ -59,13 +59,15 @@ The plugin's settings page shows live harmonie scan progress and counters.
 
 ## Use it
 
-Make a normal Jellyfin playlist and prefix the name with `[RADIO]`, `[DRIFT]`, or `[MIX]`. The plugin watches for edits and refreshes the playlist in the background five seconds later.
+Make a normal Jellyfin playlist and prefix the name with `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, or `[GENRE]`. The plugin watches for edits and refreshes the playlist in the background five seconds later.
 
 Radio playlists treat the first N tracks as seeds (N is configurable, default 5). The first seed is the strongest anchor. Drag a track into the top to make it a seed; remove it to demote it.
 
 Drift playlists take one seed (the first track) and walk away from it in chunks. Each chunk is anchored on the last track of the previous chunk, so the playlist evolves in style as it goes. Good for long mixes.
 
 Mix playlists seed themselves from your Jellyfin listening history, so you don't add tracks. Anything you do add gets wiped on the next refresh. The default is "today's mix" from the last week.
+
+Style and genre playlists fill themselves with 100 tracks (default, configurable) of one Discogs style or genre — the part of the name after the closing bracket is the filter value. `[GENRE] Hip Hop` returns 100 hip-hop tracks; `[STYLE] House` returns 100 house tracks across every genre. Each refresh shuffles the matching pool fresh, so the playlist feels different every day. Anything you add gets wiped.
 
 You can override settings per playlist with tokens inside the brackets:
 
@@ -75,6 +77,7 @@ You can override settings per playlist with tokens inside the brackets:
 | `days=N` | mix | listening window, 1 to 365 |
 | `top` or `top=N` | mix | seed by play count rank instead of recency |
 | `drift` | mix | use drift mode for the expansion |
+| `style_min=F` | style, genre | minimum classifier probability, 0.0 to 1.0 |
 
 Examples:
 
@@ -82,6 +85,9 @@ Examples:
 - `[DRIFT n=50] Long Mix`
 - `[MIX top days=30] Heavy Rotation`
 - `[MIX drift] Stretch Mix`
+- `[GENRE] Electronic`
+- `[STYLE n=200] House`
+- `[STYLE style_min=0.5] Hard Techno`
 
 ## Personal Mix playlists
 
@@ -95,7 +101,7 @@ When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on
 
 The plugin refreshes a playlist five seconds after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):
 
-* **Refresh Harmonie Playlists** — daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, and `[MIX]` playlist.
+* **Refresh Harmonie Playlists** — daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
 * **Refresh Harmonie Personal Mix Playlists** — every 30 days. Rebuilds the per-user Personal Mix playlists. The slower cadence is deliberate: these are derived from listening history clusters and lose their feel if regenerated daily.
 
 Both schedules can be changed from the same page, and either can be triggered manually.
