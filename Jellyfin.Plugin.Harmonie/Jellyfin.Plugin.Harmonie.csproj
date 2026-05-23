@@ -38,19 +38,29 @@
   </ItemGroup>
 
   <!--
-    SkiaSharp is used to render the playlist cover images. Versions are
-    matched to the Jellyfin host's Directory.Packages.props per ABI; we
-    exclude runtime assets so the host's loaded copy is used at runtime
-    (same pattern as Jellyfin.Controller). No native libs ship with the
-    plugin.
+    SkiaSharp is used to render the playlist cover images. Versions
+    MUST exactly match the Jellyfin host's Directory.Packages.props
+    per ABI; mismatches make the plugin DLL fail to load at runtime
+    (Jellyfin reports "NotSupported"). We exclude runtime assets so
+    the host's loaded copy is used at runtime — same pattern as
+    Jellyfin.Controller. No native libs ship with the plugin.
+
+    DO NOT bump these unless Jellyfin itself bumps SkiaSharp first.
+    Dependabot is configured to ignore SkiaSharp* updates for this
+    reason. Verify the host version against the upstream release tag
+    before changing:
+    https://github.com/jellyfin/jellyfin/blob/v10.10.7/Directory.Packages.props
+    https://github.com/jellyfin/jellyfin/blob/v10.11.8/Directory.Packages.props
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- Matches Jellyfin 10.10.x. -->
     <PackageReference Include="SkiaSharp" Version="2.88.9">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="SkiaSharp" Version="3.119.2">
+    <!-- Matches Jellyfin 10.11.x. -->
+    <PackageReference Include="SkiaSharp" Version="3.116.1">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
