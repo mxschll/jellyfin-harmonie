@@ -130,7 +130,12 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         // post-creation processing (cover regen, metadata commits)
         // compare against the just-created state and bail.
         RecordSnapshot(playlist);
-        ScheduleRefresh(playlist.Id, playlist.Name, DebounceDelay);
+
+        // Creation is a single discrete event — there's no follow-up
+        // burst of edits to coalesce, so no reason to debounce. Firing
+        // immediately makes the new playlist fill within ~300ms instead
+        // of after a 5s blank-stare.
+        ScheduleRefresh(playlist.Id, playlist.Name, TimeSpan.Zero);
     }
 
     /// <summary>
