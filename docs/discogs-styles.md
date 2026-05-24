@@ -1,0 +1,412 @@
+# Discogs genres and styles
+
+Harmonie's style classifier is the [Discogs-EffNet 400](https://essentia.upf.edu/models/classification-heads/genre_discogs400/genre_discogs400-discogs-effnet-1.json) model. Its taxonomy is two-level: a **genre** and a **style** used by the `[GENRE] X` / `[STYLE] Y` playlist prefixes. Spelling and capitalisation must match exactly.
+
+## Genres
+
+15 top-level genres:
+
+- Blues
+- Brass & Military
+- Children's
+- Classical
+- Electronic
+- Folk, World, & Country
+- Funk / Soul
+- Hip Hop
+- Jazz
+- Latin
+- Non-Music
+- Pop
+- Reggae
+- Rock
+- Stage & Screen
+
+## Styles
+
+384 unique styles across all genres:
+
+- AOR
+- Abstract
+- Acid
+- Acid House
+- Acid Jazz
+- Acid Rock
+- Acoustic
+- African
+- Afro-Cuban
+- Afro-Cuban Jazz
+- Afrobeat
+- Alternative Rock
+- Ambient
+- Arena Rock
+- Art Rock
+- Atmospheric Black Metal
+- Audiobook
+- Avant-garde Jazz
+- Avantgarde
+- Baião
+- Ballad
+- Baroque
+- Bass Music
+- Bassline
+- Batucada
+- Beat
+- Beatdown
+- Beguine
+- Berlin-School
+- Big Band
+- Big Beat
+- Black Metal
+- Bleep
+- Bluegrass
+- Blues Rock
+- Bolero
+- Bollywood
+- Boogaloo
+- Boogie
+- Boogie Woogie
+- Boom Bap
+- Bop
+- Bossa Nova
+- Bossanova
+- Bounce
+- Brass Band
+- Breakbeat
+- Breakcore
+- Breaks
+- Brit Pop
+- Britcore
+- Broken Beat
+- Bubblegum
+- Cajun
+- Calypso
+- Canzone Napoletana
+- Catalan Music
+- Celtic
+- Cha-Cha
+- Chanson
+- Charanga
+- Chicago Blues
+- Chillwave
+- Chiptune
+- Choral
+- City Pop
+- Classic Rock
+- Classical
+- Cloud Rap
+- Coldwave
+- Comedy
+- Compas
+- Conscious
+- Contemporary
+- Contemporary Jazz
+- Contemporary R&B
+- Cool Jazz
+- Country
+- Country Blues
+- Country Rock
+- Crunk
+- Crust
+- Cubano
+- Cumbia
+- Cut-up/DJ
+- DJ Battle Tool
+- Dance-pop
+- Dancehall
+- Dark Ambient
+- Darkwave
+- Death Metal
+- Deathcore
+- Deathrock
+- Deep House
+- Deep Techno
+- Delta Blues
+- Depressive Black Metal
+- Descarga
+- Dialogue
+- Disco
+- Disco Polo
+- Dixieland
+- Donk
+- Doo Wop
+- Doom Metal
+- Downtempo
+- Dream Pop
+- Drone
+- Drum n Bass
+- Dub
+- Dub Techno
+- Dubstep
+- Dungeon Synth
+- EBM
+- Easy Listening
+- Education
+- Educational
+- Electric Blues
+- Electro
+- Electro House
+- Electroclash
+- Emo
+- Ethereal
+- Euro House
+- Euro-Disco
+- Eurobeat
+- Eurodance
+- Europop
+- Experimental
+- Fado
+- Field Recording
+- Flamenco
+- Folk
+- Folk Metal
+- Folk Rock
+- Forró
+- Free Funk
+- Free Improvisation
+- Free Jazz
+- Freestyle
+- Funeral Doom Metal
+- Funk
+- Funk Metal
+- Fusion
+- Future Jazz
+- G-Funk
+- Gabber
+- Gangsta
+- Garage House
+- Garage Rock
+- Ghetto
+- Ghetto House
+- Glam
+- Glitch
+- Goa Trance
+- Goregrind
+- Gospel
+- Goth Rock
+- Gothic Metal
+- Grime
+- Grindcore
+- Grunge
+- Guaguancó
+- Guajira
+- Guaracha
+- Gypsy Jazz
+- Halftime
+- Hands Up
+- Happy Hardcore
+- Hard Bop
+- Hard House
+- Hard Rock
+- Hard Techno
+- Hard Trance
+- Hardcore
+- Hardcore Hip-Hop
+- Hardstyle
+- Harmonica Blues
+- Heavy Metal
+- Hi NRG
+- Highlife
+- Hillbilly
+- Hindustani
+- Hip Hop
+- Hip-House
+- Honky Tonk
+- Horrorcore
+- House
+- IDM
+- Illbient
+- Impressionist
+- Indian Classical
+- Indie Pop
+- Indie Rock
+- Industrial
+- Instrumental
+- Interview
+- Italo House
+- Italo-Disco
+- Italodance
+- J-pop
+- Jazz-Funk
+- Jazz-Rock
+- Jazzdance
+- Jazzy Hip-Hop
+- Juke
+- Jump Blues
+- Jumpstyle
+- Jungle
+- K-pop
+- Kayōkyoku
+- Krautrock
+- Latin
+- Latin Jazz
+- Laïkó
+- Leftfield
+- Light Music
+- Lo-Fi
+- Louisiana Blues
+- Lounge
+- Lovers Rock
+- MPB
+- Makina
+- Mambo
+- Marches
+- Mariachi
+- Math Rock
+- Medieval
+- Melodic Death Metal
+- Melodic Hardcore
+- Merengue
+- Metalcore
+- Miami Bass
+- Military
+- Minimal
+- Minimal Techno
+- Mod
+- Modal
+- Modern
+- Modern Classical
+- Modern Electric Blues
+- Monolog
+- Music Hall
+- Musical
+- Musique Concrète
+- Neo Soul
+- Neo-Classical
+- Neo-Romantic
+- Neofolk
+- New Age
+- New Beat
+- New Jack Swing
+- New Wave
+- No Wave
+- Noise
+- Noisecore
+- Nordic
+- Norteño
+- Novelty
+- Nu Metal
+- Nu-Disco
+- Nueva Cancion
+- Nursery Rhymes
+- Oi
+- Opera
+- P.Funk
+- Pachanga
+- Pacific
+- Parody
+- Piano Blues
+- Poetry
+- Political
+- Polka
+- Pop Punk
+- Pop Rap
+- Pop Rock
+- Pornogrind
+- Porro
+- Post Bop
+- Post Rock
+- Post-Hardcore
+- Post-Metal
+- Post-Modern
+- Post-Punk
+- Power Electronics
+- Power Metal
+- Power Pop
+- Power Violence
+- Prog Rock
+- Progressive Breaks
+- Progressive House
+- Progressive Metal
+- Progressive Trance
+- Promotional
+- Psy-Trance
+- Psychedelic
+- Psychedelic Rock
+- Psychobilly
+- Pub Rock
+- Punk
+- Radioplay
+- Ragga
+- Ragga HipHop
+- Ragtime
+- Ranchera
+- Raï
+- Reggae
+- Reggae-Pop
+- Reggaeton
+- Religious
+- Renaissance
+- Rhythm & Blues
+- Rhythmic Noise
+- RnB/Swing
+- Rock & Roll
+- Rockabilly
+- Rocksteady
+- Romani
+- Romantic
+- Roots Reggae
+- Rumba
+- Salsa
+- Samba
+- Schlager
+- Schranz
+- Score
+- Screw
+- Shoegaze
+- Ska
+- Sludge Metal
+- Smooth Jazz
+- Soca
+- Soft Rock
+- Son
+- Son Montuno
+- Soukous
+- Soul
+- Soul-Jazz
+- Sound Collage
+- Soundtrack
+- Southern Rock
+- Space Rock
+- Space-Age
+- Speed Garage
+- Speed Metal
+- Speedcore
+- Spoken Word
+- Stoner Rock
+- Story
+- Surf
+- Swing
+- Swingbeat
+- Symphonic Rock
+- Synth-pop
+- Synthwave
+- Séga
+- Tango
+- Tech House
+- Tech Trance
+- Technical Death Metal
+- Techno
+- Tejano
+- Texas Blues
+- Theme
+- Thrash
+- Thug Rap
+- Trance
+- Trap
+- Tribal
+- Tribal House
+- Trip Hop
+- Tropical House
+- Turntablism
+- Twist
+- UK Garage
+- UK Street Soul
+- Vallenato
+- Vaporwave
+- Viking Metal
+- Vocal
+- Volksmusik
+- Yé-Yé
+- Zouk
+- Éntekhno
