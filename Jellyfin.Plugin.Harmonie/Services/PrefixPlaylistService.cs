@@ -301,7 +301,7 @@ public class PrefixPlaylistService
         }
 
         // Dispatch by mode.
-        var smoothTransitions = BuildSmoothTransitions(config);
+        var smoothTransitions = BuildSmoothTransitions(config, options.Mode);
         var driftRequested = options.Mode == HarmonieMode.Drift
             || (options.Mode == HarmonieMode.Mix && (options.UsesDrift ?? config.DefaultMixUsesDrift));
         PlaylistResult harmonieResult;
@@ -469,7 +469,7 @@ public class PrefixPlaylistService
 
         var filter = new TrackFilter
         {
-            StyleMin = options.StyleMin,
+            StyleMin = options.StyleMin ?? config.DefaultStyleMin,
         };
         if (options.Mode == HarmonieMode.Style)
         {
@@ -712,22 +712,34 @@ public class PrefixPlaylistService
     }
 
     /// <summary>
-    /// Builds a <see cref="SmoothTransitions"/> from plugin config, or
-    /// null if both fields are at their (no-op) defaults. Returning null
-    /// makes the request omit the field, which lets harmonie apply its
-    /// own defaults — same outcome but a cleaner request.
+    /// Builds a <see cref="SmoothTransitions"/> for the given mode from
+    /// plugin config, or null if both fields are at their (no-op)
+    /// defaults. Returning null makes the request omit the field, which
+    /// lets harmonie apply its own defaults — same outcome but a
+    /// cleaner request. Only Radio/Drift/Mix produce a value; Style/
+    /// Genre and Index don't go through SmoothTransitions.
     /// </summary>
-    private static SmoothTransitions? BuildSmoothTransitions(PluginConfiguration config)
+    private static SmoothTransitions? BuildSmoothTransitions(
+        PluginConfiguration config,
+        HarmonieMode mode)
     {
-        if (config.BpmTolerance is null && !config.KeyCompatible)
+        var (bpm, keyCompat) = mode switch
+        {
+            HarmonieMode.Radio => (config.RadioBpmTolerance, config.RadioKeyCompatible),
+            HarmonieMode.Drift => (config.DriftBpmTolerance, config.DriftKeyCompatible),
+            HarmonieMode.Mix => (config.MixBpmTolerance, config.MixKeyCompatible),
+            _ => ((double?)null, false),
+        };
+
+        if (bpm is null && !keyCompat)
         {
             return null;
         }
 
         return new SmoothTransitions
         {
-            BpmTolerance = config.BpmTolerance,
-            KeyCompatible = config.KeyCompatible,
+            BpmTolerance = bpm,
+            KeyCompatible = keyCompat,
         };
     }
 

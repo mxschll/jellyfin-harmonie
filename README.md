@@ -75,7 +75,7 @@ You can override settings per playlist with tokens inside the brackets:
 | `days=N` | mix | listening window, 1 to 365 |
 | `top` or `top=N` | mix | seed by play count rank instead of recency |
 | `drift` | mix | use drift mode for the expansion |
-| `style_min=F` | style, genre | minimum classifier probability, 0.0 to 1.0 |
+| `style_min=F` | style, genre | minimum classifier probability, 0.0 to 1.0. Defaults to 0.6 (configurable in plugin settings) |
 
 Examples:
 

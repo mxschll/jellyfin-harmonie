@@ -33,8 +33,19 @@ public class PluginConfiguration : BasePluginConfiguration
         DefaultRadioN = 20;
         DefaultDriftN = 20;
         DefaultChunkSize = 5;
-        BpmTolerance = null;
-        KeyCompatible = false;
+
+        // SmoothTransitions: per-mode BPM/key constraints. null/false
+        // means harmonie applies no constraint. We split per-mode so a
+        // tight workout [RADIO] can constrain BPM without forcing the
+        // [DRIFT] long mix to stay in tempo too. [MIX] gets its own
+        // because daily mixes have a different feel from a fixed-seed
+        // mix.
+        RadioBpmTolerance = null;
+        RadioKeyCompatible = false;
+        DriftBpmTolerance = null;
+        DriftKeyCompatible = false;
+        MixBpmTolerance = null;
+        MixKeyCompatible = false;
 
         // For [RADIO]: how many tracks at the top of the playlist
         // count as seeds. Anything below position N is treated as
@@ -61,6 +72,13 @@ public class PluginConfiguration : BasePluginConfiguration
         // without filling the playlist UI; the user can override per
         // playlist with n=N.
         DefaultStyleGenreN = 100;
+
+        // Minimum classifier probability for a track to qualify for
+        // [STYLE]/[GENRE] playlists when the title doesn't override it
+        // with style_min=F. 0.6 keeps the result tight to genuinely
+        // confident matches; lower it for more variety, raise it for
+        // a stricter bucket.
+        DefaultStyleMin = 0.6;
 
         // Replace Jellyfin's built-in InstantMix / Song Radio with
         // audio-similarity matches sourced from harmonie. Affects every
@@ -114,18 +132,41 @@ public class PluginConfiguration : BasePluginConfiguration
     public int DefaultChunkSize { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum BPM gap allowed between consecutive picks
-    /// (<c>smooth_transitions.bpm_tolerance</c>). <c>null</c> means no
-    /// constraint — harmonie's default. Applies to both modes.
+    /// Gets or sets the BPM tolerance applied to <c>[RADIO]</c>
+    /// playlists (<c>smooth_transitions.bpm_tolerance</c>). <c>null</c>
+    /// means no constraint.
     /// </summary>
-    public double? BpmTolerance { get; set; }
+    public double? RadioBpmTolerance { get; set; }
 
     /// <summary>
-    /// Gets or sets <c>smooth_transitions.key_compatible</c>: when true,
-    /// restricts consecutive picks to harmonically compatible keys.
-    /// Strict — tracks without key info are excluded.
+    /// Gets or sets <c>smooth_transitions.key_compatible</c> for
+    /// <c>[RADIO]</c> playlists.
     /// </summary>
-    public bool KeyCompatible { get; set; }
+    public bool RadioKeyCompatible { get; set; }
+
+    /// <summary>
+    /// Gets or sets the BPM tolerance applied to <c>[DRIFT]</c>
+    /// playlists.
+    /// </summary>
+    public double? DriftBpmTolerance { get; set; }
+
+    /// <summary>
+    /// Gets or sets <c>smooth_transitions.key_compatible</c> for
+    /// <c>[DRIFT]</c> playlists.
+    /// </summary>
+    public bool DriftKeyCompatible { get; set; }
+
+    /// <summary>
+    /// Gets or sets the BPM tolerance applied to <c>[MIX]</c>
+    /// playlists.
+    /// </summary>
+    public double? MixBpmTolerance { get; set; }
+
+    /// <summary>
+    /// Gets or sets <c>smooth_transitions.key_compatible</c> for
+    /// <c>[MIX]</c> playlists.
+    /// </summary>
+    public bool MixKeyCompatible { get; set; }
 
     /// <summary>
     /// Gets or sets the number of tracks at the top of a <c>[RADIO]</c>
@@ -201,6 +242,16 @@ public class PluginConfiguration : BasePluginConfiguration
     /// include <c>n=N</c>. 1–500.
     /// </summary>
     public int DefaultStyleGenreN { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default minimum classifier probability for a
+    /// track to qualify for <c>[STYLE]</c>/<c>[GENRE]</c> playlists
+    /// when the title doesn't include <c>style_min=F</c>. 0.0–1.0.
+    /// Sent to harmonie's <c>style_min</c> filter; lower values pull
+    /// in more loosely-tagged tracks, higher values keep results
+    /// tight.
+    /// </summary>
+    public double DefaultStyleMin { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the plugin replaces

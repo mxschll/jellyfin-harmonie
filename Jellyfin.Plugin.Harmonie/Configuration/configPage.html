@@ -3,6 +3,15 @@
 <head>
     <meta charset="utf-8">
     <title>Harmonie</title>
+    <style>
+        /* When a fieldDescription introduces a section (sits right
+           after an <h2>), the h2's bottom margin produces a comfortable
+           gap above it but the next inputContainer sits flush below.
+           Even out the spacing. */
+        #HarmonieConfigPage h2 + .fieldDescription {
+            margin-bottom: 1.25em;
+        }
+    </style>
 </head>
 <body>
     <div id="HarmonieConfigPage"
@@ -79,97 +88,90 @@
                         </table>
                     </div>
 
-                    <h2>Path mappings</h2>
-                    <div class="fieldDescription">
-                        Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
-                        <textarea id="PathMappings"
-                                  name="PathMappings"
-                                  is="emby-input"
-                                  rows="4"
-                                  style="width: 100%; font-family: monospace;"
-                                  placeholder="/music => /media/Music"></textarea>
-                    </div>
-                    <div>
-                        <button is="emby-button" type="button" id="SuggestPathMappings" class="raised emby-button">
-                            <span>Suggest from libraries</span>
-                        </button>
-                        <span id="SuggestPathMappingsResult" style="margin-left: 1em;"></span>
-                    </div>
-
-                    <h2>Smart playlists</h2>
-                    <div class="fieldDescription">
-                        The plugin recognises three playlist title prefixes: <code>[RADIO]</code>, <code>[DRIFT]</code>, and <code>[MIX]</code>. See the <a is="emby-linkbutton" class="button-link" href="https://github.com/mxschll/jellyfin-harmonie" target="_blank" rel="noopener">README</a> for the full reference.
-                    </div>
-
-                    <h2>Playlist defaults</h2>
-                    <div class="fieldDescription">
-                        Applied when a playlist title doesn't override them.
-                    </div>
+                    <h2>[RADIO] Defaults</h2>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="RadioSeedCount">Radio seed count</label>
+                        <label class="inputLabel inputLabelUnfocused" for="RadioSeedCount">[RADIO] seed count</label>
                         <input id="RadioSeedCount" name="RadioSeedCount" type="number" is="emby-input" min="1" max="20" />
                         <div class="fieldDescription">
-                            For <code>[RADIO]</code> playlists: the first N tracks are the seeds. Anything below them gets replaced on each refresh. Reorder a track into the top N to make it a seed. 1&ndash;20.
+                            The first N tracks of a <code>[RADIO]</code> playlist are the seeds. Anything below them gets replaced on each refresh. Reorder a track into the top N to make it a seed. 1&ndash;20.
                         </div>
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultRadioN">Default radio length (n)</label>
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultRadioN">[RADIO] length (n)</label>
                         <input id="DefaultRadioN" name="DefaultRadioN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks for <code>[RADIO]</code> playlists. 1&ndash;500.</div>
+                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
                     </div>
+
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultDriftN">Default drift length (n)</label>
-                        <input id="DefaultDriftN" name="DefaultDriftN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks for <code>[DRIFT]</code> playlists. 1&ndash;500.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultChunkSize">Drift chunk size</label>
-                        <input id="DefaultChunkSize" name="DefaultChunkSize" type="number" is="emby-input" min="1" max="100" />
-                        <div class="fieldDescription">
-                            How many tracks the playlist stays on each anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. Drift mode only. 1&ndash;100.
-                        </div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="BpmTolerance">BPM tolerance</label>
-                        <input id="BpmTolerance" name="BpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
+                        <label class="inputLabel inputLabelUnfocused" for="RadioBpmTolerance">[RADIO] BPM tolerance</label>
+                        <input id="RadioBpmTolerance" name="RadioBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
                         <div class="fieldDescription">
                             Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
                         </div>
                     </div>
+
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="KeyCompatible" name="KeyCompatible" type="checkbox" is="emby-checkbox" />
-                            <span>Mix only harmonically compatible keys</span>
+                            <input id="RadioKeyCompatible" name="RadioKeyCompatible" type="checkbox" is="emby-checkbox" />
+                            <span>[RADIO] mix only harmonically compatible keys</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
                             When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
                         </div>
                     </div>
 
-                    <h2>[MIX] defaults</h2>
-                    <div class="fieldDescription">
-                        Mix playlists seed themselves from your Jellyfin listening history.
+                    <h2>[DRIFT] Defaults</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultDriftN">[DRIFT] length (n)</label>
+                        <input id="DefaultDriftN" name="DefaultDriftN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixN">Default mix length (n)</label>
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultChunkSize">[DRIFT] chunk size</label>
+                        <input id="DefaultChunkSize" name="DefaultChunkSize" type="number" is="emby-input" min="1" max="100" />
+                        <div class="fieldDescription">
+                            How many tracks the playlist stays on each anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. 1&ndash;100.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DriftBpmTolerance">[DRIFT] BPM tolerance</label>
+                        <input id="DriftBpmTolerance" name="DriftBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
+                        <div class="fieldDescription">
+                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="DriftKeyCompatible" name="DriftKeyCompatible" type="checkbox" is="emby-checkbox" />
+                            <span>[DRIFT] mix only harmonically compatible keys</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
+                        </div>
+                    </div>
+
+                    <h2>[MIX] Defaults</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixN">[MIX] length (n)</label>
                         <input id="DefaultMixN" name="DefaultMixN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks in a mix playlist. 1&ndash;500.</div>
+                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">Listening window (days)</label>
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">[MIX] listening window (days)</label>
                         <input id="DefaultMixDays" name="DefaultMixDays" type="number" is="emby-input" min="1" max="365" />
                         <div class="fieldDescription">
                             How far back to look for seed tracks. 1&ndash;365.
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">Seed count cap</label>
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">[MIX] seed count cap</label>
                         <input id="DefaultMixSeedCap" name="DefaultMixSeedCap" type="number" is="emby-input" min="1" max="100" />
                         <div class="fieldDescription">
                             Maximum number of seeds taken from your listening history. The plugin picks the top N most recently played tracks within the listening window, or the top N most played when "Seed by top-played" is on. 1&ndash;100.
@@ -178,7 +180,7 @@
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="DefaultMixUseTopPlayed" name="DefaultMixUseTopPlayed" type="checkbox" is="emby-checkbox" />
-                            <span>Seed by top-played instead of most-recent</span>
+                            <span>[MIX] seed by top-played instead of most-recent</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
                             Off: seeds are the most recently played tracks in the listening window. On: seeds are the highest play-count tracks in the window. Override per playlist with <code>[MIX top]</code>.
@@ -187,22 +189,45 @@
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
-                            <span>Use drift mode for mix expansion</span>
+                            <span>[MIX] use drift mode for expansion</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
                             Off: harmonie returns tracks similar to the seeds. On: harmonie walks away from the seeds for more variety. Override per playlist with <code>[MIX drift]</code>.
                         </div>
                     </div>
 
-                    <h2>[STYLE] / [GENRE] defaults</h2>
-                    <div class="fieldDescription">
-                        Style and genre playlists fill themselves from harmonie's track library, filtered by the name after the prefix. Name a playlist <code>[GENRE] Hip Hop</code> or <code>[STYLE] House</code>; the plugin reshuffles fresh tracks on every refresh.
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MixBpmTolerance">[MIX] BPM tolerance</label>
+                        <input id="MixBpmTolerance" name="MixBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
+                        <div class="fieldDescription">
+                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="MixKeyCompatible" name="MixKeyCompatible" type="checkbox" is="emby-checkbox" />
+                            <span>[MIX] mix only harmonically compatible keys</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
+                        </div>
+                    </div>
+
+                    <h2>[STYLE] / [GENRE] Defaults</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleGenreN">[STYLE] / [GENRE] length (n)</label>
+                        <input id="DefaultStyleGenreN" name="DefaultStyleGenreN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleGenreN">Default style/genre length (n)</label>
-                        <input id="DefaultStyleGenreN" name="DefaultStyleGenreN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks in a <code>[STYLE]</code> or <code>[GENRE]</code> playlist. 1&ndash;500.</div>
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleMin">[STYLE] / [GENRE] minimum probability</label>
+                        <input id="DefaultStyleMin" name="DefaultStyleMin" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">
+                            Minimum classifier confidence a track needs to qualify. 0.0 lets every loosely-tagged track through; 1.0 only the strongest matches. Override per playlist with <code>style_min=F</code>. 0.0&ndash;1.0.
+                        </div>
                     </div>
 
                     <h2>Instant Mix / Song Radio</h2>
@@ -243,6 +268,26 @@
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
                         <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
                         <div class="fieldDescription">Number of tracks in each Personal Mix playlist. 1&ndash;500.</div>
+                    </div>
+
+                    <h2>Path mappings</h2>
+                    <div class="fieldDescription">
+                        Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
+                        <textarea id="PathMappings"
+                                  name="PathMappings"
+                                  is="emby-input"
+                                  rows="4"
+                                  style="width: 100%; font-family: monospace;"
+                                  placeholder="/music => /media/Music"></textarea>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="button" id="SuggestPathMappings" class="raised emby-button">
+                            <span>Suggest from libraries</span>
+                        </button>
+                        <span id="SuggestPathMappingsResult" style="margin-left: 1em;"></span>
                     </div>
 
                     <div>
@@ -293,17 +338,27 @@
                             document.querySelector('#DefaultRadioN').value = config.DefaultRadioN || 20;
                             document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 20;
                             document.querySelector('#DefaultChunkSize').value = config.DefaultChunkSize || 5;
-                            // BpmTolerance is nullable. Empty input = null.
-                            document.querySelector('#BpmTolerance').value =
-                                (config.BpmTolerance === null || config.BpmTolerance === undefined)
-                                    ? '' : config.BpmTolerance;
-                            document.querySelector('#KeyCompatible').checked = !!config.KeyCompatible;
+                            // BPM tolerance fields are nullable. Empty input = null.
+                            function readBpm(field) {
+                                var v = config[field];
+                                return (v === null || v === undefined) ? '' : v;
+                            }
+                            document.querySelector('#RadioBpmTolerance').value = readBpm('RadioBpmTolerance');
+                            document.querySelector('#RadioKeyCompatible').checked = !!config.RadioKeyCompatible;
+                            document.querySelector('#DriftBpmTolerance').value = readBpm('DriftBpmTolerance');
+                            document.querySelector('#DriftKeyCompatible').checked = !!config.DriftKeyCompatible;
+                            document.querySelector('#MixBpmTolerance').value = readBpm('MixBpmTolerance');
+                            document.querySelector('#MixKeyCompatible').checked = !!config.MixKeyCompatible;
                             document.querySelector('#DefaultMixN').value = config.DefaultMixN || 20;
                             document.querySelector('#DefaultMixDays').value = config.DefaultMixDays || 7;
                             document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
                             document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
                             document.querySelector('#DefaultMixUsesDrift').checked = !!config.DefaultMixUsesDrift;
                             document.querySelector('#DefaultStyleGenreN').value = config.DefaultStyleGenreN || 100;
+                            // DefaultStyleMin can legitimately be 0; only fall back when actually missing.
+                            document.querySelector('#DefaultStyleMin').value =
+                                (config.DefaultStyleMin === null || config.DefaultStyleMin === undefined)
+                                    ? 0.6 : config.DefaultStyleMin;
                             document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
@@ -338,9 +393,15 @@
                                 parseInt(document.querySelector('#DefaultDriftN').value, 10) || 20;
                             config.DefaultChunkSize =
                                 parseInt(document.querySelector('#DefaultChunkSize').value, 10) || 5;
-                            var bpmTolRaw = document.querySelector('#BpmTolerance').value;
-                            config.BpmTolerance = bpmTolRaw === '' ? null : parseFloat(bpmTolRaw);
-                            config.KeyCompatible = document.querySelector('#KeyCompatible').checked;
+                            var bpmTolRadioRaw = document.querySelector('#RadioBpmTolerance').value;
+                            config.RadioBpmTolerance = bpmTolRadioRaw === '' ? null : parseFloat(bpmTolRadioRaw);
+                            config.RadioKeyCompatible = document.querySelector('#RadioKeyCompatible').checked;
+                            var bpmTolDriftRaw = document.querySelector('#DriftBpmTolerance').value;
+                            config.DriftBpmTolerance = bpmTolDriftRaw === '' ? null : parseFloat(bpmTolDriftRaw);
+                            config.DriftKeyCompatible = document.querySelector('#DriftKeyCompatible').checked;
+                            var bpmTolMixRaw = document.querySelector('#MixBpmTolerance').value;
+                            config.MixBpmTolerance = bpmTolMixRaw === '' ? null : parseFloat(bpmTolMixRaw);
+                            config.MixKeyCompatible = document.querySelector('#MixKeyCompatible').checked;
                             config.DefaultMixN =
                                 parseInt(document.querySelector('#DefaultMixN').value, 10) || 20;
                             config.DefaultMixDays =
@@ -351,6 +412,11 @@
                             config.DefaultMixUsesDrift = document.querySelector('#DefaultMixUsesDrift').checked;
                             config.DefaultStyleGenreN =
                                 parseInt(document.querySelector('#DefaultStyleGenreN').value, 10) || 100;
+                            var styleMinRaw = document.querySelector('#DefaultStyleMin').value;
+                            var styleMinParsed = parseFloat(styleMinRaw);
+                            config.DefaultStyleMin =
+                                (styleMinRaw === '' || isNaN(styleMinParsed)) ? 0.6
+                                : Math.min(1, Math.max(0, styleMinParsed));
                             config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
                             config.StylePlaylistCount =
                                 parseInt(document.querySelector('#StylePlaylistCount').value, 10);
