@@ -153,6 +153,14 @@ public class LibraryResolver
             var mapped = pathMapper.Map(match.Path);
             if (_byPath.TryGetValue(mapped, out var byPath))
             {
+                // Path fallback fired: tag matching missed but the path
+                // (possibly remapped) hit. Logged so we can tell whether
+                // the path-mapping feature ever earns its keep. If this
+                // never appears, the feature is dead weight.
+                _logger.LogInformation(
+                    "Resolved track via path fallback (tags missed): harmonie='{HarmoniePath}' mapped='{MappedPath}'.",
+                    match.Path,
+                    mapped);
                 return byPath;
             }
 
@@ -163,6 +171,10 @@ public class LibraryResolver
                 .Replace('/', Path.DirectorySeparatorChar);
             if (_byPath.TryGetValue(normalized, out var byNormalized))
             {
+                _logger.LogInformation(
+                    "Resolved track via path fallback (tags missed, normalized separators): harmonie='{HarmoniePath}' mapped='{MappedPath}'.",
+                    match.Path,
+                    mapped);
                 return byNormalized;
             }
         }

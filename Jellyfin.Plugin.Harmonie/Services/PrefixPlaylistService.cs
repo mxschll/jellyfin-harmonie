@@ -861,6 +861,13 @@ public class PrefixPlaylistService
     /// Builds the four query parameters for <c>GET /api/v1/tracks/resolve</c>
     /// from a Jellyfin audio item. Any field that has no value is null.
     /// </summary>
+    /// <remarks>
+    /// The <paramref name="pathMapper"/> is accepted for signature
+    /// symmetry with the resolve path but is not applied to the seed's
+    /// path: mappings are keyed by harmonie prefix, and this is a
+    /// Jellyfin-side path, so mapping it would be a no-op. harmonie
+    /// resolves seeds by tags on its side; the raw path is only a hint.
+    /// </remarks>
     public static (string? Path, string? Artist, string? Album, string? Title) BuildResolveArgs(
         Audio audio,
         PathMapper pathMapper)
@@ -869,9 +876,9 @@ public class PrefixPlaylistService
         ArgumentNullException.ThrowIfNull(pathMapper);
 
         var artist = AudioMetadata.FirstArtist(audio);
-        var path = string.IsNullOrEmpty(audio.Path) ? null : pathMapper.Map(audio.Path!);
+        var path = string.IsNullOrEmpty(audio.Path) ? null : audio.Path;
         return (
-            string.IsNullOrEmpty(path) ? null : path,
+            path,
             string.IsNullOrEmpty(artist) ? null : artist,
             string.IsNullOrEmpty(audio.Album) ? null : audio.Album,
             string.IsNullOrEmpty(audio.Name) ? null : audio.Name);
