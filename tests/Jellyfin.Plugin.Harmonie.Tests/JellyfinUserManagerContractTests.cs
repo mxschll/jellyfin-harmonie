@@ -1,6 +1,11 @@
 using System.Collections.Generic;
+#if NET8_0
+using Jellyfin.Data.Entities;
+using MediaBrowser.Controller.Library;
+#else
 using Jellyfin.Database.Implementations.Entities;
 using MediaBrowser.Controller.Library;
+#endif
 using Xunit;
 
 namespace Jellyfin.Plugin.Harmonie.Tests;
@@ -12,6 +17,17 @@ namespace Jellyfin.Plugin.Harmonie.Tests;
 /// </summary>
 public class JellyfinUserManagerContractTests
 {
+#if NET8_0
+    [Fact]
+    public void Net8_user_manager_exposes_the_property_used_by_playlist_refreshes()
+    {
+        var userManager = typeof(IUserManager);
+        var users = userManager.GetProperty(nameof(IUserManager.Users));
+
+        Assert.NotNull(users);
+        Assert.Equal(typeof(IEnumerable<User>), users!.PropertyType);
+    }
+#else
     [Fact]
     public void Net9_user_manager_exposes_the_methods_used_by_playlist_refreshes()
     {
@@ -29,4 +45,5 @@ public class JellyfinUserManagerContractTests
         // package reference would compile calls that fail on current hosts.
         Assert.Null(userManager.GetProperty("Users"));
     }
+#endif
 }

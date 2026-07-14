@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -16,24 +16,24 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <!--
-      The plugin excludes Jellyfin runtime assets because the server supplies
-      them. Contract tests reflect over those APIs, so the test host needs its
-      own copies of the assemblies.
-    -->
+  </ItemGroup>
+
+  <!--
+    The plugin excludes Jellyfin and SkiaSharp runtime assets because the
+    server supplies them. Tests execute against those APIs directly, so each
+    target re-declares the exact Jellyfin ABI and matching SkiaSharp runtime.
+    Linux native assets are explicit because CI runs on Ubuntu.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Jellyfin.Controller" Version="10.10.7" />
+    <PackageReference Include="Jellyfin.Model" Version="10.10.7" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageReference Include="Jellyfin.Controller" Version="10.11.11" />
     <PackageReference Include="Jellyfin.Model" Version="10.11.11" />
-    <!--
-      The plugin project marks SkiaSharp with <ExcludeAssets>runtime</ExcludeAssets>
-      because the running Jellyfin host already loads it. That exclusion
-      propagates to project references, leaving the test runner with no
-      native SkiaSharp libs. Re-declare here without the exclusion so
-      NuGet pulls in the right SkiaSharp.NativeAssets.* for the host OS.
-      SkiaSharp 3.x ships macOS and Win32 native libs as transitive deps
-      of the SkiaSharp meta package; Linux native libs are in a separate
-      package and must be declared explicitly so CI on Ubuntu can find
-      libSkiaSharp.so.
-    -->
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
   </ItemGroup>

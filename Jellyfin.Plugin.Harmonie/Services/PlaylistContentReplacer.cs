@@ -63,26 +63,40 @@ public class PlaylistContentReplacer
         ArgumentNullException.ThrowIfNull(playlist);
         ArgumentNullException.ThrowIfNull(newItems);
 
-        // Resolve each item to its BaseItem so LinkedChild.Create can
-        // capture the Path. Items we can't resolve are dropped silently
-        // (typically already deleted from the library between resolve
-        // time and now).
-        var newChildren = new List<LinkedChild>(newItems.Count);
-        foreach (var id in newItems)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var item = _libraryManager.GetItemById(id);
-            if (item is null)
-            {
-                continue;
-            }
-
-            newChildren.Add(LinkedChild.Create(item));
-        }
-
-        playlist.LinkedChildren = newChildren.ToArray();
+        playlist.LinkedChildren = BuildLinkedChildren(
+            newItems,
+            _libraryManager.GetItemById,
+            cancellationToken);
         await playlist
             .UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves item ids and creates the exact <see cref="LinkedChild"/>
+    /// array persisted by <see cref="ReplaceContentsAsync"/>. Kept separate
+    /// so the Jellyfin ABI-specific linked-child behavior can be tested
+    /// without requiring a running server database.
+    /// </summary>
+    internal static LinkedChild[] BuildLinkedChildren(
+        IReadOnlyList<Guid> itemIds,
+        Func<Guid, BaseItem?> resolve,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(resolve);
+
+        var children = new List<LinkedChild>(itemIds.Count);
+        foreach (var id in itemIds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var item = resolve(id);
+            if (item is not null)
+            {
+                children.Add(LinkedChild.Create(item));
+            }
+        }
+
+        return children.ToArray();
     }
 }
