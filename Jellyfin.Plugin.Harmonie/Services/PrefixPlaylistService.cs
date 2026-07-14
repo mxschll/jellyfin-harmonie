@@ -47,6 +47,7 @@ public class PrefixPlaylistService
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
     private readonly ILogger<PrefixPlaylistService> _logger;
+    private readonly AsyncKeyedLock<Guid> _refreshLocks = new();
 
     // Playlist ids the plugin is currently refreshing. The auto-refresh
     // observer skips ItemUpdated events for these so it doesn't re-enter
@@ -145,7 +146,7 @@ public class PrefixPlaylistService
             ct.ThrowIfCancellationRequested();
             try
             {
-                await RefreshOneAsync(playlist, pathMapper, ct).ConfigureAwait(false);
+                await RefreshOneWithLockAsync(playlist.Id, pathMapper, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -169,6 +170,10 @@ public class PrefixPlaylistService
     {
         var config = _configProvider.GetConfiguration();
         var pathMapper = new PathMapper(config.PathMappings);
+
+        using var refreshLease = await _refreshLocks
+            .AcquireAsync(playlistId, ct)
+            .ConfigureAwait(false);
 
         if (_libraryManager.GetItemById(playlistId) is not Playlist playlist)
         {
@@ -197,6 +202,28 @@ public class PrefixPlaylistService
         return true;
     }
 
+    private async Task<bool> RefreshOneWithLockAsync(
+        Guid playlistId,
+        PathMapper pathMapper,
+        CancellationToken ct)
+    {
+        using var refreshLease = await _refreshLocks
+            .AcquireAsync(playlistId, ct)
+            .ConfigureAwait(false);
+
+        // Always re-read after acquiring the lock. A preceding refresh or a
+        // user edit may have changed the name, mode, or ordered seed list
+        // while this operation was waiting.
+        if (_libraryManager.GetItemById(playlistId) is not Playlist playlist
+            || HarmoniePlaylistFilter.TryGetOptions(playlist) is null)
+        {
+            return false;
+        }
+
+        await RefreshOneAsync(playlist, pathMapper, ct).ConfigureAwait(false);
+        return true;
+    }
+
     private async Task RefreshOneAsync(
         Playlist playlist,
         PathMapper pathMapper,
@@ -217,13 +244,22 @@ public class PrefixPlaylistService
             return;
         }
 
+        var sourceRevision = CaptureInputRevision(playlist);
+
         // Style/Genre are vibe-mode playlists. They take no seeds — the
         // playlist name supplies the filter and harmonie shuffles the
         // matching pool fresh on every refresh. Branch here, before any
         // of the seed-extraction logic below.
         if (options.Mode == HarmonieMode.Style || options.Mode == HarmonieMode.Genre)
         {
-            await RefreshVibePlaylistAsync(playlist, owner, options, pathMapper, config, ct)
+            await RefreshVibePlaylistAsync(
+                    playlist,
+                    owner,
+                    options,
+                    pathMapper,
+                    config,
+                    sourceRevision,
+                    ct)
                 .ConfigureAwait(false);
             return;
         }
@@ -271,6 +307,7 @@ public class PrefixPlaylistService
                 if (_libraryManager.GetItemById(playlist.Id) is Playlist refreshed)
                 {
                     playlist = refreshed;
+                    sourceRevision = CaptureInputRevision(playlist);
                     seedIds = ExtractFirstNSeeds(playlist, seedCount);
                 }
             }
@@ -392,6 +429,20 @@ public class PrefixPlaylistService
             resolvedNew.Add(audio.Id);
         }
 
+        // Do not persist results computed from stale seeds. Jellyfin's UI
+        // edits do not participate in our keyed lock, so the user may have
+        // changed the name or order while harmonie was calculating.
+        var currentPlaylist = GetPlaylistIfUnchanged(playlist.Id, sourceRevision);
+        if (currentPlaylist is null)
+        {
+            _logger.LogInformation(
+                "Playlist {Name} changed during refresh; discarding stale harmonie results.",
+                playlist.Name);
+            return;
+        }
+
+        playlist = currentPlaylist;
+
         // Replace the playlist contents.
         lock (_refreshingLock)
         {
@@ -442,6 +493,7 @@ public class PrefixPlaylistService
         PrefixPlaylistOptions options,
         PathMapper pathMapper,
         PluginConfiguration config,
+        PlaylistInputRevision sourceRevision,
         CancellationToken ct)
     {
         var filterValue = options.FilterValue;
@@ -531,6 +583,17 @@ public class PrefixPlaylistService
 
             resolvedNew.Add(audio.Id);
         }
+
+        var currentPlaylist = GetPlaylistIfUnchanged(playlist.Id, sourceRevision);
+        if (currentPlaylist is null)
+        {
+            _logger.LogInformation(
+                "Playlist {Name} changed during refresh; discarding stale harmonie results.",
+                playlist.Name);
+            return;
+        }
+
+        playlist = currentPlaylist;
 
         lock (_refreshingLock)
         {
@@ -938,6 +1001,30 @@ public class PrefixPlaylistService
 #endif
     }
 
+    private Playlist? GetPlaylistIfUnchanged(
+        Guid playlistId,
+        PlaylistInputRevision expected)
+    {
+        if (_libraryManager.GetItemById(playlistId) is not Playlist playlist)
+        {
+            return null;
+        }
+
+        var current = CaptureInputRevision(playlist);
+        return string.Equals(expected.Name, current.Name, StringComparison.Ordinal)
+            && expected.ChildPaths.SequenceEqual(current.ChildPaths, StringComparer.Ordinal)
+            ? playlist
+            : null;
+    }
+
+    private static PlaylistInputRevision CaptureInputRevision(Playlist playlist)
+    {
+        var childPaths = playlist.LinkedChildren?
+            .Select(child => child.Path ?? string.Empty)
+            .ToArray() ?? Array.Empty<string>();
+        return new PlaylistInputRevision(playlist.Name ?? string.Empty, childPaths);
+    }
+
     /// <summary>
     /// Returns the first <paramref name="count"/> linked-child ids of
     /// the playlist, in playlist order. The user controls which tracks
@@ -967,4 +1054,6 @@ public class PrefixPlaylistService
 
         return result;
     }
+
+    private sealed record PlaylistInputRevision(string Name, IReadOnlyList<string> ChildPaths);
 }
