@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.4.1.1",
+        "changelog": " ### Bug Fixes  - Support Jellyfin 10.11 user API (3cf2edf)  ### Chores  - Log path-fallback resolves and drop dead path map call (79c6325)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.4.1/jellyfin-harmonie_1.4.1.1.zip",
+        "checksum": "a903eb40e30e08b172df99493ea1d2e3",
+        "timestamp": "2026-07-14T19:41:26Z"
+      },
+      {
+        "version": "1.4.1.0",
+        "changelog": " ### Bug Fixes  - Support Jellyfin 10.11 user API (3cf2edf)  ### Chores  - Log path-fallback resolves and drop dead path map call (79c6325)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.4.1/jellyfin-harmonie_1.4.1.0.zip",
+        "checksum": "646d6867311af8e5fb8c1ba5f47f6482",
+        "timestamp": "2026-07-14T19:41:26Z"
+      },
+      {
         "version": "1.4.0.1",
         "changelog": " ### Documentation  - Update readme (f143356)  ### Features  - Per-mode playlist settings and configurable style_min (e5355bb)  ",
         "targetAbi": "10.11.0.0",
