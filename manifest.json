@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.4.2.1",
+        "changelog": " ### Bug Fixes  - Gate releases and playlist refreshes (34e5a2c)  ### Chores  - Bump actions/checkout from 6 to 7 (#15) (c7d5ac8)  ### Tests  - Include Jellyfin runtime assemblies (feb1b4f)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.4.2/jellyfin-harmonie_1.4.2.1.zip",
+        "checksum": "aedde42946edbcc762e2fcd95e87d7b5",
+        "timestamp": "2026-07-14T20:10:06Z"
+      },
+      {
+        "version": "1.4.2.0",
+        "changelog": " ### Bug Fixes  - Gate releases and playlist refreshes (34e5a2c)  ### Chores  - Bump actions/checkout from 6 to 7 (#15) (c7d5ac8)  ### Tests  - Include Jellyfin runtime assemblies (feb1b4f)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.4.2/jellyfin-harmonie_1.4.2.0.zip",
+        "checksum": "e861d31de60a2907d77c58e75151e505",
+        "timestamp": "2026-07-14T20:10:06Z"
+      },
+      {
         "version": "1.4.1.1",
         "changelog": " ### Bug Fixes  - Support Jellyfin 10.11 user API (3cf2edf)  ### Chores  - Log path-fallback resolves and drop dead path map call (79c6325)  ",
         "targetAbi": "10.11.0.0",
