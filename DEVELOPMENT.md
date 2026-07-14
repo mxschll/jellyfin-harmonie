@@ -6,7 +6,17 @@
 ./scripts/install-local.sh
 ```
 
-Builds the plugin, stops Jellyfin, copies the DLL into your Jellyfin data dir, and restarts Jellyfin. Logs in `~/Library/Application Support/jellyfin/log/`. The script builds the net9 variant only; CI builds both.
+Builds the target matching the DMG-installed Jellyfin Server, replaces the local plugin, and restarts the server if it was running. Plugin configuration is preserved. Logs are in `~/Library/Application Support/jellyfin/log/`.
+
+The defaults match a normal macOS DMG installation. Override them when needed:
+
+```bash
+JELLYFIN_APP=/path/to/Jellyfin.app \
+JELLYFIN_DATA_DIR=/path/to/jellyfin-data \
+./scripts/install-local.sh
+```
+
+The script finds `dotnet` on `PATH` or a Homebrew `dotnet@9` installation. Set `DOTNET` to override it.
 
 ## Multi-targeting
 
@@ -39,7 +49,7 @@ If tags are clean this works without any path config. If tags don't match, the p
 
 ## Releasing
 
-Versioning is tag-driven. Every push to `main` that touches plugin code computes the next semver tag from the most recent `v*.*.*`, pushes the new tag, builds both ABIs, attaches the ZIPs to a GitHub Release, and commits the updated `manifest.json` back to `main`.
+Versioning is tag-driven. A push to `main` that touches plugin code computes the next version, runs the build and tests, packages both ABIs, creates the tag and GitHub Release, then updates `manifest.json`.
 
 Bump level is derived from the **Conventional Commits prefix** on the subject line of the HEAD commit:
 
