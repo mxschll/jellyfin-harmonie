@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.5.0.1",
+        "changelog": " ### Build  - Harden local plugin install (06d2823)  ### Features  - Add per-mode playlist variation (5735fb9)  ### Tests  - Cover playlist mutation ABIs (acb15e2)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.5.0/jellyfin-harmonie_1.5.0.1.zip",
+        "checksum": "744b53ff8d33609828a79a5fd1187e05",
+        "timestamp": "2026-07-14T21:08:20Z"
+      },
+      {
+        "version": "1.5.0.0",
+        "changelog": " ### Build  - Harden local plugin install (06d2823)  ### Features  - Add per-mode playlist variation (5735fb9)  ### Tests  - Cover playlist mutation ABIs (acb15e2)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.5.0/jellyfin-harmonie_1.5.0.0.zip",
+        "checksum": "0cf342377f6d3f35e824c562ea6f11f4",
+        "timestamp": "2026-07-14T21:08:20Z"
+      },
+      {
         "version": "1.4.2.1",
         "changelog": " ### Bug Fixes  - Gate releases and playlist refreshes (34e5a2c)  ### Chores  - Bump actions/checkout from 6 to 7 (#15) (c7d5ac8)  ### Tests  - Include Jellyfin runtime assemblies (feb1b4f)  ",
         "targetAbi": "10.11.0.0",
