@@ -23,10 +23,10 @@
 
   <!-- Jellyfin 10.11.x is built against net9 and ships net9 packages. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.8">
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.11">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.11.8">
+    <PackageReference Include="Jellyfin.Model" Version="10.11.11">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>

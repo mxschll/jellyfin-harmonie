@@ -931,7 +931,11 @@ public class PrefixPlaylistService
             }
         }
 
+#if NET8_0
         return _userManager.Users.FirstOrDefault();
+#else
+        return _userManager.GetFirstUser();
+#endif
     }
 
     /// <summary>

@@ -103,7 +103,13 @@ public class StylePlaylistService
 
         _libraryResolver.Build();
 
-        foreach (var user in _userManager.Users)
+#if NET8_0
+        var users = _userManager.Users;
+#else
+        var users = _userManager.GetUsers();
+#endif
+
+        foreach (var user in users)
         {
             ct.ThrowIfCancellationRequested();
             try
