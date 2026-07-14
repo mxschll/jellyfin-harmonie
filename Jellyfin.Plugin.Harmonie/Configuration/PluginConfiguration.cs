@@ -46,6 +46,9 @@ public class PluginConfiguration : BasePluginConfiguration
         DriftKeyCompatible = false;
         MixBpmTolerance = null;
         MixKeyCompatible = false;
+        RadioVariation = 0.25;
+        DriftVariation = 0.25;
+        MixVariation = 0.25;
 
         // For [RADIO]: how many tracks at the top of the playlist
         // count as seeds. Anything below position N is treated as
@@ -89,6 +92,7 @@ public class PluginConfiguration : BasePluginConfiguration
         // index, request timeout, etc.) so the endpoint always returns
         // something.
         EnableInstantMixOverride = true;
+        InstantMixVariation = 0.25;
     }
 
     /// <summary>
@@ -167,6 +171,23 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <c>[MIX]</c> playlists.
     /// </summary>
     public bool MixKeyCompatible { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded result variation for <c>[RADIO]</c> playlists.
+    /// 0 is deterministic; 1 uses harmonie's maximum similarity-preserving
+    /// variation.
+    /// </summary>
+    public double RadioVariation { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded result variation for <c>[DRIFT]</c> playlists.
+    /// </summary>
+    public double DriftVariation { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded result variation for <c>[MIX]</c> playlists.
+    /// </summary>
+    public double MixVariation { get; set; }
 
     /// <summary>
     /// Gets or sets the number of tracks at the top of a <c>[RADIO]</c>
@@ -265,4 +286,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// have used itself.
     /// </summary>
     public bool EnableInstantMixOverride { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded result variation for Instant Mix / Song Radio.
+    /// </summary>
+    public double InstantMixVariation { get; set; }
 }

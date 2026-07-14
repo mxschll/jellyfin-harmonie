@@ -148,6 +148,13 @@ public class SimilarPlaylistRequest
 
     [JsonPropertyName("smooth_transitions")]
     public SmoothTransitions? SmoothTransitions { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded selection variation. 0 is deterministic and 1
+    /// uses harmonie's maximum similarity-preserving variation.
+    /// </summary>
+    [JsonPropertyName("variation")]
+    public double Variation { get; set; }
 }
 
 /// <summary>
@@ -181,6 +188,13 @@ public class DriftPlaylistRequest
 
     [JsonPropertyName("smooth_transitions")]
     public SmoothTransitions? SmoothTransitions { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded selection variation. 0 is deterministic and 1
+    /// uses harmonie's maximum similarity-preserving variation.
+    /// </summary>
+    [JsonPropertyName("variation")]
+    public double Variation { get; set; }
 }
 
 /// <summary>

@@ -95,6 +95,8 @@ The plugin maintains a fixed number of `Personal Mix · Style` playlists per use
 
 When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns audio-similar tracks instead of random tracks matching the seed's genre. Works in every Jellyfin client without setup. Falls back to Jellyfin's default genre-based behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
 
+Radio, Drift, Mix, and Instant Mix each have a `0`–`1` variation setting. `0` keeps the ranking deterministic; `1` uses harmonie's maximum bounded variation while preserving similarity.
+
 ## Refresh
 
 The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):

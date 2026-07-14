@@ -105,6 +105,12 @@
                     </div>
 
                     <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="RadioVariation">[RADIO] variation</label>
+                        <input id="RadioVariation" name="RadioVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
+                    </div>
+
+                    <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="RadioBpmTolerance">[RADIO] BPM tolerance</label>
                         <input id="RadioBpmTolerance" name="RadioBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
                         <div class="fieldDescription">
@@ -128,6 +134,12 @@
                         <label class="inputLabel inputLabelUnfocused" for="DefaultDriftN">[DRIFT] length (n)</label>
                         <input id="DefaultDriftN" name="DefaultDriftN" type="number" is="emby-input" min="1" max="500" />
                         <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DriftVariation">[DRIFT] variation</label>
+                        <input id="DriftVariation" name="DriftVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
                     </div>
 
                     <div class="inputContainer">
@@ -164,6 +176,11 @@
                         <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
                     </div>
                     <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MixVariation">[MIX] variation</label>
+                        <input id="MixVariation" name="MixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
+                    </div>
+                    <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">[MIX] listening window (days)</label>
                         <input id="DefaultMixDays" name="DefaultMixDays" type="number" is="emby-input" min="1" max="365" />
                         <div class="fieldDescription">
@@ -186,6 +203,7 @@
                             Off: seeds are the most recently played tracks in the listening window. On: seeds are the highest play-count tracks in the window. Override per playlist with <code>[MIX top]</code>.
                         </div>
                     </div>
+
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
@@ -240,6 +258,12 @@
                         <div class="fieldDescription checkboxFieldDescription">
                             Replaces Jellyfin's built-in Instant Mix (also called Song Radio in clients like Finamp) with audio-similarity matches from harmonie. When the seed track isn't in harmonie's index, harmonie returns nothing, or the service is unreachable, the plugin falls back to Jellyfin's default genre-based behaviour so the endpoint always returns something.
                         </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="InstantMixVariation">Instant Mix variation</label>
+                        <input id="InstantMixVariation" name="InstantMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 always returns the same ranking; 1 uses the most variation harmonie allows while preserving similarity.</div>
                     </div>
 
                     <h2>Personal Mix playlists</h2>
@@ -343,12 +367,19 @@
                                 var v = config[field];
                                 return (v === null || v === undefined) ? '' : v;
                             }
+                            function readVariation(field) {
+                                var v = config[field];
+                                return (v === null || v === undefined) ? 0.25 : v;
+                            }
+                            document.querySelector('#RadioVariation').value = readVariation('RadioVariation');
                             document.querySelector('#RadioBpmTolerance').value = readBpm('RadioBpmTolerance');
                             document.querySelector('#RadioKeyCompatible').checked = !!config.RadioKeyCompatible;
                             document.querySelector('#DriftBpmTolerance').value = readBpm('DriftBpmTolerance');
                             document.querySelector('#DriftKeyCompatible').checked = !!config.DriftKeyCompatible;
+                            document.querySelector('#DriftVariation').value = readVariation('DriftVariation');
                             document.querySelector('#MixBpmTolerance').value = readBpm('MixBpmTolerance');
                             document.querySelector('#MixKeyCompatible').checked = !!config.MixKeyCompatible;
+                            document.querySelector('#MixVariation').value = readVariation('MixVariation');
                             document.querySelector('#DefaultMixN').value = config.DefaultMixN || 20;
                             document.querySelector('#DefaultMixDays').value = config.DefaultMixDays || 7;
                             document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
@@ -369,6 +400,7 @@
                             // never starts unchecked just because the API response omitted the field.
                             document.querySelector('#EnableInstantMixOverride').checked =
                                 config.EnableInstantMixOverride === undefined ? true : !!config.EnableInstantMixOverride;
+                            document.querySelector('#InstantMixVariation').value = readVariation('InstantMixVariation');
                             Dashboard.hideLoadingMsg();
                             loadInitialState();
                         });
@@ -393,15 +425,22 @@
                                 parseInt(document.querySelector('#DefaultDriftN').value, 10) || 20;
                             config.DefaultChunkSize =
                                 parseInt(document.querySelector('#DefaultChunkSize').value, 10) || 5;
+                            function readVariation(field) {
+                                var parsed = parseFloat(document.querySelector('#' + field).value);
+                                return isNaN(parsed) ? 0.25 : Math.min(1, Math.max(0, parsed));
+                            }
+                            config.RadioVariation = readVariation('RadioVariation');
                             var bpmTolRadioRaw = document.querySelector('#RadioBpmTolerance').value;
                             config.RadioBpmTolerance = bpmTolRadioRaw === '' ? null : parseFloat(bpmTolRadioRaw);
                             config.RadioKeyCompatible = document.querySelector('#RadioKeyCompatible').checked;
                             var bpmTolDriftRaw = document.querySelector('#DriftBpmTolerance').value;
                             config.DriftBpmTolerance = bpmTolDriftRaw === '' ? null : parseFloat(bpmTolDriftRaw);
                             config.DriftKeyCompatible = document.querySelector('#DriftKeyCompatible').checked;
+                            config.DriftVariation = readVariation('DriftVariation');
                             var bpmTolMixRaw = document.querySelector('#MixBpmTolerance').value;
                             config.MixBpmTolerance = bpmTolMixRaw === '' ? null : parseFloat(bpmTolMixRaw);
                             config.MixKeyCompatible = document.querySelector('#MixKeyCompatible').checked;
+                            config.MixVariation = readVariation('MixVariation');
                             config.DefaultMixN =
                                 parseInt(document.querySelector('#DefaultMixN').value, 10) || 20;
                             config.DefaultMixDays =
@@ -427,6 +466,7 @@
                                 parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
                             config.EnableInstantMixOverride =
                                 document.querySelector('#EnableInstantMixOverride').checked;
+                            config.InstantMixVariation = readVariation('InstantMixVariation');
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });

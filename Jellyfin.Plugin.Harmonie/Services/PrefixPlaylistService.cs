@@ -354,6 +354,7 @@ public class PrefixPlaylistService
                     N = options.N ?? config.DefaultDriftN,
                     ChunkSize = config.DefaultChunkSize,
                     SmoothTransitions = smoothTransitions,
+                    Variation = VariationSettings.ForMode(config, options.Mode),
                 },
                 ct).ConfigureAwait(false);
         }
@@ -376,6 +377,7 @@ public class PrefixPlaylistService
                     Seeds = WeightSeedsByPosition(harmonieSeedIds),
                     N = options.N ?? config.DefaultRadioN,
                     SmoothTransitions = smoothTransitions,
+                    Variation = VariationSettings.ForMode(config, options.Mode),
                 },
                 ct).ConfigureAwait(false);
         }
@@ -389,6 +391,7 @@ public class PrefixPlaylistService
                     SeedRefs = seedRefs,
                     N = options.N ?? config.DefaultMixN,
                     SmoothTransitions = smoothTransitions,
+                    Variation = VariationSettings.ForMode(config, options.Mode),
                 },
                 ct).ConfigureAwait(false);
         }

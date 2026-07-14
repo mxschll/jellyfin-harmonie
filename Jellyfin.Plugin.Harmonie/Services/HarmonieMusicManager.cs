@@ -185,6 +185,7 @@ public class HarmonieMusicManager : IMusicManager
                     {
                         SeedRefs = new List<SeedRef> { seedRef },
                         N = FallbackPoolSize,
+                        Variation = VariationSettings.ToHarmonie(config.InstantMixVariation),
                     },
                     cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
             }

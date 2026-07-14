@@ -34,7 +34,7 @@ public class PlaylistContentReplacerIntegrationTests
             CancellationToken.None);
         var playlist = new Playlist { LinkedChildren = children };
 
-        Assert.Equal(new[] { second.Id, first.Id }, playlist.LinkedChildren.Select(c => c.ItemId));
+        Assert.All(playlist.LinkedChildren, child => Assert.Null(child.ItemId));
         Assert.Equal(
             new[] { "/music/second.flac", "/music/first.flac" },
             playlist.LinkedChildren.Select(c => c.Path));
@@ -51,7 +51,7 @@ public class PlaylistContentReplacerIntegrationTests
             CancellationToken.None);
 
         var child = Assert.Single(children);
-        Assert.Equal(existing.Id, child.ItemId);
+        Assert.Null(child.ItemId);
         Assert.Equal(existing.Path, child.Path);
     }
 
