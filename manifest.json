@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.6.0.1",
+        "changelog": " ### Features  - Personalize activity mixes (b63e1ee)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.6.0/jellyfin-harmonie_1.6.0.1.zip",
+        "checksum": "eb3664cc813856bfcde390e6632ba273",
+        "timestamp": "2026-07-15T23:48:24Z"
+      },
+      {
+        "version": "1.6.0.0",
+        "changelog": " ### Features  - Personalize activity mixes (b63e1ee)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.6.0/jellyfin-harmonie_1.6.0.0.zip",
+        "checksum": "dc7640c8c7f8dd171b2b0651803ad79e",
+        "timestamp": "2026-07-15T23:48:24Z"
+      },
+      {
         "version": "1.5.0.1",
         "changelog": " ### Build  - Harden local plugin install (06d2823)  ### Features  - Add per-mode playlist variation (5735fb9)  ### Tests  - Cover playlist mutation ABIs (acb15e2)  ",
         "targetAbi": "10.11.0.0",
