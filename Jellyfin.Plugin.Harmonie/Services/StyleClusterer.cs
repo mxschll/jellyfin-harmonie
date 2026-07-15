@@ -57,25 +57,46 @@ public sealed class StyleVector
     /// then L2-normalised so it's directly comparable to a member).
     /// </summary>
     public static StyleVector Mean(IReadOnlyList<StyleVector> vectors)
+        => WeightedMean(vectors, Enumerable.Repeat(1.0, vectors.Count).ToArray());
+
+    /// <summary>
+    /// Returns the weighted centroid of a set of vectors.
+    /// </summary>
+    public static StyleVector WeightedMean(
+        IReadOnlyList<StyleVector> vectors,
+        IReadOnlyList<double> weights)
     {
         if (vectors.Count == 0)
         {
             return new StyleVector(new Dictionary<string, double>());
         }
 
-        var sum = new Dictionary<string, double>();
-        foreach (var v in vectors)
+        if (weights.Count != vectors.Count)
         {
-            foreach (var kv in v.Components)
+            throw new ArgumentException("weights must match vectors", nameof(weights));
+        }
+
+        var sum = new Dictionary<string, double>();
+        double totalWeight = 0;
+        for (var i = 0; i < vectors.Count; i++)
+        {
+            var weight = weights[i];
+            if (!double.IsFinite(weight) || weight <= 0)
             {
-                sum[kv.Key] = sum.GetValueOrDefault(kv.Key) + kv.Value;
+                throw new ArgumentOutOfRangeException(nameof(weights), "weights must be finite and positive");
+            }
+
+            totalWeight += weight;
+            foreach (var kv in vectors[i].Components)
+            {
+                sum[kv.Key] = sum.GetValueOrDefault(kv.Key) + (kv.Value * weight);
             }
         }
 
         var mean = new Dictionary<string, double>(sum.Count);
         foreach (var kv in sum)
         {
-            mean[kv.Key] = kv.Value / vectors.Count;
+            mean[kv.Key] = kv.Value / totalWeight;
         }
 
         return Normalise(mean);
@@ -149,7 +170,7 @@ public sealed class StyleCluster
 /// <summary>
 /// K-means clustering over style probability vectors. Configured for
 /// the per-user style-cluster playlists feature: deterministic
-/// initialisation (k-means++ with a fixed seed) so daily refreshes
+/// initialisation (k-means++ with a fixed seed) so scheduled refreshes
 /// give stable assignments when the input doesn't change, and label
 /// derivation that produces a non-empty, distinct title for every
 /// returned cluster.
@@ -181,28 +202,43 @@ public static class StyleClusterer
     /// <param name="k">Maximum number of clusters to produce.</param>
     /// <param name="randomSeed">
     /// Seed for k-means++ initialisation. Pass a stable value for
-    /// stable daily refreshes; pass null for a fresh seed each call.
+    /// stable scheduled refreshes; pass null for a fresh seed each call.
     /// </param>
+    /// <param name="weights">Optional positive play-count weight per input vector.</param>
     public static IReadOnlyList<StyleCluster> Cluster(
         IReadOnlyList<StyleVector> vectors,
         int k,
-        int? randomSeed = 42)
+        int? randomSeed = 42,
+        IReadOnlyList<double>? weights = null)
     {
         if (k <= 0 || vectors.Count == 0)
         {
             return Array.Empty<StyleCluster>();
         }
 
+        if (weights is not null && weights.Count != vectors.Count)
+        {
+            throw new ArgumentException("weights must match vectors", nameof(weights));
+        }
+
+        if (weights is not null && weights.Any(weight => !double.IsFinite(weight) || weight <= 0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(weights), "weights must be finite and positive");
+        }
+
         // Filter out empty vectors but keep the original indices so the
         // caller can map clusters back to their input tracks.
         var liveIndices = new List<int>(vectors.Count);
         var liveVectors = new List<StyleVector>(vectors.Count);
+        var liveWeights = new List<double>(vectors.Count);
         for (var i = 0; i < vectors.Count; i++)
         {
             if (!vectors[i].IsEmpty)
             {
                 liveIndices.Add(i);
                 liveVectors.Add(vectors[i]);
+                var weight = weights?[i] ?? 1.0;
+                liveWeights.Add(weight);
             }
         }
 
@@ -215,7 +251,7 @@ public static class StyleClusterer
         var actualK = Math.Min(k, liveVectors.Count);
 
         var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
-        var centroids = KMeansPlusPlusInit(liveVectors, actualK, rng);
+        var centroids = KMeansPlusPlusInit(liveVectors, actualK, rng, weights is null ? null : liveWeights);
 
         var assignments = new int[liveVectors.Count];
         for (var iter = 0; iter < MaxIterations; iter++)
@@ -250,17 +286,19 @@ public static class StyleClusterer
             for (var c = 0; c < centroids.Count; c++)
             {
                 var members = new List<StyleVector>();
+                var memberWeights = new List<double>();
                 for (var i = 0; i < liveVectors.Count; i++)
                 {
                     if (assignments[i] == c)
                     {
                         members.Add(liveVectors[i]);
+                        memberWeights.Add(liveWeights[i]);
                     }
                 }
 
                 if (members.Count > 0)
                 {
-                    centroids[c] = StyleVector.Mean(members);
+                    centroids[c] = StyleVector.WeightedMean(members, memberWeights);
                 }
             }
         }
@@ -273,12 +311,14 @@ public static class StyleClusterer
         {
             var memberIndices = new List<int>();
             var memberVectors = new List<StyleVector>();
+            var memberWeights = new List<double>();
             for (var i = 0; i < liveVectors.Count; i++)
             {
                 if (assignments[i] == c)
                 {
                     memberIndices.Add(liveIndices[i]);
                     memberVectors.Add(liveVectors[i]);
+                    memberWeights.Add(liveWeights[i]);
                 }
             }
 
@@ -290,7 +330,7 @@ public static class StyleClusterer
             clusters.Add(new StyleCluster
             {
                 MemberIndices = memberIndices,
-                Centroid = StyleVector.Mean(memberVectors),
+                Centroid = StyleVector.WeightedMean(memberVectors, memberWeights),
             });
         }
 
@@ -308,10 +348,13 @@ public static class StyleClusterer
     private static List<StyleVector> KMeansPlusPlusInit(
         List<StyleVector> vectors,
         int k,
-        Random rng)
+        Random rng,
+        List<double>? weights)
     {
         var centroids = new List<StyleVector>(k);
-        centroids.Add(vectors[rng.Next(vectors.Count)]);
+        centroids.Add(vectors[weights is null
+            ? rng.Next(vectors.Count)
+            : WeightedRandomIndex(weights, rng)]);
 
         var distSq = new double[vectors.Count];
         while (centroids.Count < k)
@@ -331,7 +374,7 @@ public static class StyleClusterer
 
                 // Cosine distance, squared to favour far-away points.
                 var d = 1 - nearest;
-                distSq[i] = d * d;
+                distSq[i] = d * d * (weights?[i] ?? 1.0);
                 total += distSq[i];
             }
 
@@ -357,6 +400,23 @@ public static class StyleClusterer
         }
 
         return centroids;
+    }
+
+    private static int WeightedRandomIndex(List<double> weights, Random rng)
+    {
+        var total = weights.Sum();
+        var pick = rng.NextDouble() * total;
+        double cumulative = 0;
+        for (var i = 0; i < weights.Count; i++)
+        {
+            cumulative += weights[i];
+            if (cumulative >= pick)
+            {
+                return i;
+            }
+        }
+
+        return weights.Count - 1;
     }
 
     // ---------------------------------------------------------------

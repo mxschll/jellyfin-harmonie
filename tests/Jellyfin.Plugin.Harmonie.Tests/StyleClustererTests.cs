@@ -182,7 +182,7 @@ public class StyleClustererTests
     }
 
     // ---------------------------------------------------------------
-    // Determinism — the daily refresh must produce stable titles when
+    // Determinism — scheduled refreshes must produce stable titles when
     // the input doesn't change. Otherwise the user sees their slot 0
     // playlist rename for no reason.
     // ---------------------------------------------------------------
@@ -205,6 +205,26 @@ public class StyleClustererTests
         Assert.Equal(
             first.Select(c => c.Label).OrderBy(s => s),
             second.Select(c => c.Label).OrderBy(s => s));
+    }
+
+    [Fact]
+    public void Play_count_weights_shift_cluster_centroid_and_label()
+    {
+        var input = new[]
+        {
+            V(("Electronic---House", 1.0)),
+            V(("Electronic---Techno", 1.0)),
+        };
+
+        var unweighted = Assert.Single(StyleClusterer.Cluster(input, 1));
+        var weighted = Assert.Single(StyleClusterer.Cluster(
+            input,
+            1,
+            weights: new[] { 9.0, 1.0 }));
+
+        Assert.Contains("House", unweighted.Label);
+        Assert.Contains("Techno", unweighted.Label);
+        Assert.Equal("House", weighted.Label);
     }
 
     // ---------------------------------------------------------------

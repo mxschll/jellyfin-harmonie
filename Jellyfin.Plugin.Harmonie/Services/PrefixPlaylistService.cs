@@ -361,9 +361,7 @@ public class PrefixPlaylistService
         else if (options.Mode == HarmonieMode.Radio)
         {
             // Radio leans on the first seed via linear-decay position
-            // weighting. The weighting requires harmonie IDs (harmonie's
-            // seed_refs path dedups merged seeds, which would defeat the
-            // weighting), so we resolve once, weight, and submit IDs.
+            // weights, so resolve the seeds to Harmonie IDs first.
             var harmonieSeedIds = await ResolveSeedIdsAsync(seedIds, pathMapper, playlist.Name, ct)
                 .ConfigureAwait(false);
             if (harmonieSeedIds.Count == 0)
@@ -374,7 +372,8 @@ public class PrefixPlaylistService
             harmonieResult = await _client.SimilarPlaylistAsync(
                 new SimilarPlaylistRequest
                 {
-                    Seeds = WeightSeedsByPosition(harmonieSeedIds),
+                    Seeds = harmonieSeedIds,
+                    SeedWeights = BuildPositionWeights(harmonieSeedIds.Count),
                     N = options.N ?? config.DefaultRadioN,
                     SmoothTransitions = smoothTransitions,
                     Variation = VariationSettings.ForMode(config, options.Mode),
@@ -895,32 +894,20 @@ public class PrefixPlaylistService
     }
 
     /// <summary>
-    /// Reweights a seed list so harmonie's centroid leans toward the
-    /// first track. Position i contributes <c>(N - i)</c> copies (linear
-    /// decay), so the first seed dominates without erasing the others.
-    /// Without this, harmonie's similar mode treats all seeds equally
-    /// and reordering — including putting a different track first —
-    /// produces an identical centroid and identical matches.
+    /// Builds linear-decay weights so Harmonie's centroid leans toward
+    /// earlier seeds. For N seeds, the weights are N through 1.
     /// </summary>
-    public static List<long> WeightSeedsByPosition(IReadOnlyList<long> ids)
+    public static List<double> BuildPositionWeights(int seedCount)
     {
-        ArgumentNullException.ThrowIfNull(ids);
-        if (ids.Count <= 1)
+        ArgumentOutOfRangeException.ThrowIfNegative(seedCount);
+
+        var weights = new List<double>(seedCount);
+        for (var i = seedCount; i > 0; i--)
         {
-            return ids.ToList();
+            weights.Add(i);
         }
 
-        var weighted = new List<long>(ids.Count * (ids.Count + 1) / 2);
-        for (var i = 0; i < ids.Count; i++)
-        {
-            var copies = ids.Count - i;
-            for (var c = 0; c < copies; c++)
-            {
-                weighted.Add(ids[i]);
-            }
-        }
-
-        return weighted;
+        return weights;
     }
 
     /// <summary>

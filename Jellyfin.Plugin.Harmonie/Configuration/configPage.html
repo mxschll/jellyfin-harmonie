@@ -274,14 +274,14 @@
                             <span>Enable per-user Personal Mix playlists</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Optional. The daily refresh task creates and maintains a fixed number of playlists per Jellyfin user, one per top style derived from listening history. Each is named <code>Personal Mix &middot; Style</code>. As tastes shift the playlists rename and re-fill in place.
+                            Optional. The 30-day refresh task creates and maintains activity-derived playlists for each Jellyfin user. Adjust the cadence under Scheduled Tasks. As tastes shift, playlists rename and refill in place.
                         </div>
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Playlists per user</label>
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Maximum playlists per user</label>
                         <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
-                        <div class="fieldDescription">Number of Personal Mix playlists per user. Reducing the number deletes the excess. 0&ndash;10.</div>
+                        <div class="fieldDescription">The actual count adapts to recent listening history. Reducing the maximum deletes excess playlists. 0&ndash;10.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Listening window (days)</label>
@@ -292,6 +292,11 @@
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
                         <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
                         <div class="fieldDescription">Number of tracks in each Personal Mix playlist. 1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PersonalMixVariation">Personal Mix variation</label>
+                        <input id="PersonalMixVariation" name="PersonalMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
                     </div>
 
                     <h2>Path mappings</h2>
@@ -394,6 +399,7 @@
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
                             document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
+                            document.querySelector('#PersonalMixVariation').value = readVariation('PersonalMixVariation');
                             // EnableInstantMixOverride defaults to true on fresh installs;
                             // existing saved configs that pre-date this setting also get true via
                             // the C# constructor. Treat undefined as true here so the checkbox
@@ -464,6 +470,7 @@
                                 parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
                             config.StylePlaylistN =
                                 parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
+                            config.PersonalMixVariation = readVariation('PersonalMixVariation');
                             config.EnableInstantMixOverride =
                                 document.querySelector('#EnableInstantMixOverride').checked;
                             config.InstantMixVariation = readVariation('InstantMixVariation');

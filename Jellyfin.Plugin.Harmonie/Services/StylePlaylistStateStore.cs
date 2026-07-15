@@ -13,8 +13,8 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 public class StylePlaylistSlot
 {
     /// <summary>
-    /// Slot index (0-based). The plugin maintains slots 0..N-1, where N
-    /// is <c>StylePlaylistCount</c> in plugin config.
+    /// Slot index (0-based). The active range adapts to the user's recent
+    /// listening history.
     /// </summary>
     public int Slot { get; set; }
 

@@ -17,6 +17,7 @@ public class VariationSettingsTests
         Assert.Equal(0.25, config.DriftVariation);
         Assert.Equal(0.25, config.MixVariation);
         Assert.Equal(0.25, config.InstantMixVariation);
+        Assert.Equal(0.25, config.PersonalMixVariation);
     }
 
     [Theory]
@@ -58,5 +59,21 @@ public class VariationSettingsTests
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(request, request.GetType()));
 
         Assert.Equal(0.35, document.RootElement.GetProperty("variation").GetDouble());
+    }
+
+    [Fact]
+    public void Similar_playlist_dto_serializes_seed_weights()
+    {
+        var request = new SimilarPlaylistRequest
+        {
+            Seeds = new() { 42, 117 },
+            SeedWeights = new() { 8, 2 },
+        };
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(request));
+        var weights = document.RootElement.GetProperty("seed_weights");
+
+        Assert.Equal(8, weights[0].GetDouble());
+        Assert.Equal(2, weights[1].GetDouble());
     }
 }

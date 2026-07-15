@@ -64,11 +64,12 @@ public class PluginConfiguration : BasePluginConfiguration
         DefaultMixUseTopPlayed = false;
         DefaultMixUsesDrift = false;
 
-        // Per-user style cluster playlists.
+        // Per-user activity cluster playlists.
         EnableStylePlaylists = true;
         StylePlaylistCount = 5;
         StylePlaylistDays = 30;
         StylePlaylistN = 20;
+        PersonalMixVariation = 0.25;
 
         // Defaults for [STYLE]/[GENRE] vibe-mode playlists. 100 tracks
         // is enough to feel like a real "browse this style" playlist
@@ -231,17 +232,16 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets whether the per-user style cluster playlists
-    /// feature is enabled. When on, the daily refresh task creates and
-    /// maintains <see cref="StylePlaylistCount"/> playlists per user,
-    /// one per top style derived from their listening history.
+    /// feature is enabled. When on, the scheduled refresh task creates
+    /// and maintains adaptive style playlists from each user's recent
+    /// listening history.
     /// </summary>
     public bool EnableStylePlaylists { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of per-user style playlists to maintain.
-    /// 0–10. The first refresh creates them; subsequent refreshes
-    /// rename and re-fill in place. If reduced later, excess playlists
-    /// are removed.
+    /// Gets or sets the maximum number of per-user activity playlists.
+    /// The actual count adapts to the amount of recent listening history.
+    /// 0–10. If reduced later, excess playlists are removed.
     /// </summary>
     public int StylePlaylistCount { get; set; }
 
@@ -256,6 +256,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// 1–500.
     /// </summary>
     public int StylePlaylistN { get; set; }
+
+    /// <summary>
+    /// Gets or sets bounded result variation for activity-derived Personal Mix playlists.
+    /// </summary>
+    public double PersonalMixVariation { get; set; }
 
     /// <summary>
     /// Gets or sets the default number of tracks for <c>[STYLE]</c>

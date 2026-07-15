@@ -16,6 +16,12 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
+/// One played audio item with the Jellyfin user-data values used for
+/// personalization.
+/// </summary>
+public sealed record ListenHistoryEntry(Audio Audio, DateTime LastPlayed, int PlayCount);
+
+/// <summary>
 /// Pulls a small set of recently-played or top-played audio tracks from
 /// Jellyfin's own listening history. Used to seed <c>[MIX]</c>
 /// playlists.
@@ -28,6 +34,7 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 /// </summary>
 public class ListenHistoryProvider
 {
+    private const int PageSize = 200;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserDataManager _userDataManager;
     private readonly ILogger<ListenHistoryProvider> _logger;
@@ -56,53 +63,79 @@ public class ListenHistoryProvider
     /// recently played (descending) for a "today's mix" feel.
     /// </param>
     public IReadOnlyList<Audio> GetSeeds(User user, int windowDays, int seedCap, bool useTopPlayed)
+        => GetHistory(user, windowDays, seedCap, useTopPlayed)
+            .Select(entry => entry.Audio)
+            .ToList();
+
+    /// <summary>
+    /// Returns recent played tracks together with their play counts. Pages
+    /// newest-first until Jellyfin reaches the configured cutoff, then ranks
+    /// within that recent window.
+    /// </summary>
+    public IReadOnlyList<ListenHistoryEntry> GetHistory(
+        User user,
+        int windowDays,
+        int seedCap,
+        bool useTopPlayed)
     {
         ArgumentNullException.ThrowIfNull(user);
         if (windowDays <= 0 || seedCap <= 0)
         {
-            return Array.Empty<Audio>();
+            return Array.Empty<ListenHistoryEntry>();
         }
 
         var sinceUtc = DateTime.UtcNow - TimeSpan.FromDays(windowDays);
 
-        // Pull a buffered candidate set: more than seedCap so the
-        // post-filter by date has room to drop older plays.
-        var candidateLimit = Math.Max(seedCap * 5, 50);
-
-        var query = new InternalItemsQuery(user)
+        var played = new List<ListenHistoryEntry>();
+        var startIndex = 0;
+        var reachedCutoff = false;
+        while (!reachedCutoff)
         {
-            IncludeItemTypes = new[] { BaseItemKind.Audio },
-            IsPlayed = true,
-            Recursive = true,
-            Limit = candidateLimit,
-            // For "top": rank globally by play count. For "recent": by
-            // most recent play. Both orders honour the played-since
-            // post-filter equally well.
-            OrderBy = useTopPlayed
-                ? new[] { (ItemSortBy.PlayCount, SortOrder.Descending) }
-                : new[] { (ItemSortBy.DatePlayed, SortOrder.Descending) },
-        };
-
-        var played = new List<(Audio Audio, DateTime LastPlayed, int Count)>();
-        foreach (var item in _libraryManager.GetItemList(query))
-        {
-            if (item is not Audio audio)
+            var query = new InternalItemsQuery(user)
             {
-                continue;
+                IncludeItemTypes = new[] { BaseItemKind.Audio },
+                IsPlayed = true,
+                Recursive = true,
+                StartIndex = startIndex,
+                Limit = PageSize,
+                OrderBy = new[] { (ItemSortBy.DatePlayed, SortOrder.Descending) },
+            };
+            var page = _libraryManager.GetItemList(query);
+            if (page.Count == 0)
+            {
+                break;
             }
 
-            var data = _userDataManager.GetUserData(user, audio);
-            if (data?.LastPlayedDate is null)
+            foreach (var item in page)
             {
-                continue;
+                if (item is not Audio audio)
+                {
+                    continue;
+                }
+
+                var data = _userDataManager.GetUserData(user, audio);
+                if (data?.LastPlayedDate is null)
+                {
+                    continue;
+                }
+
+                if (data.LastPlayedDate.Value < sinceUtc)
+                {
+                    reachedCutoff = true;
+                    break;
+                }
+
+                played.Add(new ListenHistoryEntry(
+                    audio,
+                    data.LastPlayedDate.Value,
+                    Math.Max(1, data.PlayCount)));
             }
 
-            if (data.LastPlayedDate.Value < sinceUtc)
+            startIndex += page.Count;
+            if (page.Count < PageSize)
             {
-                continue;
+                break;
             }
-
-            played.Add((audio, data.LastPlayedDate.Value, data.PlayCount));
         }
 
         if (played.Count == 0)
@@ -111,16 +144,24 @@ public class ListenHistoryProvider
                 "No plays found for user {User} in the last {Days} day(s).",
                 user.Username,
                 windowDays);
-            return Array.Empty<Audio>();
+            return Array.Empty<ListenHistoryEntry>();
         }
 
         // Re-sort defensively after the date filter so the cap selection
         // honours the requested order even if Jellyfin's pre-sort got
         // disturbed by the buffer.
-        IEnumerable<(Audio Audio, DateTime LastPlayed, int Count)> ordered = useTopPlayed
-            ? played.OrderByDescending(t => t.Count).ThenByDescending(t => t.LastPlayed)
-            : played.OrderByDescending(t => t.LastPlayed);
+        return RankAndTake(played, seedCap, useTopPlayed);
+    }
 
-        return ordered.Take(seedCap).Select(t => t.Audio).ToList();
+    internal static IReadOnlyList<ListenHistoryEntry> RankAndTake(
+        IEnumerable<ListenHistoryEntry> entries,
+        int seedCap,
+        bool useTopPlayed)
+    {
+        var ordered = useTopPlayed
+            ? entries.OrderByDescending(entry => entry.PlayCount)
+                .ThenByDescending(entry => entry.LastPlayed)
+            : entries.OrderByDescending(entry => entry.LastPlayed);
+        return ordered.Take(seedCap).ToList();
     }
 }

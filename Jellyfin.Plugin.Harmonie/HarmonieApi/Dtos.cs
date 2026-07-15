@@ -135,6 +135,12 @@ public class SimilarPlaylistRequest
     public List<long> Seeds { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets optional positive weights aligned with <see cref="Seeds"/>.
+    /// </summary>
+    [JsonPropertyName("seed_weights")]
+    public List<double> SeedWeights { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets path/tag references resolved server-side by
     /// harmonie. Lets the plugin send Jellyfin metadata directly,
     /// without a per-seed <c>/tracks/resolve</c> round trip. At least
@@ -171,6 +177,12 @@ public class DriftPlaylistRequest
 
     [JsonPropertyName("seeds")]
     public List<long> Seeds { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets optional positive weights aligned with <see cref="Seeds"/>.
+    /// </summary>
+    [JsonPropertyName("seed_weights")]
+    public List<double> SeedWeights { get; set; } = new();
 
     /// <summary>
     /// Gets or sets path/tag references resolved server-side by

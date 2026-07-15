@@ -23,15 +23,14 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
-/// Builds and maintains per-user "style cluster" playlists. Each user's
-/// listening history is aggregated into N top styles; the plugin owns
-/// N playlists per user, one per top style. Each daily refresh updates
-/// each slot's title and contents to match the user's current top
-/// styles in rank order.
+/// Builds and maintains per-user activity cluster playlists. Recent played
+/// tracks are weighted by play count and grouped by style probability. The
+/// number of clusters adapts to the available history up to the configured
+/// maximum.
 ///
 /// Slot identity is the playlist's Jellyfin GUID, persisted in
 /// <see cref="StylePlaylistStateStore"/>. The title of each slot is
-/// recomputed every refresh from the user's current top-N styles, so
+/// recomputed every refresh from the user's current clusters, so
 /// when a user's taste shifts the playlist they see at slot 0 simply
 /// renames itself — no churn of new playlists.
 /// </summary>
@@ -41,6 +40,7 @@ public class StylePlaylistService
     // computing top styles. Bigger isn't always better (the centroid
     // gets mushy) and each candidate costs one HTTP resolve.
     private const int SeedAnalysisCap = 50;
+    private const int TargetTracksPerCluster = 5;
 
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
@@ -131,12 +131,12 @@ public class StylePlaylistService
     {
         // 1. Pull the user's recent top-played tracks. These both vote
         //    for the top styles AND seed each cluster playlist.
-        var seedAudios = _listenHistory.GetSeeds(
+        var history = _listenHistory.GetHistory(
             user,
             config.StylePlaylistDays,
             SeedAnalysisCap,
             useTopPlayed: true);
-        if (seedAudios.Count == 0)
+        if (history.Count == 0)
         {
             _logger.LogInformation(
                 "Style playlists: user {User} has no recent listening; skipping.",
@@ -150,9 +150,11 @@ public class StylePlaylistService
         var pathMapper = new PathMapper(config.PathMappings);
         var resolved = new List<ResolvedTrack>();
         var harmonieSeedIds = new List<long>();
-        foreach (var audio in seedAudios)
+        var playCountWeights = new List<double>();
+        foreach (var entry in history)
         {
             ct.ThrowIfCancellationRequested();
+            var audio = entry.Audio;
             var (path, artist, album, title) = PrefixPlaylistService.BuildResolveArgs(audio, pathMapper);
             if (path is null && artist is null && title is null && album is null)
             {
@@ -167,6 +169,7 @@ public class StylePlaylistService
 
             resolved.Add(hit);
             harmonieSeedIds.Add(hit.Id);
+            playCountWeights.Add(entry.PlayCount);
         }
 
         if (resolved.Count == 0)
@@ -180,7 +183,11 @@ public class StylePlaylistService
         // 3. K-means cluster the tracks by their style probability
         //    vectors. Each cluster becomes one playlist.
         var vectors = resolved.Select(r => StyleVector.FromStyles(r.Styles)).ToList();
-        var clusters = StyleClusterer.Cluster(vectors, config.StylePlaylistCount);
+        var clusterCount = CalculateClusterCount(resolved.Count, config.StylePlaylistCount);
+        var clusters = StyleClusterer.Cluster(
+            vectors,
+            clusterCount,
+            weights: playCountWeights);
         if (clusters.Count == 0)
         {
             _logger.LogInformation(
@@ -218,16 +225,25 @@ public class StylePlaylistService
             // this cluster, in the order they came from listen history
             // (top-played first), capped to harmonie's sweet spot.
             var clusterSeedIds = new List<long>();
+            var clusterSeedWeights = new List<double>();
             foreach (var idx in cluster.MemberIndices)
             {
                 clusterSeedIds.Add(harmonieSeedIds[idx]);
+                clusterSeedWeights.Add(playCountWeights[idx]);
                 if (clusterSeedIds.Count >= 15)
                 {
                     break;
                 }
             }
 
-            await FillSlotAsync(user, slot, clusterSeedIds, config, pathMapper, ct).ConfigureAwait(false);
+            await FillSlotAsync(
+                user,
+                slot,
+                clusterSeedIds,
+                clusterSeedWeights,
+                config,
+                pathMapper,
+                ct).ConfigureAwait(false);
         }
 
         // 5. Trim excess slots — either StylePlaylistCount was reduced
@@ -327,6 +343,7 @@ public class StylePlaylistService
         User user,
         StylePlaylistSlot slot,
         List<long> clusterSeedIds,
+        List<double> clusterSeedWeights,
         PluginConfiguration config,
         PathMapper pathMapper,
         CancellationToken ct)
@@ -353,7 +370,9 @@ public class StylePlaylistService
         var request = new SimilarPlaylistRequest
         {
             Seeds = clusterSeedIds,
+            SeedWeights = clusterSeedWeights,
             N = config.StylePlaylistN,
+            Variation = VariationSettings.ToHarmonie(config.PersonalMixVariation),
         };
 
         var result = await _client.SimilarPlaylistAsync(request, ct).ConfigureAwait(false);
@@ -414,6 +433,18 @@ public class StylePlaylistService
         }
 
         return Task.CompletedTask;
+    }
+
+    internal static int CalculateClusterCount(int trackCount, int configuredMaximum)
+    {
+        if (trackCount <= 0 || configuredMaximum <= 0)
+        {
+            return 0;
+        }
+
+        var activitySupportedCount = (trackCount + TargetTracksPerCluster - 1)
+            / TargetTracksPerCluster;
+        return Math.Min(configuredMaximum, Math.Max(1, activitySupportedCount));
     }
 
     /// <summary>
