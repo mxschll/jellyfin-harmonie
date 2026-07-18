@@ -64,8 +64,8 @@ Make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes
 | `[RADIO]` | Similar tracks based on the first five tracks by default. Earlier seeds have more influence. Reorder or remove tracks to change the seeds. |
 | `[DRIFT]` | An evolving mix starting from the first track. Each group of results becomes the seed for the next. |
 | `[MIX]` | A mix seeded from the user's recent listening history. Manually added tracks are removed. |
-| `[GENRE] X` | Tracks classified under a Discogs genre, such as `[GENRE] Hip Hop`. |
-| `[STYLE] X` | Tracks classified under a Discogs style, such as `[STYLE] House`. |
+| <code>[GENRE]&nbsp;X</code> | Tracks classified under a Discogs genre, such as `[GENRE] Hip Hop`. |
+| <code>[STYLE]&nbsp;X</code> | Tracks classified under a Discogs style, such as `[STYLE] House`. |
 
 Genre and style playlists regenerate daily. See [the supported Discogs genres and styles](docs/discogs-styles.md).
 
