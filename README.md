@@ -13,9 +13,9 @@
 > [!NOTE]
 > **Feedback wanted.** If anything in the install steps, settings, or playlist behaviour gets in your way, please open an issue. I want setup to be as painless as possible.
 
-Spotify has Song Radio and Daily Mix. Plex has Sonic Sage. They listen to a track or your recent plays and surface dozens of similar songs from your library. Jellyfin doesn't have anything like that.
+Jellyfin Harmonie generates playlists from your music library using audio similarity and Jellyfin listening history. It replaces Jellyfin's genre- and tag-based Instant Mix selection with tracks matched by the audio itself.
 
-Harmonie fills that gap. It's a Jellyfin plugin that automatically generates playlists from your library based on audio similarity and your listening history, using [harmonie](https://github.com/mxschll/harmonie) for the analysis. Matches by audio embeddings. Lives natively within Jellyfin.
+The plugin also provides seeded radio and drift playlists, genre and style playlists, daily mixes, and personal mixes. Audio analysis is provided by the [harmonie](https://github.com/mxschll/harmonie) service.
 
 <p align="center">
   <img src="docs/playlists.png" alt="Harmonie playlists in the Jellyfin web UI" width="720" />
@@ -59,15 +59,17 @@ The plugin's settings page shows live harmonie scan progress:
 
 Make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes the contents in the background.
 
-**`[RADIO]` - radio mix:** The first N tracks (default 5, configurable) are seeds; the rest is filled with audio-similar tracks. Drag a track to the top to make it a seed; remove it to demote. The first seed is the strongest anchor.
+| Prefix | Result |
+| --- | --- |
+| `[RADIO]` | Similar tracks based on the first five tracks by default. Earlier seeds have more influence. Reorder or remove tracks to change the seeds. |
+| `[DRIFT]` | An evolving mix starting from the first track. Each group of results becomes the seed for the next. |
+| `[MIX]` | A mix seeded from the user's recent listening history. Manually added tracks are removed. |
+| `[GENRE] X` | Tracks classified under a Discogs genre, such as `[GENRE] Hip Hop`. |
+| `[STYLE] X` | Tracks classified under a Discogs style, such as `[STYLE] House`. |
 
-**`[DRIFT]` - long evolving mix:** One seed (the first track) and the playlist walks away from it in chunks. Each chunk re-anchors on the last pick of the previous one, so the style evolves across the mix.
+Genre and style playlists regenerate daily. See [the supported Discogs genres and styles](docs/discogs-styles.md).
 
-**`[GENRE] X` / `[STYLE] X`:** Fills with 100 tracks (configurable) of one Discogs genre or style. The text after the prefix is the filter: `[GENRE] Hip Hop` returns hip-hop tracks; `[STYLE] House` returns house tracks across every genre. The playlist regenerates daily with a new seed, so it feels different daily. See [docs/discogs-styles.md](docs/discogs-styles.md) for the full list of accepted values.
-
-**`[MIX]` - daily mix from listening history:** Auto-fills from what you've played in the last week. You don't add tracks; anything you do add gets wiped. Default is "today's mix" — flip with tokens for "heavy rotation" or "stretch" variants.
-
-You can override settings per playlist with tokens inside the brackets:
+Override settings with tokens inside the brackets:
 
 | Token | Mode | What it does |
 | --- | --- | --- |
@@ -93,7 +95,7 @@ The plugin groups each user's recently played tracks by Harmonie style, weighted
 
 ## Song Radio / Instant Mix
 
-When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns audio-similar tracks instead of random tracks matching the seed's genre. Works in every Jellyfin client without setup. Falls back to Jellyfin's default genre-based behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
+When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Falls back to Jellyfin's default behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
 
 Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation setting. Higher values produce more varied results while keeping songs similar to the seeds; `0` keeps results deterministic.
 
@@ -102,7 +104,7 @@ Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation
 The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):
 
 * **Refresh Harmonie Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
-* **Refresh Harmonie Personal Mix Playlists:** every 30 days. Rebuilds the per-user Personal Mix playlists. 
+* **Refresh Harmonie Personal Mix Playlists:** every 30 days. Rebuilds the per-user Personal Mix playlists.
 
 Both schedules can be changed from the same page, and either can be triggered manually.
 
