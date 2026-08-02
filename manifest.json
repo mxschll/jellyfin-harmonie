@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.6.1.1",
+        "changelog": " ### Build  - Bump taiki-e/install-action from 2 to 2.85.4 (#18) (e6e7dcf) - Bump actions/setup-dotnet from 5 to 6 (#17) (aa0986a)  ### Documentation  - Link discogs genres and styles (9fe2499) - Use non-breaking whitespace (a3f4ade) - Clarify plugin usage (35a8b77)  ### Other  - Bump Microsoft.NET.Test.Sdk from 18.5.1 to 18.8.1 (#16)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (56dc200)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.6.1/jellyfin-harmonie_1.6.1.1.zip",
+        "checksum": "9646e28786a2402776d4a24bcd8b23ae",
+        "timestamp": "2026-08-02T14:39:20Z"
+      },
+      {
+        "version": "1.6.1.0",
+        "changelog": " ### Build  - Bump taiki-e/install-action from 2 to 2.85.4 (#18) (e6e7dcf) - Bump actions/setup-dotnet from 5 to 6 (#17) (aa0986a)  ### Documentation  - Link discogs genres and styles (9fe2499) - Use non-breaking whitespace (a3f4ade) - Clarify plugin usage (35a8b77)  ### Other  - Bump Microsoft.NET.Test.Sdk from 18.5.1 to 18.8.1 (#16)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (56dc200)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.6.1/jellyfin-harmonie_1.6.1.0.zip",
+        "checksum": "0efe9da65fca9e99a905960914b2ac50",
+        "timestamp": "2026-08-02T14:39:20Z"
+      },
+      {
         "version": "1.6.0.1",
         "changelog": " ### Features  - Personalize activity mixes (b63e1ee)  ",
         "targetAbi": "10.11.0.0",
