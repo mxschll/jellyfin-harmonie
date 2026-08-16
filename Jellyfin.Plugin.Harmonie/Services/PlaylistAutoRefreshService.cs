@@ -403,9 +403,10 @@ public sealed class PlaylistAutoRefreshService : IHostedService
         var paths = new List<string>(playlist.LinkedChildren.Length);
         foreach (var child in playlist.LinkedChildren)
         {
-            if (!string.IsNullOrEmpty(child.Path))
+            var key = LinkedChildKey.For(child);
+            if (!string.IsNullOrEmpty(key))
             {
-                paths.Add(child.Path);
+                paths.Add(key);
             }
         }
 

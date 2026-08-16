@@ -164,6 +164,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
 
       # Validate the exact commit before creating any externally visible tag.
       # CI normally runs in parallel with this workflow, so the release job

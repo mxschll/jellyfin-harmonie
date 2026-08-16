@@ -1010,7 +1010,7 @@ public class PrefixPlaylistService
     private static PlaylistInputRevision CaptureInputRevision(Playlist playlist)
     {
         var childPaths = playlist.LinkedChildren?
-            .Select(child => child.Path ?? string.Empty)
+            .Select(LinkedChildKey.For)
             .ToArray() ?? Array.Empty<string>();
         return new PlaylistInputRevision(playlist.Name ?? string.Empty, childPaths);
     }

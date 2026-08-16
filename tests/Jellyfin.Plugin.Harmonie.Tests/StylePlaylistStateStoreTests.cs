@@ -189,5 +189,14 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
         public string TrickplayPath => _root;
 
         public string BackupPath => _root;
+
+        // Added to IApplicationPaths in Jellyfin 12.
+        public void MakeSanityCheckOrThrow()
+        {
+        }
+
+        public void CreateAndCheckMarker(string path, string markerName, bool recursive = false)
+        {
+        }
     }
 }

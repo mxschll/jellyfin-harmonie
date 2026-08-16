@@ -34,10 +34,18 @@ public class PlaylistContentReplacerIntegrationTests
             CancellationToken.None);
         var playlist = new Playlist { LinkedChildren = children };
 
+#if NET10_0_OR_GREATER
+        // Jellyfin 12: LinkedChild.Create keys children by ItemId and no
+        // longer populates the obsolete Path.
+        Assert.Equal(
+            new[] { second.Id, first.Id },
+            playlist.LinkedChildren.Select(c => c.ItemId!.Value));
+#else
         Assert.All(playlist.LinkedChildren, child => Assert.Null(child.ItemId));
         Assert.Equal(
             new[] { "/music/second.flac", "/music/first.flac" },
             playlist.LinkedChildren.Select(c => c.Path));
+#endif
     }
 
     [Fact]
@@ -51,8 +59,12 @@ public class PlaylistContentReplacerIntegrationTests
             CancellationToken.None);
 
         var child = Assert.Single(children);
+#if NET10_0_OR_GREATER
+        Assert.Equal(existing.Id, child.ItemId);
+#else
         Assert.Null(child.ItemId);
         Assert.Equal(existing.Path, child.Path);
+#endif
     }
 
     [Fact]
