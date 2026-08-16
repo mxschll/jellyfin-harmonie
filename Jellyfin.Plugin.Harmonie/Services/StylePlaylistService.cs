@@ -18,9 +18,9 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
-/// Builds and maintains per-user activity cluster playlists. Recent played
-/// tracks are weighted by play count and grouped by style probability. The
-/// number of clusters adapts to the available history up to the configured
+/// Builds and maintains per-user activity cluster playlists. Strong recent
+/// preference signals are weighted and grouped by style probability. The
+/// number of clusters adapts to the available data up to the configured
 /// maximum.
 ///
 /// Slot identity is the playlist's Jellyfin GUID, persisted in
@@ -31,7 +31,7 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 /// </summary>
 public class StylePlaylistService
 {
-    // Cap on how many recently-played tracks the plugin considers when
+    // Cap on how many preference-ranked tracks the plugin considers when
     // computing top styles. Bigger isn't always better (the centroid
     // gets mushy) and each candidate costs one HTTP resolve.
     private const int SeedAnalysisCap = 50;
@@ -39,7 +39,7 @@ public class StylePlaylistService
 
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
-    private readonly ListenHistoryProvider _listenHistory;
+    private readonly DatabaseRecommendationProvider _recommendations;
     private readonly StylePlaylistStateStore _stateStore;
     private readonly IPlaylistManager _playlistManager;
     private readonly PlaylistContentReplacer _contentReplacer;
@@ -52,7 +52,7 @@ public class StylePlaylistService
     public StylePlaylistService(
         HarmonieClient client,
         LibraryResolver libraryResolver,
-        ListenHistoryProvider listenHistory,
+        DatabaseRecommendationProvider recommendations,
         StylePlaylistStateStore stateStore,
         IPlaylistManager playlistManager,
         PlaylistContentReplacer contentReplacer,
@@ -64,7 +64,7 @@ public class StylePlaylistService
     {
         _client = client;
         _libraryResolver = libraryResolver;
-        _listenHistory = listenHistory;
+        _recommendations = recommendations;
         _stateStore = stateStore;
         _playlistManager = playlistManager;
         _contentReplacer = contentReplacer;
@@ -120,13 +120,14 @@ public class StylePlaylistService
 
     private async Task RefreshForUserAsync(User user, PluginConfiguration config, CancellationToken ct)
     {
-        // 1. Pull the user's recent top-played tracks. These both vote
-        //    for the top styles AND seed each cluster playlist.
-        var history = _listenHistory.GetHistory(
+        // 1. Pull the user's strongest recent preference signals. These
+        //    both vote for the top styles and seed each cluster playlist.
+        var history = _recommendations.GetSeeds(
             user,
             config.StylePlaylistDays,
             SeedAnalysisCap,
-            useTopPlayed: true);
+            useTopPlayed: true,
+            diversify: false);
         if (history.Count == 0)
         {
             _logger.LogInformation(
@@ -141,7 +142,7 @@ public class StylePlaylistService
         var pathMapper = new PathMapper(config.PathMappings);
         var resolved = new List<ResolvedTrack>();
         var harmonieSeedIds = new List<long>();
-        var playCountWeights = new List<double>();
+        var preferenceWeights = new List<double>();
         foreach (var entry in history)
         {
             ct.ThrowIfCancellationRequested();
@@ -160,7 +161,7 @@ public class StylePlaylistService
 
             resolved.Add(hit);
             harmonieSeedIds.Add(hit.Id);
-            playCountWeights.Add(entry.PlayCount);
+            preferenceWeights.Add(entry.Weight);
         }
 
         if (resolved.Count == 0)
@@ -178,7 +179,7 @@ public class StylePlaylistService
         var clusters = StyleClusterer.Cluster(
             vectors,
             clusterCount,
-            weights: playCountWeights);
+            weights: preferenceWeights);
         if (clusters.Count == 0)
         {
             _logger.LogInformation(
@@ -214,13 +215,13 @@ public class StylePlaylistService
 
             // Cluster-specific seeds: harmonie ids for the members of
             // this cluster, in the order they came from listen history
-            // (top-played first), capped to harmonie's sweet spot.
+            // (strongest preference first), capped to harmonie's sweet spot.
             var clusterSeedIds = new List<long>();
             var clusterSeedWeights = new List<double>();
             foreach (var idx in cluster.MemberIndices)
             {
                 clusterSeedIds.Add(harmonieSeedIds[idx]);
-                clusterSeedWeights.Add(playCountWeights[idx]);
+                clusterSeedWeights.Add(preferenceWeights[idx]);
                 if (clusterSeedIds.Count >= 15)
                 {
                     break;

@@ -25,7 +25,7 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 ///
 ///   [RADIO] Workout       — radio. The first N user-added tracks are seeds.
 ///   [DRIFT] Long mix      — drift. The first user-added track is the seed.
-///   [MIX]   Today         — mix. Seeds are derived from listening history.
+///   [MIX]   Today         — mix. Seeds are derived from stored user signals.
 ///
 /// On each refresh, everything below the seed range is wiped and
 /// re-filled with harmonie matches. The user controls which tracks
@@ -35,7 +35,7 @@ public class PrefixPlaylistService
 {
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
-    private readonly ListenHistoryProvider _listenHistory;
+    private readonly DatabaseRecommendationProvider _recommendations;
     private readonly PlaylistContentReplacer _contentReplacer;
     private readonly CoverRefreshQueuer _coverRefresh;
     private readonly IHarmonieConfigProvider _configProvider;
@@ -53,7 +53,7 @@ public class PrefixPlaylistService
     public PrefixPlaylistService(
         HarmonieClient client,
         LibraryResolver libraryResolver,
-        ListenHistoryProvider listenHistory,
+        DatabaseRecommendationProvider recommendations,
         PlaylistContentReplacer contentReplacer,
         CoverRefreshQueuer coverRefresh,
         IHarmonieConfigProvider configProvider,
@@ -63,7 +63,7 @@ public class PrefixPlaylistService
     {
         _client = client;
         _libraryResolver = libraryResolver;
-        _listenHistory = listenHistory;
+        _recommendations = recommendations;
         _contentReplacer = contentReplacer;
         _coverRefresh = coverRefresh;
         _configProvider = configProvider;
@@ -270,15 +270,17 @@ public class PrefixPlaylistService
 
         // Pick seeds. Radio: first N items in playlist order (user
         // controls which by reordering). Drift: first item only.
-        // Mix: derived from listening history.
+        // Mix: derived from recommendation signals in the plugin database.
         List<Guid> seedIds;
+        IReadOnlyList<RecommendationSeed> mixSeeds = Array.Empty<RecommendationSeed>();
         if (options.Mode == HarmonieMode.Mix)
         {
-            seedIds = GetMixSeedIds(owner, options, config);
+            mixSeeds = GetMixSeeds(owner, options, config);
+            seedIds = mixSeeds.Select(seed => seed.Audio.Id).ToList();
             if (seedIds.Count == 0)
             {
                 _logger.LogInformation(
-                    "Playlist {Name} (mix): no listening history in window; nothing to do.",
+                    "Playlist {Name} (mix): no positive recommendation signals in window; nothing to do.",
                     playlist.Name);
                 return;
             }
@@ -322,9 +324,13 @@ public class PrefixPlaylistService
         // saving the per-seed /tracks/resolve round trip. The
         // pre-flight reachability probe at the top of RefreshAllAsync /
         // RefreshOneByIdAsync still gates this code, so we don't paper
-        // over a missing service.
-        var seedRefs = BuildSeedRefs(seedIds, pathMapper, playlist.Name);
-        if (seedRefs.Count == 0 && options.Mode != HarmonieMode.Radio)
+        // over a missing service. Mix refs carry their database-derived
+        // weights directly, so all seeds resolve in the playlist request.
+        var seedRefs = options.Mode == HarmonieMode.Mix
+            ? BuildRecommendationSeedRefs(mixSeeds, pathMapper, playlist.Name)
+            : BuildSeedRefs(seedIds, pathMapper, playlist.Name);
+        if (seedRefs.Count == 0
+            && options.Mode != HarmonieMode.Radio)
         {
             _logger.LogWarning(
                 "Playlist {Name}: no seed tracks have a usable path or tags; nothing to do.",
@@ -337,7 +343,35 @@ public class PrefixPlaylistService
         var driftRequested = options.Mode == HarmonieMode.Drift
             || (options.Mode == HarmonieMode.Mix && (options.UsesDrift ?? config.DefaultMixUsesDrift));
         PlaylistResult harmonieResult;
-        if (driftRequested)
+        if (options.Mode == HarmonieMode.Mix)
+        {
+            if (driftRequested)
+            {
+                harmonieResult = await _client.DriftPlaylistAsync(
+                    new DriftPlaylistRequest
+                    {
+                        SeedRefs = seedRefs,
+                        N = options.N ?? config.DefaultMixN,
+                        ChunkSize = config.DefaultChunkSize,
+                        SmoothTransitions = smoothTransitions,
+                        Variation = VariationSettings.ForMode(config, options.Mode),
+                    },
+                    ct).ConfigureAwait(false);
+            }
+            else
+            {
+                harmonieResult = await _client.SimilarPlaylistAsync(
+                    new SimilarPlaylistRequest
+                    {
+                        SeedRefs = seedRefs,
+                        N = options.N ?? config.DefaultMixN,
+                        SmoothTransitions = smoothTransitions,
+                        Variation = VariationSettings.ForMode(config, options.Mode),
+                    },
+                    ct).ConfigureAwait(false);
+            }
+        }
+        else if (driftRequested)
         {
             // Drift now accepts multiple seeds: their centroid is the
             // starting anchor. We send all available seeds (vs. dropping
@@ -377,17 +411,7 @@ public class PrefixPlaylistService
         }
         else
         {
-            // Mix in similar mode. No weighting (seeds are listening-
-            // history-derived, no notion of "first seed is anchor").
-            harmonieResult = await _client.SimilarPlaylistAsync(
-                new SimilarPlaylistRequest
-                {
-                    SeedRefs = seedRefs,
-                    N = options.N ?? config.DefaultMixN,
-                    SmoothTransitions = smoothTransitions,
-                    Variation = VariationSettings.ForMode(config, options.Mode),
-                },
-                ct).ConfigureAwait(false);
+            throw new InvalidOperationException("Unsupported seeded playlist mode.");
         }
 
         if (harmonieResult.UnresolvedSeedRefs.Count > 0)
@@ -406,9 +430,8 @@ public class PrefixPlaylistService
         }
 
         // For Radio/Drift, seeds are user-added and stay at the top of
-        // the playlist. For Mix, seeds are derived from listening
-        // history and are NOT included in the playlist body — the user
-        // doesn't expect their last-played tracks to fill the mix.
+        // the playlist. Mix seeds come from stored preference signals and
+        // are not included in the playlist body.
         var includeSeedsInPlaylist = options.Mode != HarmonieMode.Mix;
 
         // Resolve each match to a Jellyfin Audio item, skipping items
@@ -755,11 +778,9 @@ public class PrefixPlaylistService
     }
 
     /// <summary>
-    /// Pulls seeds for a Mix playlist from Jellyfin's listening
-    /// history. Returns Audio item ids for tracks the owner played
-    /// in the configured (or per-title-overridden) window.
+    /// Pulls weighted Mix seeds from the plugin recommendation database.
     /// </summary>
-    private List<Guid> GetMixSeedIds(
+    private IReadOnlyList<RecommendationSeed> GetMixSeeds(
         User owner,
         PrefixPlaylistOptions options,
         PluginConfiguration config)
@@ -767,8 +788,12 @@ public class PrefixPlaylistService
         var days = options.Days ?? config.DefaultMixDays;
         var seedCap = options.SeedCap ?? config.DefaultMixSeedCap;
         var useTopPlayed = options.UseTopPlayed ?? config.DefaultMixUseTopPlayed;
-        var seeds = _listenHistory.GetSeeds(owner, days, seedCap, useTopPlayed);
-        return seeds.Select(a => a.Id).ToList();
+        return _recommendations.GetSeeds(
+            owner,
+            days,
+            seedCap,
+            useTopPlayed,
+            diversify: true);
     }
 
     /// <summary>
@@ -830,6 +855,30 @@ public class PrefixPlaylistService
                     "Playlist {Name}: seed '{Title}' has no tags or path; skipping.",
                     playlistName,
                     audio.Name);
+                continue;
+            }
+
+            refs.Add(seedRef);
+        }
+
+        return refs;
+    }
+
+    private List<SeedRef> BuildRecommendationSeedRefs(
+        IReadOnlyList<RecommendationSeed> seeds,
+        PathMapper pathMapper,
+        string playlistName)
+    {
+        var refs = new List<SeedRef>(seeds.Count);
+        foreach (var seed in seeds)
+        {
+            var seedRef = BuildSeedRef(seed.Audio, pathMapper, seed.Weight);
+            if (seedRef is null)
+            {
+                _logger.LogDebug(
+                    "Playlist {Name}: recommendation seed '{Title}' has no tags or path; skipping.",
+                    playlistName,
+                    seed.Audio.Name);
                 continue;
             }
 
@@ -938,8 +987,19 @@ public class PrefixPlaylistService
     /// neither tags nor a usable path. Pairs with
     /// <see cref="BuildResolveArgs"/>; same fields, structured shape.
     /// </summary>
-    public static SeedRef? BuildSeedRef(Audio audio, PathMapper pathMapper)
+    public static SeedRef? BuildSeedRef(
+        Audio audio,
+        PathMapper pathMapper,
+        double? weight = null)
     {
+        if (weight is not null
+            && (!double.IsFinite(weight.Value) || weight.Value <= 0))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(weight),
+                "Seed reference weight must be finite and positive.");
+        }
+
         var (path, artist, album, title) = BuildResolveArgs(audio, pathMapper);
         if (path is null && artist is null && album is null && title is null)
         {
@@ -952,6 +1012,7 @@ public class PrefixPlaylistService
             Artist = artist,
             Album = album,
             Title = title,
+            Weight = weight,
         };
     }
 

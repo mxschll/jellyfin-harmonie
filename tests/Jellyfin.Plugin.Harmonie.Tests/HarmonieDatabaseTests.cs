@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Jellyfin.Plugin.Harmonie.Services.Storage;
+using Jellyfin.Plugin.Harmonie.Services.Storage.Migrations;
 using Microsoft.Data.Sqlite;
 using Xunit;
 
@@ -71,6 +73,32 @@ public sealed class HarmonieDatabaseTests : IDisposable
         var builder = new SqliteConnectionStringBuilder(connection.ConnectionString);
 
         Assert.NotEqual(SqliteCacheMode.Shared, builder.Cache);
+    }
+
+    [Fact]
+    public void Recommendation_index_is_added_when_schema_one_is_upgraded()
+    {
+        var path = Path.Combine(_directory, "harmonie.db");
+        new HarmonieDatabase(
+            path,
+            new IHarmonieDatabaseMigration[] { new Migration001ListeningActivity() })
+            .Initialize();
+
+        var upgraded = new HarmonieDatabase(path);
+        upgraded.Initialize();
+
+        using var connection = upgraded.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA index_info('ix_playback_events_user_item_stopped');";
+        using var reader = command.ExecuteReader();
+        var columns = new List<string>();
+        while (reader.Read())
+        {
+            columns.Add(reader.GetString(2));
+        }
+
+        Assert.Equal(2, upgraded.SchemaVersion);
+        Assert.Equal(new[] { "user_id", "item_id", "stopped_utc" }, columns);
     }
 
     private sealed class RecordingMigration : IHarmonieDatabaseMigration

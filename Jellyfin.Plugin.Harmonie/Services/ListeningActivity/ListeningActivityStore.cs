@@ -220,66 +220,76 @@ public sealed class ListeningActivityStore
         }
     }
 
-    internal IReadOnlyList<RecommendationTrackMetrics> GetRecommendationMetrics(Guid userId)
+    internal IReadOnlyList<RecommendationTrackMetrics> GetRecommendationMetrics(
+        Guid userId,
+        DateTimeOffset playbackCutoffUtc)
     {
         if (userId == Guid.Empty)
         {
             return Array.Empty<RecommendationTrackMetrics>();
         }
 
-        lock (_sync)
+        // WAL permits this read to run alongside tracker writes. Filtering in
+        // SQL avoids allocating every historical track before the scorer
+        // applies the same playback window in memory.
+        using var connection = _database.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                item_id,
+                play_count,
+                last_played_utc,
+                outcome_sample_count,
+                completed_play_count,
+                early_skip_count,
+                active_listen_ticks,
+                last_completed_utc,
+                last_early_skip_utc,
+                is_favorite,
+                favorite_observed_utc,
+                playlist_count,
+                last_playlist_added_utc,
+                last_playlist_observed_utc
+            FROM user_track_metrics
+            WHERE user_id = $user_id
+                AND (
+                    last_played_utc >= $playback_cutoff_utc
+                    OR is_favorite = 1
+                    OR playlist_count > 0
+                );
+            """;
+        command.Parameters.AddWithValue("$user_id", FormatGuid(userId));
+        command.Parameters.AddWithValue(
+            "$playback_cutoff_utc",
+            FormatDate(playbackCutoffUtc));
+        using var reader = command.ExecuteReader();
+        var result = new List<RecommendationTrackMetrics>();
+        while (reader.Read())
         {
-            using var connection = _database.OpenConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = """
-                SELECT
-                    item_id,
-                    play_count,
-                    last_played_utc,
-                    outcome_sample_count,
-                    completed_play_count,
-                    early_skip_count,
-                    active_listen_ticks,
-                    last_completed_utc,
-                    last_early_skip_utc,
-                    is_favorite,
-                    favorite_observed_utc,
-                    playlist_count,
-                    last_playlist_added_utc,
-                    last_playlist_observed_utc
-                FROM user_track_metrics
-                WHERE user_id = $user_id;
-                """;
-            command.Parameters.AddWithValue("$user_id", FormatGuid(userId));
-            using var reader = command.ExecuteReader();
-            var result = new List<RecommendationTrackMetrics>();
-            while (reader.Read())
+            if (!Guid.TryParseExact(reader.GetString(0), "N", out var itemId))
             {
-                if (!Guid.TryParseExact(reader.GetString(0), "N", out var itemId))
-                {
-                    continue;
-                }
-
-                result.Add(new RecommendationTrackMetrics(
-                    userId,
-                    itemId,
-                    reader.GetInt64(1),
-                    ReadDate(reader, 2),
-                    reader.GetInt64(3),
-                    reader.GetInt64(4),
-                    reader.GetInt64(5),
-                    reader.GetInt64(6),
-                    ReadDate(reader, 7),
-                    ReadDate(reader, 8),
-                    reader.GetInt64(9) != 0,
-                    ReadDate(reader, 10),
-                    reader.GetInt64(11),
-                    ReadDate(reader, 12),
-                    ReadDate(reader, 13)));
+                continue;
             }
 
-            return result;
+            result.Add(new RecommendationTrackMetrics(
+                userId,
+                itemId,
+                reader.GetInt64(1),
+                ReadDate(reader, 2),
+                reader.GetInt64(3),
+                reader.GetInt64(4),
+                reader.GetInt64(5),
+                reader.GetInt64(6),
+                ReadDate(reader, 7),
+                ReadDate(reader, 8),
+                reader.GetInt64(9) != 0,
+                ReadDate(reader, 10),
+                reader.GetInt64(11),
+                ReadDate(reader, 12),
+                ReadDate(reader, 13)));
         }
+
+        return result;
     }
 
     internal void RecordPlayback(ListeningActivityEvent activity)

@@ -14,8 +14,8 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 public class StylePlaylistSlot
 {
     /// <summary>
-    /// Slot index (0-based). The active range adapts to the user's recent
-    /// listening history.
+    /// Slot index (0-based). The active range adapts to the user's stored
+    /// preference data.
     /// </summary>
     public int Slot { get; set; }
 

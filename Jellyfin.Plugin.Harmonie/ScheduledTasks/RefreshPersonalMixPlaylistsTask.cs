@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 /// <summary>
 /// Rebuilds the per-user Personal Mix playlists on a slow cadence.
 ///
-/// Personal Mix playlists are derived from a user's listening history
+/// Personal Mix playlists are derived from a user's stored preference signals
 /// clustered on style probability vectors; they model medium-term
 /// taste rather than the day's mood. Daily regeneration churns them
 /// and produces a moving target. A 30-day default keeps them stable
@@ -40,7 +40,7 @@ public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableSche
     public string Key => "HarmonieRefreshPersonalMix";
 
     public string Description =>
-        "Rebuild the per-user Personal Mix playlists from listening history clusters. Defaults to every 30 days; adjust from this page if you want faster or slower refreshes.";
+        "Rebuild the per-user Personal Mix playlists from preference clusters. Defaults to every 30 days; adjust the schedule here.";
 
     public string Category => "Harmonie";
 

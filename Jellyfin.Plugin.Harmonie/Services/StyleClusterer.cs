@@ -204,7 +204,7 @@ public static class StyleClusterer
     /// Seed for k-means++ initialisation. Pass a stable value for
     /// stable scheduled refreshes; pass null for a fresh seed each call.
     /// </param>
-    /// <param name="weights">Optional positive play-count weight per input vector.</param>
+    /// <param name="weights">Optional positive preference weight per input vector.</param>
     public static IReadOnlyList<StyleCluster> Cluster(
         IReadOnlyList<StyleVector> vectors,
         int k,

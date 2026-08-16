@@ -9,5 +9,6 @@ internal static class HarmonieDatabaseMigrations
         new IHarmonieDatabaseMigration[]
         {
             new Migration001ListeningActivity(),
+            new Migration002RecommendationMetricsIndex(),
         };
 }
