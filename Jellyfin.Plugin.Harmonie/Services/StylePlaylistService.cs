@@ -4,11 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
-#if NET8_0
-using Jellyfin.Data.Entities;
-#else
-using Jellyfin.Database.Implementations.Entities;
-#endif
 using Jellyfin.Plugin.Harmonie.Configuration;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services.Cover;
@@ -103,11 +98,7 @@ public class StylePlaylistService
 
         _libraryResolver.Build();
 
-#if NET8_0
-        var users = _userManager.Users;
-#else
-        var users = _userManager.GetUsers();
-#endif
+        var users = JellyfinCompat.GetUsers(_userManager);
 
         foreach (var user in users)
         {

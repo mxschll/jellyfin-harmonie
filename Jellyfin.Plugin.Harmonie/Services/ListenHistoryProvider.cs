@@ -2,12 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Enums;
-#if NET8_0
-using Jellyfin.Data.Entities;
-#else
-using Jellyfin.Database.Implementations.Entities;
-using Jellyfin.Database.Implementations.Enums;
-#endif
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;

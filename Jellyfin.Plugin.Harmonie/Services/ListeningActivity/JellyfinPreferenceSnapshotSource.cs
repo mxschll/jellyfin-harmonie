@@ -132,10 +132,5 @@ internal sealed class JellyfinPreferenceSnapshotSource : IListeningPreferenceSna
             .ToList();
     }
 
-#if NET8_0
-    private IEnumerable<Jellyfin.Data.Entities.User> GetUsers() => _userManager.Users;
-#else
-    private IEnumerable<Jellyfin.Database.Implementations.Entities.User> GetUsers()
-        => _userManager.GetUsers();
-#endif
+    private IEnumerable<User> GetUsers() => JellyfinCompat.GetUsers(_userManager);
 }

@@ -2,12 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Jellyfin.Data.Enums;
-#if NET8_0
-using Jellyfin.Data.Entities;
-#else
-using Jellyfin.Database.Implementations.Entities;
-using Jellyfin.Database.Implementations.Enums;
-#endif
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
@@ -88,14 +82,7 @@ internal sealed class JellyfinActivityBootstrapSource : IListeningActivityBootst
         }
     }
 
-    private IEnumerable<User> GetUsers()
-    {
-#if NET8_0
-        return _userManager.Users;
-#else
-        return _userManager.GetUsers();
-#endif
-    }
+    private IEnumerable<User> GetUsers() => JellyfinCompat.GetUsers(_userManager);
 
     private static DateTimeOffset ToUtc(DateTime value)
     {

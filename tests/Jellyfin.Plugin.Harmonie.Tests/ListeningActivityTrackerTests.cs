@@ -1,11 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-#if NET8_0
-using Jellyfin.Data.Entities;
-#else
-using Jellyfin.Database.Implementations.Entities;
-#endif
 using Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;

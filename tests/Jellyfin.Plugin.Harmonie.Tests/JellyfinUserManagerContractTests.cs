@@ -1,11 +1,5 @@
 using System.Collections.Generic;
-#if NET8_0
-using Jellyfin.Data.Entities;
 using MediaBrowser.Controller.Library;
-#else
-using Jellyfin.Database.Implementations.Entities;
-using MediaBrowser.Controller.Library;
-#endif
 using Xunit;
 
 namespace Jellyfin.Plugin.Harmonie.Tests;

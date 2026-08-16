@@ -11,49 +11,28 @@
     <NoWarn>$(NoWarn);CS1591;SA1210;SA1402;SA1602;SA1611;SA1615;SA1623;SA1629;SA1649;SA1601;SA1614;SA1622;CA1002;CA1819;CA1869;CA2227;CA1056;CA1054;CA1303;CA5394;CA1031;CA1873</NoWarn>
   </PropertyGroup>
 
-  <!-- Jellyfin 10.10.x is built against net8 and ships net8 packages. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="10.10.7">
+  <!--
+    One Jellyfin ABI per TargetFramework. Versions come from
+    Directory.Build.props so plugin and tests stay in lockstep. Runtime
+    assets are excluded because the Jellyfin host supplies these
+    assemblies (including SkiaSharp and SQLite) at runtime.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Model" Version="$(JellyfinVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <!-- Jellyfin 10.10 ships this exact SQLite runtime. Compile against it,
-         but let the host supply the assembly and native provider. -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="$(SqliteVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <!-- Jellyfin 10.11.x is built against net9 and ships net9 packages. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.11">
+    <PackageReference Include="SkiaSharp" Version="$(SkiaSharpVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.11.11">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-    <!-- Jellyfin 10.11 ships this exact SQLite runtime. -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.11">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <!-- Jellyfin 12.x (RC) is built against net10 and ships net10 packages. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc5">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc5">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-    <!-- Jellyfin 12 ships this exact SQLite runtime. -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-    <!-- Lifts the vulnerable transitive SQLitePCLRaw 2.1.11 (GHSA-2m69-gcr7-jv3q)
-         pulled in by Microsoft.Data.Sqlite 10.0.10. Compile-time only. -->
+    <!-- Lifts the vulnerable transitive SQLitePCLRaw pulled in by every
+         Microsoft.Data.Sqlite pin (GHSA-2m69-gcr7-jv3q). Compile-time
+         only; the host supplies the runtime copy. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
@@ -63,41 +42,6 @@
     <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
     <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
-  </ItemGroup>
-
-  <!--
-    SkiaSharp is used to render the playlist cover images. Versions
-    MUST exactly match the Jellyfin host's Directory.Packages.props
-    per ABI; mismatches make the plugin DLL fail to load at runtime
-    (Jellyfin reports "NotSupported"). We exclude runtime assets so
-    the host's loaded copy is used at runtime — same pattern as
-    Jellyfin.Controller. No native libs ship with the plugin.
-
-    DO NOT bump these unless Jellyfin itself bumps SkiaSharp first.
-    Dependabot is configured to ignore SkiaSharp* updates for this
-    reason. Verify the host version against the upstream release tag
-    before changing:
-    https://github.com/jellyfin/jellyfin/blob/v10.10.7/Directory.Packages.props
-    https://github.com/jellyfin/jellyfin/blob/v10.11.8/Directory.Packages.props
-    https://github.com/jellyfin/jellyfin/blob/v12.0-rc5/Directory.Packages.props
-  -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <!-- Matches Jellyfin 10.10.x. -->
-    <PackageReference Include="SkiaSharp" Version="2.88.9">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <!-- Matches Jellyfin 10.11.x. -->
-    <PackageReference Include="SkiaSharp" Version="3.116.1">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <!-- Matches Jellyfin 12.x (RC). -->
-    <PackageReference Include="SkiaSharp" Version="3.119.4">
-      <ExcludeAssets>runtime</ExcludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

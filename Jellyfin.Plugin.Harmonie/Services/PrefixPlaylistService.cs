@@ -8,11 +8,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
-#if NET8_0
-using Jellyfin.Data.Entities;
-#else
-using Jellyfin.Database.Implementations.Entities;
-#endif
 using Jellyfin.Plugin.Harmonie.Configuration;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services.Cover;
@@ -984,11 +979,7 @@ public class PrefixPlaylistService
             }
         }
 
-#if NET8_0
-        return _userManager.Users.FirstOrDefault();
-#else
-        return _userManager.GetFirstUser();
-#endif
+        return JellyfinCompat.GetFirstUser(_userManager);
     }
 
     private Playlist? GetPlaylistIfUnchanged(

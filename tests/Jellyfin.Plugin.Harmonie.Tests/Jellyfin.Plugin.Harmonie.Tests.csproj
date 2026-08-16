@@ -21,32 +21,18 @@
   <!--
     The plugin excludes Jellyfin and SkiaSharp runtime assets because the
     server supplies them. Tests execute against those APIs directly, so each
-    target re-declares the exact Jellyfin ABI and matching SkiaSharp runtime.
-    Linux native assets are explicit because CI runs on Ubuntu.
+    target re-declares the exact Jellyfin ABI (versions shared via
+    Directory.Build.props) with runtime assets included. Linux native assets
+    are explicit because CI runs on Ubuntu.
   -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="10.10.7" />
-    <PackageReference Include="Jellyfin.Model" Version="10.10.7" />
-    <PackageReference Include="SkiaSharp" Version="2.88.9" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.11" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.11" />
-    <PackageReference Include="SkiaSharp" Version="3.116.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.116.1" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.11" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Jellyfin.Controller" Version="12.0.0-rc5" />
-    <PackageReference Include="Jellyfin.Model" Version="12.0.0-rc5" />
-    <PackageReference Include="SkiaSharp" Version="3.119.4" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
-    <!-- Lifts the vulnerable transitive SQLitePCLRaw 2.1.11 (GHSA-2m69-gcr7-jv3q). -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinVersion)" />
+    <PackageReference Include="Jellyfin.Model" Version="$(JellyfinVersion)" />
+    <PackageReference Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="$(SqliteVersion)" />
+    <!-- Lifts the vulnerable transitive SQLitePCLRaw pulled in by every
+         Microsoft.Data.Sqlite pin (GHSA-2m69-gcr7-jv3q). -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
   </ItemGroup>
 
