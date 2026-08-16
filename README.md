@@ -122,9 +122,23 @@ The plugin stores these signals for each user:
 - Tracks in user playlists and when they were added
 - Play session, client, and device IDs
 
+## How does this compare to AudioMuse-AI?
+
+The shortest answer: they aim at different things. If you know Plexamp's Sonic Analysis or Spotify's Song Radio and Daily Mixes, Harmonie is that for Jellyfin. Radio from a seed track, per-user mixes built from listening history, surfacing forgotten songs. AudioMuse-AI is a broader discovery toolbox.
+
+[AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI) has features Harmonie does not, such as chat-based playlists and text and lyrics search. Its Jellyfin plugin maps the AudioMuse-AI API onto Jellyfin endpoints so client apps can call those features, and clients need to build against that API to use most of them.
+
+Harmonie goes the other way. Everything it produces is an ordinary Jellyfin playlist, created and refreshed by the plugin on the server. That means:
+
+- **Works in every client.** Playlists show up in the web UI, Finamp, Symfonium, downloads, and offline sync like any other playlist. No client needs to know Harmonie exists.
+- **Playlists are the interface.** Rename a playlist to change its settings, reorder tracks to change the seeds. The plugin notices the edit and refreshes in the background.
+- **Personal, from listening.** The plugin tracks each user's listening data locally (plays, skips, completions, favorites) and builds per-user Personal Mixes from it that rename and refill themselves as taste shifts.
+
+Pick AudioMuse-AI if you want its breadth of discovery tools and use a client that integrates them. Pick Harmonie if you want similarity-based playlists that live natively in Jellyfin and follow each user's listening.
+
 ## Compatibility
 
-Tested on Jellyfin 10.10 and 10.11.
+Tested on Jellyfin 10.10 and 10.11. 12 coming.
 
 ## License
 
