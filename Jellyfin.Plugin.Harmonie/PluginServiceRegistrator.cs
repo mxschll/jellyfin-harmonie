@@ -1,6 +1,7 @@
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services;
 using Jellyfin.Plugin.Harmonie.Services.Cover;
+using Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
@@ -18,6 +19,9 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<LibraryResolver>();
         serviceCollection.AddSingleton<ListenHistoryProvider>();
         serviceCollection.AddSingleton<StylePlaylistStateStore>();
+        serviceCollection.AddSingleton<ListeningActivityDatabase>();
+        serviceCollection.AddSingleton<IListeningActivityBootstrapSource, JellyfinActivityBootstrapSource>();
+        serviceCollection.AddHostedService<ListeningActivityTracker>();
         serviceCollection.AddSingleton<PlaylistContentReplacer>();
         serviceCollection.AddSingleton<CoverRefreshQueuer>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();

@@ -299,6 +299,28 @@
                         <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
                     </div>
 
+                    <h2>Listening activity</h2>
+                    <div class="fieldDescription">
+                        The plugin records music playback locally for future personalization. This does not change playlist generation yet.
+                    </div>
+                    <div id="ListeningActivityPanel" style="margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <tbody>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Database</td><td><code id="ActivityDatabasePath" style="overflow-wrap: anywhere;"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Recorded plays</td><td><span id="ActivityPlaybackEvents">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Imported tracks</td><td><span id="ActivityBootstrapRecords">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Initial import</td><td><span id="ActivityBootstrapCompleted">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Size</td><td><span id="ActivityDatabaseSize">—</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 0.75em;">
+                        <button is="emby-button" type="button" id="ClearListeningActivity" class="raised emby-button">
+                            <span>Clear listening activity</span>
+                        </button>
+                        <span id="ClearListeningActivityResult" style="margin-left: 1em;"></span>
+                    </div>
+
                     <h2>Path mappings</h2>
                     <div class="fieldDescription">
                         Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
@@ -530,6 +552,33 @@
                     document.querySelector('#ScanLastError').textContent = scan.last_error || '—';
                 }
 
+                function formatDate(value) {
+                    if (!value) return '—';
+                    var parsed = new Date(value);
+                    return isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+                }
+
+                function renderListeningActivity(status) {
+                    document.querySelector('#ActivityDatabasePath').textContent = status.database_path || '?';
+                    document.querySelector('#ActivityPlaybackEvents').textContent =
+                        (status.playback_events || 0).toLocaleString();
+                    document.querySelector('#ActivityBootstrapRecords').textContent =
+                        (status.bootstrap_records || 0).toLocaleString();
+                    document.querySelector('#ActivityBootstrapCompleted').textContent =
+                        formatDate(status.bootstrap_completed_at);
+                    document.querySelector('#ActivityDatabaseSize').textContent = formatBytes(status.size_bytes);
+                }
+
+                function loadListeningActivity() {
+                    return ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/ListeningActivity'),
+                        dataType: 'json'
+                    }).then(renderListeningActivity).catch(function () {
+                        document.querySelector('#ActivityDatabasePath').textContent = 'Unavailable';
+                    });
+                }
+
                 var scanPollTimer = null;
                 function pollScanWhileRunning() {
                     if (scanPollTimer) clearTimeout(scanPollTimer);
@@ -571,6 +620,8 @@
                         renderScan(scan);
                         if (scan.state === 'scanning') pollScanWhileRunning();
                     }).catch(function () { /* not configured yet */ });
+
+                    loadListeningActivity();
                 }
 
                 document.querySelector('#TestConnection')
@@ -638,6 +689,27 @@
                     .addEventListener('click', function () { triggerScan(false); });
                 document.querySelector('#TriggerScanForce')
                     .addEventListener('click', function () { triggerScan(true); });
+
+                document.querySelector('#ClearListeningActivity')
+                    .addEventListener('click', function () {
+                        if (!window.confirm('Clear all imported and recorded Harmonie listening activity? New plays will continue to be recorded.')) {
+                            return;
+                        }
+
+                        var resultEl = document.querySelector('#ClearListeningActivityResult');
+                        resultEl.textContent = 'Clearing\u2026';
+                        ApiClient.fetch({
+                            type: 'DELETE',
+                            url: ApiClient.getUrl('Plugins/Harmonie/ListeningActivity'),
+                            dataType: 'json'
+                        }).then(function (status) {
+                            renderListeningActivity(status);
+                            resultEl.textContent = 'Cleared.';
+                        }).catch(function (err) {
+                            resultEl.textContent = 'Failed: ' +
+                                (err && err.statusText ? err.statusText : 'unknown error');
+                        });
+                    });
 
                 // Auto-save connection fields. The status and scan
                 // panels reflect the saved config, so leaving them

@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services;
+using Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
+using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +27,7 @@ public class HarmonieController : ControllerBase
     private readonly HarmonieClient _client;
     private readonly PrefixPlaylistService _prefixService;
     private readonly StylePlaylistService _styleService;
+    private readonly ListeningActivityDatabase _activityDatabase;
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<HarmonieController> _logger;
 
@@ -32,12 +35,14 @@ public class HarmonieController : ControllerBase
         HarmonieClient client,
         PrefixPlaylistService prefixService,
         StylePlaylistService styleService,
+        ListeningActivityDatabase activityDatabase,
         ILibraryManager libraryManager,
         ILogger<HarmonieController> logger)
     {
         _client = client;
         _prefixService = prefixService;
         _styleService = styleService;
+        _activityDatabase = activityDatabase;
         _libraryManager = libraryManager;
         _logger = logger;
     }
@@ -185,5 +190,29 @@ public class HarmonieController : ControllerBase
             harmonieLibraries,
             jellyfinLibraries,
         });
+    }
+
+    /// <summary>
+    /// Returns the path and counters for the plugin-local listening activity
+    /// database.
+    /// </summary>
+    [HttpGet("ListeningActivity")]
+    [Authorize(Policy = Policies.RequiresElevation)]
+    public ActionResult<ListeningActivityStatus> ListeningActivity()
+    {
+        return Ok(_activityDatabase.GetStatus());
+    }
+
+    /// <summary>
+    /// Clears imported and recorded listening activity. The empty database is
+    /// retained and will continue collecting new playback events.
+    /// </summary>
+    [HttpDelete("ListeningActivity")]
+    [Authorize(Policy = Policies.RequiresElevation)]
+    public ActionResult<ListeningActivityStatus> ClearListeningActivity()
+    {
+        var status = _activityDatabase.Clear();
+        _logger.LogInformation("Harmonie listening activity was cleared by an administrator.");
+        return Ok(status);
     }
 }
