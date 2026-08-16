@@ -17,7 +17,8 @@ namespace Jellyfin.Plugin.Harmonie.Api;
 
 /// <summary>
 /// Plugin REST API. Endpoints are mounted under <c>/Plugins/Harmonie</c>
-/// and require a logged-in Jellyfin user.
+/// and require a logged-in Jellyfin user; mutating endpoints and the
+/// URL test endpoint additionally require an administrator.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -71,6 +72,7 @@ public class HarmonieController : ControllerBase
     /// can verify their form values before clicking Save.
     /// </summary>
     [HttpPost("Status/Test")]
+    [Authorize(Policy = Policies.RequiresElevation)]
     public async Task<ActionResult<HarmonieStatus>> TestStatus(
         [FromBody] StatusTestRequest body,
         CancellationToken ct)
@@ -78,6 +80,12 @@ public class HarmonieController : ControllerBase
         if (body is null || string.IsNullOrWhiteSpace(body.Url))
         {
             return BadRequest(new { error = "url is required" });
+        }
+
+        if (!Uri.TryCreate(body.Url, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return BadRequest(new { error = "url must be an absolute http or https URL" });
         }
 
         try
@@ -99,6 +107,7 @@ public class HarmonieController : ControllerBase
     /// Refreshes a single prefix-mode playlist by id.
     /// </summary>
     [HttpPost("Playlists/{playlistId}/Refresh")]
+    [Authorize(Policy = Policies.RequiresElevation)]
     public async Task<IActionResult> RefreshOne(Guid playlistId, CancellationToken ct)
     {
         var refreshed = await _prefixService.RefreshOneByIdAsync(playlistId, ct).ConfigureAwait(false);
@@ -136,6 +145,7 @@ public class HarmonieController : ControllerBase
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     [HttpPost("Scan")]
+    [Authorize(Policy = Policies.RequiresElevation)]
     public async Task<ActionResult<ScanState>> TriggerScan(
         [FromQuery] bool force,
         CancellationToken ct)
