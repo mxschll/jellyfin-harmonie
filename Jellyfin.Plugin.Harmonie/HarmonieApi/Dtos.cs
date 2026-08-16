@@ -75,6 +75,13 @@ public class SeedRef
 
     [JsonPropertyName("title")]
     public string? Title { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional positive contribution of this reference to
+    /// the merged seed centroid. Null uses harmonie's default weight of 1.
+    /// </summary>
+    [JsonPropertyName("weight")]
+    public double? Weight { get; set; }
 }
 
 /// <summary>

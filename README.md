@@ -23,7 +23,7 @@ The plugin also provides seeded radio and drift playlists, genre and style playl
 
 ## Install
 
-The plugin needs a running [harmonie](https://github.com/mxschll/harmonie) service to talk to. Install harmonie first, then the plugin.
+The plugin requires [harmonie](https://github.com/mxschll/harmonie) 1.5.0 or newer. Install harmonie first, then the plugin.
 
 ### 1. Install harmonie
 

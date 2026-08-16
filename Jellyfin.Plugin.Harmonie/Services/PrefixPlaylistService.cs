@@ -324,14 +324,13 @@ public class PrefixPlaylistService
         // saving the per-seed /tracks/resolve round trip. The
         // pre-flight reachability probe at the top of RefreshAllAsync /
         // RefreshOneByIdAsync still gates this code, so we don't paper
-        // over a missing service. Mix seeds carry database-derived weights,
-        // so those are resolved to explicit harmonie ids below.
+        // over a missing service. Mix refs carry their database-derived
+        // weights directly, so all seeds resolve in the playlist request.
         var seedRefs = options.Mode == HarmonieMode.Mix
-            ? new List<SeedRef>()
+            ? BuildRecommendationSeedRefs(mixSeeds, pathMapper, playlist.Name)
             : BuildSeedRefs(seedIds, pathMapper, playlist.Name);
         if (seedRefs.Count == 0
-            && options.Mode != HarmonieMode.Radio
-            && options.Mode != HarmonieMode.Mix)
+            && options.Mode != HarmonieMode.Radio)
         {
             _logger.LogWarning(
                 "Playlist {Name}: no seed tracks have a usable path or tags; nothing to do.",
@@ -346,24 +345,12 @@ public class PrefixPlaylistService
         PlaylistResult harmonieResult;
         if (options.Mode == HarmonieMode.Mix)
         {
-            var resolvedSeeds = await ResolveRecommendationSeedsAsync(
-                    mixSeeds,
-                    pathMapper,
-                    playlist.Name,
-                    ct)
-                .ConfigureAwait(false);
-            if (resolvedSeeds.Ids.Count == 0)
-            {
-                return;
-            }
-
             if (driftRequested)
             {
                 harmonieResult = await _client.DriftPlaylistAsync(
                     new DriftPlaylistRequest
                     {
-                        Seeds = resolvedSeeds.Ids,
-                        SeedWeights = resolvedSeeds.Weights,
+                        SeedRefs = seedRefs,
                         N = options.N ?? config.DefaultMixN,
                         ChunkSize = config.DefaultChunkSize,
                         SmoothTransitions = smoothTransitions,
@@ -376,8 +363,7 @@ public class PrefixPlaylistService
                 harmonieResult = await _client.SimilarPlaylistAsync(
                     new SimilarPlaylistRequest
                     {
-                        Seeds = resolvedSeeds.Ids,
-                        SeedWeights = resolvedSeeds.Weights,
+                        SeedRefs = seedRefs,
                         N = options.N ?? config.DefaultMixN,
                         SmoothTransitions = smoothTransitions,
                         Variation = VariationSettings.ForMode(config, options.Mode),
@@ -878,6 +864,30 @@ public class PrefixPlaylistService
         return refs;
     }
 
+    private List<SeedRef> BuildRecommendationSeedRefs(
+        IReadOnlyList<RecommendationSeed> seeds,
+        PathMapper pathMapper,
+        string playlistName)
+    {
+        var refs = new List<SeedRef>(seeds.Count);
+        foreach (var seed in seeds)
+        {
+            var seedRef = BuildSeedRef(seed.Audio, pathMapper, seed.Weight);
+            if (seedRef is null)
+            {
+                _logger.LogDebug(
+                    "Playlist {Name}: recommendation seed '{Title}' has no tags or path; skipping.",
+                    playlistName,
+                    seed.Audio.Name);
+                continue;
+            }
+
+            refs.Add(seedRef);
+        }
+
+        return refs;
+    }
+
     private async Task<List<long>> ResolveSeedIdsAsync(
         List<Guid> seedItemIds,
         PathMapper pathMapper,
@@ -925,53 +935,6 @@ public class PrefixPlaylistService
         }
 
         return harmonieIds;
-    }
-
-    private async Task<(List<long> Ids, List<double> Weights)> ResolveRecommendationSeedsAsync(
-        IReadOnlyList<RecommendationSeed> seeds,
-        PathMapper pathMapper,
-        string playlistName,
-        CancellationToken ct)
-    {
-        var ids = new List<long>(seeds.Count);
-        var weights = new List<double>(seeds.Count);
-        foreach (var seed in seeds)
-        {
-            ct.ThrowIfCancellationRequested();
-            var audio = seed.Audio;
-            var (path, artist, album, title) = BuildResolveArgs(audio, pathMapper);
-            if (path is null && artist is null && title is null && album is null)
-            {
-                _logger.LogDebug(
-                    "Playlist {Name}: recommendation seed '{Title}' has no tags or path; skipping.",
-                    playlistName,
-                    audio.Name);
-                continue;
-            }
-
-            var match = await _client.ResolveAsync(path, artist, album, title, ct).ConfigureAwait(false);
-            if (match is null)
-            {
-                _logger.LogDebug(
-                    "Playlist {Name}: recommendation seed '{Title}' has no harmonie counterpart.",
-                    playlistName,
-                    audio.Name);
-                continue;
-            }
-
-            ids.Add(match.Id);
-            weights.Add(seed.Weight);
-        }
-
-        if (ids.Count == 0)
-        {
-            _logger.LogWarning(
-                "Playlist {Name}: none of {Count} recommendation seed(s) could be mapped to harmonie tracks.",
-                playlistName,
-                seeds.Count);
-        }
-
-        return (ids, weights);
     }
 
     /// <summary>
@@ -1024,8 +987,19 @@ public class PrefixPlaylistService
     /// neither tags nor a usable path. Pairs with
     /// <see cref="BuildResolveArgs"/>; same fields, structured shape.
     /// </summary>
-    public static SeedRef? BuildSeedRef(Audio audio, PathMapper pathMapper)
+    public static SeedRef? BuildSeedRef(
+        Audio audio,
+        PathMapper pathMapper,
+        double? weight = null)
     {
+        if (weight is not null
+            && (!double.IsFinite(weight.Value) || weight.Value <= 0))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(weight),
+                "Seed reference weight must be finite and positive.");
+        }
+
         var (path, artist, album, title) = BuildResolveArgs(audio, pathMapper);
         if (path is null && artist is null && album is null && title is null)
         {
@@ -1038,6 +1012,7 @@ public class PrefixPlaylistService
             Artist = artist,
             Album = album,
             Title = title,
+            Weight = weight,
         };
     }
 
