@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Harmonie.Services.Storage;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
@@ -21,7 +22,8 @@ namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 {
     private readonly ISessionManager _sessionManager;
-    private readonly ListeningActivityDatabase _database;
+    private readonly HarmonieDatabase _database;
+    private readonly ListeningActivityStore _store;
     private readonly IListeningActivityBootstrapSource _bootstrapSource;
     private readonly ILogger<ListeningActivityTracker> _logger;
     private readonly Channel<ListeningActivityEvent> _writes =
@@ -43,12 +45,14 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     public ListeningActivityTracker(
         ISessionManager sessionManager,
-        ListeningActivityDatabase database,
+        HarmonieDatabase database,
+        ListeningActivityStore store,
         IListeningActivityBootstrapSource bootstrapSource,
         ILogger<ListeningActivityTracker> logger)
     {
         _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
         _database = database ?? throw new ArgumentNullException(nameof(database));
+        _store = store ?? throw new ArgumentNullException(nameof(store));
         _bootstrapSource = bootstrapSource ?? throw new ArgumentNullException(nameof(bootstrapSource));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -203,7 +207,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             try
             {
-                _database.RecordPlayback(activity);
+                _store.RecordPlayback(activity);
             }
             catch (Exception ex)
             {
@@ -220,13 +224,13 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     {
         try
         {
-            if (!_database.IsBootstrapRequired())
+            if (!_store.IsBootstrapRequired())
             {
                 return Task.CompletedTask;
             }
 
             var records = _bootstrapSource.Read(_shutdown.Token);
-            if (_database.StoreBootstrap(records, DateTimeOffset.UtcNow))
+            if (_store.StoreBootstrap(records, DateTimeOffset.UtcNow))
             {
                 _logger.LogInformation(
                     "Imported {Count} aggregate Jellyfin listening activity record(s).",

@@ -1,122 +1,33 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using MediaBrowser.Common.Configuration;
+using Jellyfin.Plugin.Harmonie.Services.Storage;
 using Microsoft.Data.Sqlite;
 
 namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 
 /// <summary>
-/// Owns the plugin-local SQLite database used to preserve listening activity.
-/// This storage is deliberately separate from Jellyfin's database and from
-/// the harmonie service.
+/// Persists listening-activity records in the shared Harmonie database.
+/// Schema creation belongs to database migrations, not to this feature store.
 /// </summary>
-public sealed class ListeningActivityDatabase
+public sealed class ListeningActivityStore
 {
-    private const int CurrentSchemaVersion = 1;
-    private const string BootstrapCompletedKey = "bootstrap_completed_at";
-    private const string ClearedAtKey = "cleared_at";
+    private const string BootstrapCompletedKey = "listening_activity.bootstrap_completed_at";
+    private const string ClearedAtKey = "listening_activity.cleared_at";
 
     private readonly object _sync = new();
-    private readonly string _databasePath;
-    private bool _initialized;
+    private readonly HarmonieDatabase _database;
 
-    public ListeningActivityDatabase(IApplicationPaths applicationPaths)
-        : this(Path.Combine(
-            applicationPaths?.PluginConfigurationsPath
-                ?? throw new ArgumentNullException(nameof(applicationPaths)),
-            "Harmonie",
-            "listening-activity.db"))
+    public ListeningActivityStore(HarmonieDatabase database)
     {
-    }
-
-    internal ListeningActivityDatabase(string databasePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
-        _databasePath = Path.GetFullPath(databasePath);
-    }
-
-    /// <summary>
-    /// Gets the absolute location shown on the plugin settings page.
-    /// </summary>
-    public string DatabasePath => _databasePath;
-
-    /// <summary>
-    /// Creates or migrates the database.
-    /// </summary>
-    public void Initialize()
-    {
-        lock (_sync)
-        {
-            if (_initialized)
-            {
-                return;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(_databasePath)!);
-            using var connection = OpenConnection();
-            var schemaVersion = ReadSchemaVersion(connection);
-            if (schemaVersion > CurrentSchemaVersion)
-            {
-                throw new InvalidOperationException(
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"Listening activity database schema {schemaVersion} is newer than supported schema {CurrentSchemaVersion}."));
-            }
-
-            if (schemaVersion == 0)
-            {
-                using var command = connection.CreateCommand();
-                command.CommandText = """
-                    CREATE TABLE IF NOT EXISTS metadata (
-                        key TEXT PRIMARY KEY,
-                        value TEXT NOT NULL
-                    );
-
-                    CREATE TABLE IF NOT EXISTS bootstrap_activity (
-                        user_id TEXT NOT NULL,
-                        item_id TEXT NOT NULL,
-                        last_played_utc TEXT NOT NULL,
-                        play_count INTEGER NOT NULL CHECK (play_count > 0),
-                        is_favorite INTEGER NOT NULL CHECK (is_favorite IN (0, 1)),
-                        PRIMARY KEY (user_id, item_id)
-                    );
-
-                    CREATE TABLE IF NOT EXISTS playback_events (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id TEXT NOT NULL,
-                        item_id TEXT NOT NULL,
-                        started_utc TEXT NULL,
-                        stopped_utc TEXT NOT NULL,
-                        position_ticks INTEGER NULL,
-                        duration_ticks INTEGER NULL,
-                        played_to_completion INTEGER NOT NULL CHECK (played_to_completion IN (0, 1)),
-                        play_session_id TEXT NULL,
-                        client_name TEXT NULL,
-                        device_id TEXT NULL
-                    );
-
-                    CREATE INDEX IF NOT EXISTS ix_playback_events_user_stopped
-                        ON playback_events (user_id, stopped_utc DESC);
-                    CREATE INDEX IF NOT EXISTS ix_playback_events_item
-                        ON playback_events (item_id);
-
-                    PRAGMA user_version = 1;
-                    """;
-                command.ExecuteNonQuery();
-            }
-
-            _initialized = true;
-        }
+        _database = database ?? throw new ArgumentNullException(nameof(database));
     }
 
     internal bool IsBootstrapRequired()
     {
         lock (_sync)
         {
-            Initialize();
-            using var connection = OpenConnection();
+            using var connection = _database.OpenConnection();
             return ReadMetadata(connection, BootstrapCompletedKey) is null;
         }
     }
@@ -129,8 +40,7 @@ public sealed class ListeningActivityDatabase
 
         lock (_sync)
         {
-            Initialize();
-            using var connection = OpenConnection();
+            using var connection = _database.OpenConnection();
             using var transaction = connection.BeginTransaction();
 
             // Clear may have completed while the source was being enumerated.
@@ -179,8 +89,7 @@ public sealed class ListeningActivityDatabase
 
         lock (_sync)
         {
-            Initialize();
-            using var connection = OpenConnection();
+            using var connection = _database.OpenConnection();
             var clearedAt = ParseDate(ReadMetadata(connection, ClearedAtKey));
             if (clearedAt is not null && activity.StoppedUtc <= clearedAt.Value)
             {
@@ -216,18 +125,18 @@ public sealed class ListeningActivityDatabase
     }
 
     /// <summary>
-    /// Returns counts and file information for the settings page.
+    /// Returns counts and database information for the settings page.
     /// </summary>
     public ListeningActivityStatus GetStatus()
     {
         lock (_sync)
         {
-            Initialize();
-            using var connection = OpenConnection();
+            using var connection = _database.OpenConnection();
             return new ListeningActivityStatus
             {
-                DatabasePath = _databasePath,
-                SizeBytes = GetDatabaseSize(),
+                DatabasePath = _database.DatabasePath,
+                SizeBytes = _database.GetSizeBytes(),
+                SchemaVersion = _database.SchemaVersion,
                 PlaybackEvents = CountPlaybackEvents(connection),
                 BootstrapRecords = CountBootstrapRecords(connection),
                 BootstrapCompletedAt = ParseDate(ReadMetadata(connection, BootstrapCompletedKey)),
@@ -237,16 +146,15 @@ public sealed class ListeningActivityDatabase
     }
 
     /// <summary>
-    /// Removes imported and newly recorded activity while retaining an empty,
-    /// initialized database. The bootstrap completion marker is advanced so a
-    /// restart does not silently import the same aggregate history again.
+    /// Removes imported and newly recorded activity without affecting any
+    /// other feature data in the shared database. The bootstrap completion
+    /// marker is advanced so a restart does not import the same history again.
     /// </summary>
     public ListeningActivityStatus Clear()
     {
         lock (_sync)
         {
-            Initialize();
-            using var connection = OpenConnection();
+            using var connection = _database.OpenConnection();
             using var transaction = connection.BeginTransaction();
             ClearActivity(connection, transaction);
             var now = DateTimeOffset.UtcNow;
@@ -260,29 +168,6 @@ public sealed class ListeningActivityDatabase
         }
 
         return GetStatus();
-    }
-
-    private SqliteConnection OpenConnection()
-    {
-        var builder = new SqliteConnectionStringBuilder
-        {
-            DataSource = _databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Cache = SqliteCacheMode.Shared,
-        };
-        var connection = new SqliteConnection(builder.ToString());
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;";
-        command.ExecuteNonQuery();
-        return connection;
-    }
-
-    private static int ReadSchemaVersion(SqliteConnection connection)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA user_version;";
-        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
     }
 
     private static long CountPlaybackEvents(SqliteConnection connection)
@@ -336,20 +221,6 @@ public sealed class ListeningActivityDatabase
         command.Transaction = transaction;
         command.CommandText = "DELETE FROM playback_events; DELETE FROM bootstrap_activity;";
         command.ExecuteNonQuery();
-    }
-
-    private long GetDatabaseSize()
-    {
-        long total = 0;
-        foreach (var path in new[] { _databasePath, _databasePath + "-wal", _databasePath + "-shm" })
-        {
-            if (File.Exists(path))
-            {
-                total += new FileInfo(path).Length;
-            }
-        }
-
-        return total;
     }
 
     private static string FormatGuid(Guid value) => value.ToString("N", CultureInfo.InvariantCulture);

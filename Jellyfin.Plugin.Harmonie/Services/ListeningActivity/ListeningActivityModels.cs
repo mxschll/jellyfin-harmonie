@@ -40,6 +40,9 @@ public sealed class ListeningActivityStatus
     [JsonPropertyName("size_bytes")]
     public long SizeBytes { get; init; }
 
+    [JsonPropertyName("schema_version")]
+    public int SchemaVersion { get; init; }
+
     [JsonPropertyName("playback_events")]
     public long PlaybackEvents { get; init; }
 

@@ -310,6 +310,7 @@
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Recorded plays</td><td><span id="ActivityPlaybackEvents">—</span></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Imported tracks</td><td><span id="ActivityBootstrapRecords">—</span></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Initial import</td><td><span id="ActivityBootstrapCompleted">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="ActivitySchemaVersion">—</span></td></tr>
                                 <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Size</td><td><span id="ActivityDatabaseSize">—</span></td></tr>
                             </tbody>
                         </table>
@@ -566,6 +567,8 @@
                         (status.bootstrap_records || 0).toLocaleString();
                     document.querySelector('#ActivityBootstrapCompleted').textContent =
                         formatDate(status.bootstrap_completed_at);
+                    document.querySelector('#ActivitySchemaVersion').textContent =
+                        status.schema_version == null ? '—' : status.schema_version;
                     document.querySelector('#ActivityDatabaseSize').textContent = formatBytes(status.size_bytes);
                 }
 

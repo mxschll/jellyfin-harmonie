@@ -93,6 +93,18 @@ Examples:
 
 The plugin groups each user's recently played tracks by Harmonie style, weighted by play count, then expands every cluster into a private mix. The number of playlists adapts to the available listening history. As taste shifts, the playlists rename and refill themselves. Enabled by default and refreshed every 30 days; both behavior and schedule are configurable.
 
+## Listening data
+
+The plugin keeps a local play log so it can improve each user's recommendations. On first start, it copies the last play time, play count, and favorite state for played tracks from Jellyfin. For each new play, it stores:
+
+- Jellyfin user and track IDs
+- Start and stop times
+- Stop position and track length
+- Whether the track finished
+- Play session, client, and device IDs
+
+The data stays in `harmonie.db` on the Jellyfin server. The plugin settings show its path, size, and record counts. You can clear the stored activity there.
+
 ## Song Radio / Instant Mix
 
 When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Falls back to Jellyfin's default behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
