@@ -384,14 +384,11 @@ public sealed class PlaylistAutoRefreshService : IHostedService
 
     /// <summary>
     /// Captures the playlist's current child list as an ordered
-    /// sequence of paths. <c>LinkedChild.Path</c> is set by
-    /// <c>LinkedChild.Create</c> and is stable across metadata
-    /// refreshes; <c>LinkedChild.ItemId</c> is reset to null on every
-    /// metadata refresh by <c>Folder.RefreshLinkedChildren</c> and
-    /// can't be used as a stable identity. Children whose Path is
-    /// null or empty (rare; would indicate a corrupt entry) are
-    /// dropped from the snapshot — those are inert from a "did the
-    /// playlist change" perspective.
+    /// sequence of identity keys (see <see cref="LinkedChildKey"/>:
+    /// Path on Jellyfin 10.x hosts, ItemId on Jellyfin 12 hosts).
+    /// Children with no usable identity (rare; would indicate a
+    /// corrupt entry) are dropped from the snapshot — those are inert
+    /// from a "did the playlist change" perspective.
     /// </summary>
     private static IReadOnlyList<string> SnapshotChildren(Playlist playlist)
     {

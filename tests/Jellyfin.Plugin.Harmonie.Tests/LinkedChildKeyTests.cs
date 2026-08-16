@@ -14,24 +14,23 @@ namespace Jellyfin.Plugin.Harmonie.Tests;
 public class LinkedChildKeyTests
 {
     [Fact]
-    public void ItemId_wins_over_path()
+    public void Path_wins_over_item_id_because_10x_resets_item_id_on_refresh()
     {
         var id = Guid.NewGuid();
 #pragma warning disable CS0618
         var child = new LinkedChild { ItemId = id, Path = "/music/a.flac" };
 #pragma warning restore CS0618
 
-        Assert.Equal(id.ToString("N"), LinkedChildKey.For(child));
+        Assert.Equal("/music/a.flac", LinkedChildKey.For(child));
     }
 
     [Fact]
-    public void Falls_back_to_path_for_legacy_children()
+    public void Falls_back_to_item_id_for_jellyfin_12_children()
     {
-#pragma warning disable CS0618
-        var child = new LinkedChild { Path = "/music/a.flac" };
-#pragma warning restore CS0618
+        var id = Guid.NewGuid();
+        var child = new LinkedChild { ItemId = id };
 
-        Assert.Equal("/music/a.flac", LinkedChildKey.For(child));
+        Assert.Equal(id.ToString("N"), LinkedChildKey.For(child));
         Assert.Equal(string.Empty, LinkedChildKey.For(new LinkedChild()));
     }
 
