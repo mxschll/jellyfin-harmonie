@@ -69,7 +69,7 @@ The plugin scores each user's recent tracks from plays, completions, skips, favo
 
 ### On Repeat
 
-One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed daily; toggle it off in plugin settings.
+One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed every five days; toggle it off in plugin settings.
 
 ## Prefix playlists
 
@@ -109,10 +109,11 @@ Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation
 
 ## Refresh
 
-The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):
+The plugin refreshes a playlist shortly after you edit it. Three scheduled tasks run in the background (Dashboard, Scheduled Tasks):
 
-* **Refresh Harmonie Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist, plus the On Repeat playlists.
+* **Refresh Harmonie Prefix Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
 * **Refresh Harmonie Personal Mix Playlists:** weekly. Rebuilds the per-user Personal Mix playlists.
+* **Refresh Harmonie On Repeat Playlists:** every five days. Rebuilds the per-user On Repeat playlists.
 
 Both schedules can be changed from the same page, and either can be triggered manually.
 
