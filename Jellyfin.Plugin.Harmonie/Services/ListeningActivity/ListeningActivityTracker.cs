@@ -171,29 +171,20 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var now = DateTimeOffset.UtcNow;
-        PlaybackSessionSummary summary;
         var key = ActivityKey(eventArgs);
-        if (key is not null && _sessions.TryRemove(key, out var session))
+        if (key is null || !_sessions.TryRemove(key, out var session))
         {
-            summary = session.Finish(
-                now,
-                eventArgs.PlaybackPositionTicks,
-                audio.RunTimeTicks,
-                eventArgs.PlayedToCompletion);
+            _logger.LogDebug(
+                "Ignoring unmatched playback stop for item {ItemId} and play session {PlaySessionId}.",
+                audio.Id,
+                eventArgs.PlaySessionId);
+            return;
         }
-        else
-        {
-            summary = new PlaybackSessionSummary(
-                null,
-                null,
-                eventArgs.PlaybackPositionTicks,
-                eventArgs.PlaybackPositionTicks,
-                null,
-                0,
-                0,
-                0,
-                IsEarlySkip: false);
-        }
+
+        var summary = session.Finish(
+            now,
+            eventArgs.PlaybackPositionTicks,
+            audio.RunTimeTicks);
 
         foreach (var activity in CreateActivities(eventArgs, summary, now))
         {
@@ -236,7 +227,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 summary.PauseCount,
                 summary.IsEarlySkip,
                 audio.RunTimeTicks,
-                eventArgs.PlayedToCompletion,
+                summary.PlayedToCompletion,
                 eventArgs.PlaySessionId,
                 eventArgs.ClientName,
                 eventArgs.DeviceId))

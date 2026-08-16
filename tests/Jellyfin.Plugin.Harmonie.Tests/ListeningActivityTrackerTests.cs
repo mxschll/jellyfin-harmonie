@@ -28,23 +28,24 @@ public class ListeningActivityTrackerTests
         {
             Item = item,
             Users = new List<User> { firstUser, secondUser, firstUser },
-            PlaybackPositionTicks = TimeSpan.FromMinutes(3).Ticks,
+            PlaybackPositionTicks = TimeSpan.FromMinutes(4).Ticks,
             PlayedToCompletion = true,
             PlaySessionId = "session-1",
             ClientName = "Jellyfin Web",
             DeviceId = "browser",
         };
         var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
-        var stoppedAt = startedAt.AddMinutes(3);
+        var stoppedAt = startedAt.AddMinutes(4);
         var summary = new PlaybackSessionSummary(
             startedAt,
             StartPositionTicks: 0,
             EndPositionTicks: eventArgs.PlaybackPositionTicks,
             MaxPositionTicks: eventArgs.PlaybackPositionTicks,
-            ActiveListenTicks: TimeSpan.FromMinutes(3).Ticks,
+            ActiveListenTicks: TimeSpan.FromMinutes(4).Ticks,
             SeekForwardCount: 1,
             SeekBackwardCount: 0,
             PauseCount: 1,
+            PlayedToCompletion: true,
             IsEarlySkip: false);
 
         var activities = ListeningActivityTracker.CreateActivities(eventArgs, summary, stoppedAt);
@@ -75,10 +76,46 @@ public class ListeningActivityTrackerTests
 
         var activities = ListeningActivityTracker.CreateActivities(
             eventArgs,
-            new PlaybackSessionSummary(null, null, null, null, null, 0, 0, 0, false),
+            new PlaybackSessionSummary(null, null, null, null, null, 0, 0, 0, false, false),
             DateTimeOffset.UtcNow);
 
         Assert.Empty(activities);
+    }
+
+    [Fact]
+    public void Playback_stop_uses_the_derived_completion_value()
+    {
+        var user = User("listener");
+        var item = new Audio
+        {
+            Id = Guid.NewGuid(),
+            RunTimeTicks = TimeSpan.FromMinutes(4).Ticks,
+        };
+        var eventArgs = new PlaybackStopEventArgs
+        {
+            Item = item,
+            Users = new List<User> { user },
+            PlaybackPositionTicks = TimeSpan.FromMinutes(2).Ticks,
+            PlayedToCompletion = true,
+        };
+        var summary = new PlaybackSessionSummary(
+            DateTimeOffset.Parse("2026-08-16T10:00:00Z"),
+            StartPositionTicks: 0,
+            EndPositionTicks: eventArgs.PlaybackPositionTicks,
+            MaxPositionTicks: eventArgs.PlaybackPositionTicks,
+            ActiveListenTicks: TimeSpan.FromMinutes(2).Ticks,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            PlayedToCompletion: false,
+            IsEarlySkip: false);
+
+        var activity = Assert.Single(ListeningActivityTracker.CreateActivities(
+            eventArgs,
+            summary,
+            DateTimeOffset.Parse("2026-08-16T10:02:00Z")));
+
+        Assert.False(activity.PlayedToCompletion);
     }
 
     private static User User(string name)

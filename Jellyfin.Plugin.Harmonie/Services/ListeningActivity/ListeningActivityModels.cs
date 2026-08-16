@@ -47,7 +47,7 @@ internal sealed record RecommendationTrackMetrics(
     DateTimeOffset? LastPlaylistFirstSeenUtc);
 
 /// <summary>
-/// One completed Jellyfin playback session recorded by the plugin.
+/// One stopped Jellyfin playback session recorded by the plugin.
 /// </summary>
 internal sealed record ListeningActivityEvent(
     Guid UserId,

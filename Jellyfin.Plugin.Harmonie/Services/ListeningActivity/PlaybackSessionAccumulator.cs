@@ -11,6 +11,7 @@ internal sealed record PlaybackSessionSummary(
     int SeekForwardCount,
     int SeekBackwardCount,
     int PauseCount,
+    bool PlayedToCompletion,
     bool IsEarlySkip);
 
 /// <summary>
@@ -21,6 +22,7 @@ internal sealed class PlaybackSessionAccumulator
 {
     private static readonly long SeekThresholdTicks = TimeSpan.FromSeconds(10).Ticks;
     private static readonly long EarlySkipLimitTicks = TimeSpan.FromSeconds(30).Ticks;
+    private static readonly long CompletionToleranceLimitTicks = TimeSpan.FromSeconds(10).Ticks;
 
     private readonly object _sync = new();
     private readonly DateTimeOffset? _startedUtc;
@@ -74,13 +76,16 @@ internal sealed class PlaybackSessionAccumulator
     internal PlaybackSessionSummary Finish(
         DateTimeOffset stoppedAt,
         long? endPositionTicks,
-        long? durationTicks,
-        bool playedToCompletion)
+        long? durationTicks)
     {
         lock (_sync)
         {
             ObserveCore(stoppedAt, endPositionTicks, _isPaused);
             long? activeListenTicks = _hasPlaybackStart ? _activeListenTicks : null;
+            var playedToCompletion = IsPlayedToCompletion(
+                endPositionTicks,
+                activeListenTicks,
+                durationTicks);
             return new PlaybackSessionSummary(
                 _startedUtc,
                 _startPositionTicks,
@@ -90,8 +95,32 @@ internal sealed class PlaybackSessionAccumulator
                 _seekForwardCount,
                 _seekBackwardCount,
                 _pauseCount,
+                playedToCompletion,
                 IsEarlySkip(activeListenTicks, durationTicks, playedToCompletion));
         }
+    }
+
+    private static bool IsPlayedToCompletion(
+        long? endPositionTicks,
+        long? activeListenTicks,
+        long? durationTicks)
+    {
+        if (endPositionTicks is null
+            || activeListenTicks is null
+            || durationTicks is null
+            || durationTicks <= 0
+            || activeListenTicks < durationTicks / 2)
+        {
+            return false;
+        }
+
+        // Reaching the end after a seek is not a completed listen. Require at
+        // least half the track as active listening time, then allow clients a
+        // small margin when reporting the final position.
+        var toleranceTicks = Math.Min(
+            CompletionToleranceLimitTicks,
+            durationTicks.Value / 20);
+        return endPositionTicks.Value >= durationTicks.Value - toleranceTicks;
     }
 
     private void ObserveCore(

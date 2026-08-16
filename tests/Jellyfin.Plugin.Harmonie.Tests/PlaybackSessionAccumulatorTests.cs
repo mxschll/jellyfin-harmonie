@@ -35,14 +35,14 @@ public sealed class PlaybackSessionAccumulatorTests
         var summary = session.Finish(
             start.AddSeconds(35),
             TimeSpan.FromSeconds(25).Ticks,
-            TimeSpan.FromMinutes(4).Ticks,
-            playedToCompletion: false);
+            TimeSpan.FromMinutes(4).Ticks);
 
         Assert.Equal(TimeSpan.FromSeconds(25).Ticks, summary.ActiveListenTicks);
         Assert.Equal(1, summary.PauseCount);
         Assert.Equal(1, summary.SeekForwardCount);
         Assert.Equal(1, summary.SeekBackwardCount);
         Assert.Equal(TimeSpan.FromSeconds(45).Ticks, summary.MaxPositionTicks);
+        Assert.False(summary.PlayedToCompletion);
         Assert.True(summary.IsEarlySkip);
     }
 
@@ -56,11 +56,66 @@ public sealed class PlaybackSessionAccumulatorTests
             isPaused: false);
 
         var summary = session.Finish(
-            start.AddSeconds(5),
-            TimeSpan.FromMinutes(3).Ticks,
-            TimeSpan.FromMinutes(3).Ticks,
-            playedToCompletion: true);
+            start.AddMinutes(2).AddSeconds(55),
+            TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(55)).Ticks,
+            TimeSpan.FromMinutes(3).Ticks);
 
+        Assert.True(summary.PlayedToCompletion);
+        Assert.False(summary.IsEarlySkip);
+    }
+
+    [Fact]
+    public void Stop_before_end_is_not_completed_and_can_be_an_early_skip()
+    {
+        var start = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromStart(
+            start,
+            positionTicks: 0,
+            isPaused: false);
+
+        var summary = session.Finish(
+            start.AddSeconds(5),
+            TimeSpan.FromSeconds(5).Ticks,
+            TimeSpan.FromMinutes(3).Ticks);
+
+        Assert.False(summary.PlayedToCompletion);
+        Assert.True(summary.IsEarlySkip);
+    }
+
+    [Fact]
+    public void Seek_to_end_after_a_short_listen_is_an_early_skip()
+    {
+        var start = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromStart(
+            start,
+            positionTicks: 0,
+            isPaused: false);
+
+        var summary = session.Finish(
+            start.AddSeconds(8),
+            TimeSpan.FromMinutes(3).Ticks,
+            TimeSpan.FromMinutes(3).Ticks);
+
+        Assert.Equal(1, summary.SeekForwardCount);
+        Assert.False(summary.PlayedToCompletion);
+        Assert.True(summary.IsEarlySkip);
+    }
+
+    [Fact]
+    public void Stop_more_than_ten_seconds_before_end_is_not_completed()
+    {
+        var start = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromStart(
+            start,
+            positionTicks: 0,
+            isPaused: false);
+
+        var summary = session.Finish(
+            start.AddMinutes(3.75),
+            TimeSpan.FromMinutes(3.75).Ticks,
+            TimeSpan.FromMinutes(4).Ticks);
+
+        Assert.False(summary.PlayedToCompletion);
         Assert.False(summary.IsEarlySkip);
     }
 
@@ -80,8 +135,7 @@ public sealed class PlaybackSessionAccumulatorTests
         var summary = session.Finish(
             start.AddMinutes(3),
             TimeSpan.FromMinutes(3).Ticks,
-            TimeSpan.FromMinutes(4).Ticks,
-            playedToCompletion: false);
+            TimeSpan.FromMinutes(4).Ticks);
 
         Assert.Equal(TimeSpan.FromMinutes(3).Ticks, summary.ActiveListenTicks);
         Assert.Equal(0, summary.SeekForwardCount);
@@ -100,8 +154,7 @@ public sealed class PlaybackSessionAccumulatorTests
         var summary = session.Finish(
             observed.AddSeconds(5),
             TimeSpan.FromSeconds(25).Ticks,
-            TimeSpan.FromMinutes(3).Ticks,
-            playedToCompletion: false);
+            TimeSpan.FromMinutes(3).Ticks);
 
         Assert.Null(summary.StartedUtc);
         Assert.Null(summary.ActiveListenTicks);
