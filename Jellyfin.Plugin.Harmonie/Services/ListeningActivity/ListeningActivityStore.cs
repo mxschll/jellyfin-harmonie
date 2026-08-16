@@ -292,6 +292,69 @@ public sealed class ListeningActivityStore
         return result;
     }
 
+    /// <summary>
+    /// Returns the tracks the user has played at least
+    /// <paramref name="minimumPlays"/> times since
+    /// <paramref name="cutoffUtc"/>, most-played first. Counts raw
+    /// playback events rather than the lifetime totals in
+    /// user_track_metrics because On Repeat is a strict window: a track
+    /// with a thousand plays last year and none this month must not
+    /// qualify.
+    /// </summary>
+    internal IReadOnlyList<OnRepeatTrack> GetOnRepeatTracks(
+        Guid userId,
+        DateTimeOffset cutoffUtc,
+        long minimumPlays,
+        int limit)
+    {
+        if (userId == Guid.Empty || minimumPlays <= 0 || limit <= 0)
+        {
+            return Array.Empty<OnRepeatTrack>();
+        }
+
+        // WAL permits this read to run alongside tracker writes. The
+        // group-by walks ix_playback_events_user_item_stopped.
+        using var connection = _database.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                item_id,
+                COUNT(*) AS window_plays,
+                MAX(stopped_utc) AS last_played_utc
+            FROM playback_events
+            WHERE user_id = $user_id
+                AND counted_as_play = 1
+                AND stopped_utc >= $cutoff_utc
+            GROUP BY item_id
+            HAVING COUNT(*) >= $minimum_plays
+            ORDER BY window_plays DESC, last_played_utc DESC
+            LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$user_id", FormatGuid(userId));
+        command.Parameters.AddWithValue("$cutoff_utc", FormatDate(cutoffUtc));
+        command.Parameters.AddWithValue("$minimum_plays", minimumPlays);
+        command.Parameters.AddWithValue("$limit", limit);
+        using var reader = command.ExecuteReader();
+        var result = new List<OnRepeatTrack>();
+        while (reader.Read())
+        {
+            if (!Guid.TryParseExact(reader.GetString(0), "N", out var itemId))
+            {
+                continue;
+            }
+
+            var lastPlayed = ReadDate(reader, 2);
+            if (lastPlayed is null)
+            {
+                continue;
+            }
+
+            result.Add(new OnRepeatTrack(itemId, reader.GetInt64(1), lastPlayed.Value));
+        }
+
+        return result;
+    }
+
     internal void RecordPlayback(ListeningActivityEvent activity)
     {
         ArgumentNullException.ThrowIfNull(activity);

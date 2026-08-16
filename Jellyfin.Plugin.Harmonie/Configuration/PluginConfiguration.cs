@@ -71,6 +71,9 @@ public class PluginConfiguration : BasePluginConfiguration
         StylePlaylistN = 20;
         PersonalMixVariation = 0.25;
 
+        // Per-user On Repeat playlists.
+        EnableOnRepeatPlaylists = true;
+
         // Defaults for [STYLE]/[GENRE] vibe-mode playlists. 100 tracks
         // is enough to feel like a real "browse this style" playlist
         // without filling the playlist UI; the user can override per
@@ -262,6 +265,14 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets bounded result variation for activity-derived Personal Mix playlists.
     /// </summary>
     public double PersonalMixVariation { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the per-user On Repeat
+    /// playlist feature is enabled. When on, the daily refresh task
+    /// maintains one playlist per user holding the exact tracks that
+    /// user has played on loop over the last month.
+    /// </summary>
+    public bool EnableOnRepeatPlaylists { get; set; }
 
     /// <summary>
     /// Gets or sets the default number of tracks for <c>[STYLE]</c>

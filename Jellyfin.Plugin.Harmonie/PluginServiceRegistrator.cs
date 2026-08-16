@@ -32,6 +32,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<CoverRefreshQueuer>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();
         serviceCollection.AddSingleton<StylePlaylistService>();
+        serviceCollection.AddSingleton<OnRepeatPlaylistService>();
 
         // Register PlaylistAutoRefreshService as a singleton AND as the
         // hosted service backing it. Registering twice with the factory

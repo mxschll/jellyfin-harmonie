@@ -52,7 +52,8 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         }
 
         return HarmoniePlaylistFilter.TryGetOptions(playlist) is not null
-            || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null;
+            || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null
+            || _styleStore.IsOnRepeatPlaylist(playlist.Id);
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
@@ -126,6 +127,17 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
                 Title: label,
                 Badge: "AUTO",
                 Color: CoverPalette.StyleColor(label),
+                IsPersonalMix: true);
+        }
+
+        // On Repeat playlists are also identified by GUID. Rendered
+        // like Personal Mix covers with their own badge and colour.
+        if (_styleStore.IsOnRepeatPlaylist(playlist.Id))
+        {
+            return new CoverSpec(
+                Title: "On Repeat",
+                Badge: "REPEAT",
+                Color: new SKColor(0xB5, 0x5C, 0x22),
                 IsPersonalMix: true);
         }
 

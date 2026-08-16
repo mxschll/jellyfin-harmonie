@@ -48,6 +48,15 @@ internal sealed record RecommendationTrackMetrics(
     DateTimeOffset? LastPlaylistObservedUtc);
 
 /// <summary>
+/// One track a user has played on repeat inside the On Repeat window,
+/// with its windowed play count (not the lifetime total).
+/// </summary>
+internal sealed record OnRepeatTrack(
+    Guid ItemId,
+    long PlayCount,
+    DateTimeOffset LastPlayedUtc);
+
+/// <summary>
 /// One stopped Jellyfin playback session recorded by the plugin.
 /// </summary>
 internal sealed record ListeningActivityEvent(
