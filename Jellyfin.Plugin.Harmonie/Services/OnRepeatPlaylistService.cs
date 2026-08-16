@@ -38,6 +38,14 @@ public class OnRepeatPlaylistService
     /// <summary>Cap on playlist length.</summary>
     internal const int MaximumTracks = 30;
 
+    /// <summary>
+    /// Minimum qualifying tracks before the playlist is created at all.
+    /// A one-track "On Repeat" is noise; the playlist first appears when
+    /// there's a real rotation to show. Once created it keeps updating
+    /// even when the rotation shrinks below the floor.
+    /// </summary>
+    internal const int MinimumTracksToCreate = 5;
+
     private readonly ListeningActivityStore _store;
     private readonly StylePlaylistStateStore _stateStore;
     private readonly IPlaylistManager _playlistManager;
@@ -138,6 +146,16 @@ public class OnRepeatPlaylistService
 
         if (playlist is null)
         {
+            if (trackIds.Count < MinimumTracksToCreate)
+            {
+                _logger.LogDebug(
+                    "On Repeat: only {Count} track(s) qualify for {User} (need {Min} to create); skipping.",
+                    trackIds.Count,
+                    user.Username,
+                    MinimumTracksToCreate);
+                return;
+            }
+
             playlist = await CreatePlaylistAsync(user, state).ConfigureAwait(false);
             if (playlist is null)
             {

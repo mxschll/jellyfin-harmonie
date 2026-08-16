@@ -95,7 +95,7 @@ The plugin scores each user's recent tracks from plays, completions, skips, favo
 
 ## On Repeat
 
-One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify. Enabled by default and refreshed daily; toggle it off in plugin settings.
+One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed daily; toggle it off in plugin settings.
 
 ## Song Radio / Instant Mix
 
