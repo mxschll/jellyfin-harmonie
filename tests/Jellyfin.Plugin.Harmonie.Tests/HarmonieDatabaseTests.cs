@@ -26,7 +26,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     [Fact]
     public void Reopening_applies_only_new_migrations()
     {
-        var path = Path.Combine(_directory, "harmonie.db");
+        var path = Path.Combine(_directory, "jellyfin-harmonie.db");
         var first = new RecordingMigration(1);
         new HarmonieDatabase(path, new[] { first }).Initialize();
 
@@ -46,7 +46,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     [Fact]
     public void Failed_migration_is_retried_on_next_startup()
     {
-        var path = Path.Combine(_directory, "harmonie.db");
+        var path = Path.Combine(_directory, "jellyfin-harmonie.db");
         var first = new RecordingMigration(1);
         new HarmonieDatabase(path, new[] { first }).Initialize();
 
@@ -67,7 +67,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     [Fact]
     public void Wal_connections_do_not_enable_shared_cache()
     {
-        var database = new HarmonieDatabase(Path.Combine(_directory, "harmonie.db"));
+        var database = new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db"));
 
         using var connection = database.OpenConnection();
         var builder = new SqliteConnectionStringBuilder(connection.ConnectionString);
@@ -78,7 +78,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     [Fact]
     public void Recommendation_index_is_added_when_schema_one_is_upgraded()
     {
-        var path = Path.Combine(_directory, "harmonie.db");
+        var path = Path.Combine(_directory, "jellyfin-harmonie.db");
         new HarmonieDatabase(
             path,
             new IHarmonieDatabaseMigration[] { new Migration001ListeningActivity() })

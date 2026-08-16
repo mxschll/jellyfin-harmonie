@@ -111,7 +111,7 @@ public sealed class OnRepeatTracksTests : IDisposable
     }
 
     private ListeningActivityStore CreateStore()
-        => new(new HarmonieDatabase(Path.Combine(_directory, "harmonie.db")));
+        => new(new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db")));
 
     private void Play(
         ListeningActivityStore store,

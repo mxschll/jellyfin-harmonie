@@ -46,7 +46,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.False(store.IsBootstrapRequired());
 
         using var connection = new HarmonieDatabase(
-            Path.Combine(_directory, "harmonie.db")).OpenConnection();
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM bootstrap_activity;";
         Assert.Equal(2L, command.ExecuteScalar());
@@ -81,10 +81,10 @@ public sealed class ListeningActivityStoreTests : IDisposable
 
         Assert.Equal(2, status.SchemaVersion);
         Assert.True(status.SizeBytes > 0);
-        Assert.Equal(Path.GetFullPath(Path.Combine(_directory, "harmonie.db")), status.DatabasePath);
+        Assert.Equal(Path.GetFullPath(Path.Combine(_directory, "jellyfin-harmonie.db")), status.DatabasePath);
 
         using var connection = new HarmonieDatabase(
-            Path.Combine(_directory, "harmonie.db")).OpenConnection();
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT active_listen_ticks, seek_forward_count,
@@ -189,7 +189,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
             lastSeenAt);
 
         using var connection = new HarmonieDatabase(
-            Path.Combine(_directory, "harmonie.db")).OpenConnection();
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT item_id, first_seen_at_utc, added_at_utc, last_seen_at_utc
@@ -417,7 +417,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
     }
 
     private ListeningActivityStore CreateStore()
-        => new(new HarmonieDatabase(Path.Combine(_directory, "harmonie.db")));
+        => new(new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db")));
 
     private static ListeningActivityBootstrapRecord Bootstrap(int playCount)
         => new(
