@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.7.0.1",
+        "changelog": " ### Chores  - Prune legacy manifest entries (08408bf)  ### Features  - User listening activity tracking (#21) (5277645)  ### Other  - Bump xunit.runner.visualstudio from 3.1.5 to 4.0.0 (#20)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (d8c7337) - Bump Microsoft.NET.Test.Sdk from 18.8.1 to 18.9.0 (#19)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (645baed)  ",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.0/jellyfin-harmonie_1.7.0.1.zip",
+        "checksum": "453d409c523fe1448d199ab02027b156",
+        "timestamp": "2026-08-16T17:09:42Z"
+      },
+      {
+        "version": "1.7.0.0",
+        "changelog": " ### Chores  - Prune legacy manifest entries (08408bf)  ### Features  - User listening activity tracking (#21) (5277645)  ### Other  - Bump xunit.runner.visualstudio from 3.1.5 to 4.0.0 (#20)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (d8c7337) - Bump Microsoft.NET.Test.Sdk from 18.8.1 to 18.9.0 (#19)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (645baed)  ",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.0/jellyfin-harmonie_1.7.0.0.zip",
+        "checksum": "a0b41103c6b366b66328f06d4cf1df1e",
+        "timestamp": "2026-08-16T17:09:42Z"
+      },
+      {
         "version": "1.6.1.1",
         "changelog": " ### Build  - Bump taiki-e/install-action from 2 to 2.85.4 (#18) (e6e7dcf) - Bump actions/setup-dotnet from 5 to 6 (#17) (aa0986a)  ### Documentation  - Link discogs genres and styles (9fe2499) - Use non-breaking whitespace (a3f4ade) - Clarify plugin usage (35a8b77)  ### Other  - Bump Microsoft.NET.Test.Sdk from 18.5.1 to 18.8.1 (#16)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (56dc200)  ",
         "targetAbi": "10.11.0.0",
