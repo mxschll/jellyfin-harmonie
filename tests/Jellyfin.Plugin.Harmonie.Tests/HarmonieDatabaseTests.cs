@@ -62,6 +62,17 @@ public sealed class HarmonieDatabaseTests : IDisposable
         Assert.Equal(2, recovered.SchemaVersion);
     }
 
+    [Fact]
+    public void Wal_connections_do_not_enable_shared_cache()
+    {
+        var database = new HarmonieDatabase(Path.Combine(_directory, "harmonie.db"));
+
+        using var connection = database.OpenConnection();
+        var builder = new SqliteConnectionStringBuilder(connection.ConnectionString);
+
+        Assert.NotEqual(SqliteCacheMode.Shared, builder.Cache);
+    }
+
     private sealed class RecordingMigration : IHarmonieDatabaseMigration
     {
         public RecordingMigration(int version)

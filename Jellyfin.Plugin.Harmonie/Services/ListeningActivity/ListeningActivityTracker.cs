@@ -21,6 +21,9 @@ namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 /// </summary>
 internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 {
+    private static readonly TimeSpan SessionRetention = TimeSpan.FromHours(6);
+    private static readonly TimeSpan SessionSweepInterval = TimeSpan.FromHours(1);
+
     private readonly ISessionManager _sessionManager;
     private readonly HarmonieDatabase _database;
     private readonly ListeningActivityStore _store;
@@ -40,7 +43,9 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     private Task? _writerTask;
     private Task? _bootstrapTask;
+    private long _lastSessionSweepUtcTicks;
     private bool _started;
+    private bool _stopped;
     private bool _disposed;
 
     public ListeningActivityTracker(
@@ -60,6 +65,11 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     public Task StartAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_stopped)
+        {
+            throw new InvalidOperationException("The listening activity tracker cannot be restarted.");
+        }
+
         if (_started)
         {
             return Task.CompletedTask;
@@ -105,6 +115,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         await AwaitWorkerAsync(_writerTask, cancellationToken).ConfigureAwait(false);
         _sessions.Clear();
         _started = false;
+        _stopped = true;
     }
 
     public void Dispose()
@@ -129,6 +140,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         if (key is not null)
         {
             var now = DateTimeOffset.UtcNow;
+            SweepStaleSessions(now);
             _sessions[key] = PlaybackSessionAccumulator.FromStart(
                 now,
                 eventArgs.PlaybackPositionTicks,
@@ -147,6 +159,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         if (key is not null)
         {
             var now = DateTimeOffset.UtcNow;
+            SweepStaleSessions(now);
             if (_sessions.TryGetValue(key, out var session))
             {
                 session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
@@ -171,6 +184,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var now = DateTimeOffset.UtcNow;
+        SweepStaleSessions(now);
         var key = ActivityKey(eventArgs);
         if (key is null || !_sessions.TryRemove(key, out var session))
         {
@@ -228,6 +242,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 summary.IsEarlySkip,
                 audio.RunTimeTicks,
                 summary.PlayedToCompletion,
+                eventArgs.PlayedToCompletion,
                 eventArgs.PlaySessionId,
                 eventArgs.ClientName,
                 eventArgs.DeviceId))
@@ -281,6 +296,45 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    internal static int EvictStaleSessions(
+        ConcurrentDictionary<string, PlaybackSessionAccumulator> sessions,
+        DateTimeOffset cutoff)
+    {
+        ArgumentNullException.ThrowIfNull(sessions);
+        var removed = 0;
+        foreach (var entry in sessions)
+        {
+            if (entry.Value.LastObservedUtc < cutoff
+                && ((ICollection<KeyValuePair<string, PlaybackSessionAccumulator>>)sessions)
+                    .Remove(entry))
+            {
+                removed++;
+            }
+        }
+
+        return removed;
+    }
+
+    private void SweepStaleSessions(DateTimeOffset observedAt)
+    {
+        var observedTicks = observedAt.UtcDateTime.Ticks;
+        var previousTicks = Interlocked.Read(ref _lastSessionSweepUtcTicks);
+        if (observedTicks - previousTicks < SessionSweepInterval.Ticks
+            || Interlocked.CompareExchange(
+                ref _lastSessionSweepUtcTicks,
+                observedTicks,
+                previousTicks) != previousTicks)
+        {
+            return;
+        }
+
+        var removed = EvictStaleSessions(_sessions, observedAt - SessionRetention);
+        if (removed > 0)
+        {
+            _logger.LogDebug("Removed {Count} stale playback session(s).", removed);
+        }
     }
 
     private static string? ActivityKey(PlaybackProgressEventArgs eventArgs)

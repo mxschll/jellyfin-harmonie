@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 #if NET8_0
 using Jellyfin.Data.Entities;
@@ -64,6 +65,7 @@ public class ListeningActivityTrackerTests
             Assert.Equal(1, activity.SeekForwardCount);
             Assert.Equal(1, activity.PauseCount);
             Assert.True(activity.PlayedToCompletion);
+            Assert.True(activity.CountedAsPlay);
             Assert.Equal(startedAt, activity.StartedUtc);
             Assert.Equal(stoppedAt, activity.StoppedUtc);
         });
@@ -116,6 +118,30 @@ public class ListeningActivityTrackerTests
             DateTimeOffset.Parse("2026-08-16T10:02:00Z")));
 
         Assert.False(activity.PlayedToCompletion);
+        Assert.True(activity.CountedAsPlay);
+    }
+
+    [Fact]
+    public void Stale_playback_sessions_are_evicted_without_removing_recent_sessions()
+    {
+        var now = DateTimeOffset.Parse("2026-08-16T18:00:00Z");
+        var sessions = new ConcurrentDictionary<string, PlaybackSessionAccumulator>();
+        sessions["stale"] = PlaybackSessionAccumulator.FromStart(
+            now.AddHours(-7),
+            positionTicks: 0,
+            isPaused: false);
+        sessions["recent"] = PlaybackSessionAccumulator.FromStart(
+            now.AddMinutes(-5),
+            positionTicks: 0,
+            isPaused: false);
+
+        var removed = ListeningActivityTracker.EvictStaleSessions(
+            sessions,
+            now.AddHours(-6));
+
+        Assert.Equal(1, removed);
+        Assert.DoesNotContain("stale", sessions.Keys);
+        Assert.Contains("recent", sessions.Keys);
     }
 
     private static User User(string name)

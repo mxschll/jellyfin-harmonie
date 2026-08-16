@@ -72,6 +72,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
             IsEarlySkip: false,
             DurationTicks: TimeSpan.FromMinutes(3).Ticks,
             PlayedToCompletion: false,
+            CountedAsPlay: false,
             PlaySessionId: "play-1",
             ClientName: "Finamp",
             DeviceId: "phone"));
@@ -87,7 +88,8 @@ public sealed class ListeningActivityStoreTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT active_listen_ticks, seek_forward_count,
-                   seek_backward_count, pause_count, is_early_skip
+                   seek_backward_count, pause_count, is_early_skip,
+                   counted_as_play
             FROM playback_events;
             """;
         using var reader = command.ExecuteReader();
@@ -97,6 +99,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.Equal(2, reader.GetInt32(2));
         Assert.Equal(1, reader.GetInt32(3));
         Assert.Equal(0, reader.GetInt32(4));
+        Assert.Equal(0, reader.GetInt32(5));
     }
 
     [Fact]
@@ -328,15 +331,45 @@ public sealed class ListeningActivityStoreTests : IDisposable
             IsEarlySkip: false,
             DurationTicks: TimeSpan.FromMinutes(3).Ticks,
             PlayedToCompletion: false,
+            CountedAsPlay: false,
             PlaySessionId: "partial-play",
             ClientName: "test",
             DeviceId: "test"));
 
         var metrics = Assert.Single(store.GetRecommendationMetrics(userId));
 
-        Assert.Equal(1, metrics.PlayCount);
+        Assert.Equal(0, metrics.PlayCount);
         Assert.Equal(0, metrics.OutcomeSampleCount);
         Assert.Equal(stoppedAt, metrics.LastPlayedUtc);
+    }
+
+    [Fact]
+    public void Play_count_uses_jellyfins_count_decision_not_every_stop()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var stoppedAt = DateTimeOffset.Parse("2026-08-16T12:00:00Z");
+        store.RecordPlayback(Playback(
+            userId,
+            itemId,
+            stoppedAt,
+            completed: false,
+            earlySkip: true,
+            countedAsPlay: false));
+        store.RecordPlayback(Playback(
+            userId,
+            itemId,
+            stoppedAt.AddMinutes(1),
+            completed: false,
+            earlySkip: false,
+            countedAsPlay: true));
+
+        var metrics = Assert.Single(store.GetRecommendationMetrics(userId));
+
+        Assert.Equal(1, metrics.PlayCount);
+        Assert.Equal(0, metrics.CompletedPlayCount);
+        Assert.Equal(1, metrics.EarlySkipCount);
     }
 
     private ListeningActivityStore CreateStore()
@@ -355,7 +388,8 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Guid itemId,
         DateTimeOffset stoppedAt,
         bool completed,
-        bool earlySkip)
+        bool earlySkip,
+        bool? countedAsPlay = null)
         => new(
             userId,
             itemId,
@@ -371,6 +405,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
             IsEarlySkip: earlySkip,
             DurationTicks: TimeSpan.FromMinutes(3).Ticks,
             PlayedToCompletion: completed,
+            CountedAsPlay: countedAsPlay ?? completed,
             PlaySessionId: Guid.NewGuid().ToString("N"),
             ClientName: "test",
             DeviceId: "test");

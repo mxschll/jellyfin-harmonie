@@ -296,13 +296,13 @@ public sealed class ListeningActivityStore
                     start_position_ticks, end_position_ticks, max_position_ticks,
                     active_listen_ticks, seek_forward_count, seek_backward_count,
                     pause_count, is_early_skip, duration_ticks, played_to_completion,
-                    play_session_id, client_name, device_id)
+                    counted_as_play, play_session_id, client_name, device_id)
                 VALUES (
                     $user_id, $item_id, $started_utc, $stopped_utc,
                     $start_position_ticks, $end_position_ticks, $max_position_ticks,
                     $active_listen_ticks, $seek_forward_count, $seek_backward_count,
                     $pause_count, $is_early_skip, $duration_ticks, $played_to_completion,
-                    $play_session_id, $client_name, $device_id);
+                    $counted_as_play, $play_session_id, $client_name, $device_id);
                 """;
             command.Parameters.AddWithValue("$user_id", FormatGuid(activity.UserId));
             command.Parameters.AddWithValue("$item_id", FormatGuid(activity.ItemId));
@@ -318,6 +318,7 @@ public sealed class ListeningActivityStore
             command.Parameters.AddWithValue("$is_early_skip", activity.IsEarlySkip ? 1 : 0);
             command.Parameters.AddWithValue("$duration_ticks", DbValue(activity.DurationTicks));
             command.Parameters.AddWithValue("$played_to_completion", activity.PlayedToCompletion ? 1 : 0);
+            command.Parameters.AddWithValue("$counted_as_play", activity.CountedAsPlay ? 1 : 0);
             command.Parameters.AddWithValue("$play_session_id", DbValue(activity.PlaySessionId));
             command.Parameters.AddWithValue("$client_name", DbValue(activity.ClientName));
             command.Parameters.AddWithValue("$device_id", DbValue(activity.DeviceId));
@@ -330,15 +331,12 @@ public sealed class ListeningActivityStore
     /// </summary>
     public ListeningActivityStatus GetStatus()
     {
-        lock (_sync)
+        return new ListeningActivityStatus
         {
-            return new ListeningActivityStatus
-            {
-                DatabasePath = _database.DatabasePath,
-                SizeBytes = _database.GetSizeBytes(),
-                SchemaVersion = _database.SchemaVersion,
-            };
-        }
+            DatabasePath = _database.DatabasePath,
+            SizeBytes = _database.GetSizeBytes(),
+            SchemaVersion = _database.SchemaVersion,
+        };
     }
 
     private static string? ReadMetadata(

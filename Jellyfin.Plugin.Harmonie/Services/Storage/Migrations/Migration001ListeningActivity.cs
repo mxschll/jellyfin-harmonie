@@ -11,12 +11,12 @@ internal sealed class Migration001ListeningActivity : IHarmonieDatabaseMigration
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            CREATE TABLE IF NOT EXISTS metadata (
+            CREATE TABLE metadata (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS bootstrap_activity (
+            CREATE TABLE bootstrap_activity (
                 user_id TEXT NOT NULL,
                 item_id TEXT NOT NULL,
                 last_played_utc TEXT NOT NULL,
@@ -25,7 +25,7 @@ internal sealed class Migration001ListeningActivity : IHarmonieDatabaseMigration
                 PRIMARY KEY (user_id, item_id)
             );
 
-            CREATE TABLE IF NOT EXISTS playback_events (
+            CREATE TABLE playback_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT NOT NULL,
                 item_id TEXT NOT NULL,
@@ -41,19 +41,20 @@ internal sealed class Migration001ListeningActivity : IHarmonieDatabaseMigration
                 is_early_skip INTEGER NOT NULL CHECK (is_early_skip IN (0, 1)),
                 duration_ticks INTEGER NULL,
                 played_to_completion INTEGER NOT NULL CHECK (played_to_completion IN (0, 1)),
+                counted_as_play INTEGER NOT NULL CHECK (counted_as_play IN (0, 1)),
                 play_session_id TEXT NULL,
                 client_name TEXT NULL,
                 device_id TEXT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS favorite_tracks (
+            CREATE TABLE favorite_tracks (
                 user_id TEXT NOT NULL,
                 item_id TEXT NOT NULL,
                 observed_at_utc TEXT NOT NULL,
                 PRIMARY KEY (user_id, item_id)
             );
 
-            CREATE TABLE IF NOT EXISTS playlist_tracks (
+            CREATE TABLE playlist_tracks (
                 playlist_id TEXT NOT NULL,
                 item_id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
@@ -63,18 +64,18 @@ internal sealed class Migration001ListeningActivity : IHarmonieDatabaseMigration
                 PRIMARY KEY (playlist_id, item_id)
             );
 
-            CREATE INDEX IF NOT EXISTS ix_playback_events_user_stopped
+            CREATE INDEX ix_playback_events_user_stopped
                 ON playback_events (user_id, stopped_utc DESC);
-            CREATE INDEX IF NOT EXISTS ix_playback_events_item
+            CREATE INDEX ix_playback_events_item
                 ON playback_events (item_id);
-            CREATE INDEX IF NOT EXISTS ix_favorite_tracks_user
+            CREATE INDEX ix_favorite_tracks_user
                 ON favorite_tracks (user_id);
-            CREATE INDEX IF NOT EXISTS ix_playlist_tracks_user_item
+            CREATE INDEX ix_playlist_tracks_user_item
                 ON playlist_tracks (user_id, item_id);
-            CREATE INDEX IF NOT EXISTS ix_playlist_tracks_user_added
+            CREATE INDEX ix_playlist_tracks_user_added
                 ON playlist_tracks (user_id, added_at_utc DESC);
 
-            CREATE VIEW IF NOT EXISTS user_track_metrics AS
+            CREATE VIEW user_track_metrics AS
             WITH track_keys AS (
                 SELECT user_id, item_id FROM bootstrap_activity
                 UNION
@@ -91,7 +92,7 @@ internal sealed class Migration001ListeningActivity : IHarmonieDatabaseMigration
                     SUM(CASE
                         WHEN bootstrap.captured_at_utc IS NULL
                             OR events.stopped_utc > bootstrap.captured_at_utc
-                        THEN 1 ELSE 0 END) AS new_play_count,
+                        THEN events.counted_as_play ELSE 0 END) AS new_play_count,
                     SUM(CASE
                         WHEN events.active_listen_ticks IS NOT NULL
                             AND events.duration_ticks > 0

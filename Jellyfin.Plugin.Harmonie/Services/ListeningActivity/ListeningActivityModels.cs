@@ -65,6 +65,7 @@ internal sealed record ListeningActivityEvent(
     bool IsEarlySkip,
     long? DurationTicks,
     bool PlayedToCompletion,
+    bool CountedAsPlay,
     string? PlaySessionId,
     string? ClientName,
     string? DeviceId);

@@ -53,6 +53,17 @@ internal sealed class PlaybackSessionAccumulator
         _hasPlaybackStart = hasPlaybackStart;
     }
 
+    internal DateTimeOffset LastObservedUtc
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _lastObservedAt;
+            }
+        }
+    }
+
     internal static PlaybackSessionAccumulator FromStart(
         DateTimeOffset startedAt,
         long? positionTicks,

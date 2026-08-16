@@ -164,7 +164,6 @@ public sealed class HarmonieDatabase
         {
             DataSource = _databasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
-            Cache = SqliteCacheMode.Shared,
         };
         var connection = new SqliteConnection(builder.ToString());
         connection.Open();

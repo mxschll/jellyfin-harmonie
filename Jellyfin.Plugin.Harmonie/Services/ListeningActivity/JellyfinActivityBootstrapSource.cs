@@ -6,6 +6,7 @@ using Jellyfin.Data.Enums;
 using Jellyfin.Data.Entities;
 #else
 using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Database.Implementations.Enums;
 #endif
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities;
@@ -24,8 +25,6 @@ internal interface IListeningActivityBootstrapSource
 /// </summary>
 internal sealed class JellyfinActivityBootstrapSource : IListeningActivityBootstrapSource
 {
-    private const int PageSize = 500;
-
     private readonly IUserManager _userManager;
     private readonly ILibraryManager _libraryManager;
     private readonly IUserDataManager _userDataManager;
@@ -58,50 +57,34 @@ internal sealed class JellyfinActivityBootstrapSource : IListeningActivityBootst
         List<ListeningActivityBootstrapRecord> records,
         CancellationToken cancellationToken)
     {
-        var startIndex = 0;
-        while (true)
+        var items = _libraryManager.GetItemList(new InternalItemsQuery(user)
+        {
+            IncludeItemTypes = new[] { BaseItemKind.Audio },
+            IsPlayed = true,
+            Recursive = true,
+            OrderBy = new[] { (ItemSortBy.SortName, SortOrder.Ascending) },
+        });
+
+        foreach (var item in items)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var page = _libraryManager.GetItemList(new InternalItemsQuery(user)
+            if (item is not Audio audio)
             {
-                IncludeItemTypes = new[] { BaseItemKind.Audio },
-                IsPlayed = true,
-                Recursive = true,
-                StartIndex = startIndex,
-                Limit = PageSize,
-            });
-            if (page.Count == 0)
-            {
-                return;
+                continue;
             }
 
-            foreach (var item in page)
+            var data = _userDataManager.GetUserData(user, audio);
+            if (data?.LastPlayedDate is null || data.PlayCount <= 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (item is not Audio audio)
-                {
-                    continue;
-                }
-
-                var data = _userDataManager.GetUserData(user, audio);
-                if (data?.LastPlayedDate is null || data.PlayCount <= 0)
-                {
-                    continue;
-                }
-
-                records.Add(new ListeningActivityBootstrapRecord(
-                    user.Id,
-                    audio.Id,
-                    ToUtc(data.LastPlayedDate.Value),
-                    data.PlayCount,
-                    DateTimeOffset.UtcNow));
+                continue;
             }
 
-            startIndex += page.Count;
-            if (page.Count < PageSize)
-            {
-                return;
-            }
+            records.Add(new ListeningActivityBootstrapRecord(
+                user.Id,
+                audio.Id,
+                ToUtc(data.LastPlayedDate.Value),
+                data.PlayCount,
+                DateTimeOffset.UtcNow));
         }
     }
 
