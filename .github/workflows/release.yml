@@ -139,7 +139,7 @@ jobs:
 
       - name: Install git-cliff
         if: steps.decide.outputs.skip == 'false'
-        uses: taiki-e/install-action@v2.85.4
+        uses: taiki-e/install-action@v2.85.13
         with:
           tool: git-cliff
 
