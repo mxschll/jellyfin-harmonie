@@ -55,6 +55,30 @@ public class HarmoniePlugin : BasePlugin<PluginConfiguration>, IHasWebPages
                     "{0}.Configuration.configPage.html",
                     GetType().Namespace),
             },
+            new PluginPageInfo
+            {
+                Name = "Harmonie Playlists",
+                EmbeddedResourcePath = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}.Configuration.autoPlaylistsPage.html",
+                    GetType().Namespace),
+            },
+            new PluginPageInfo
+            {
+                Name = "Harmonie Prefixes",
+                EmbeddedResourcePath = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}.Configuration.prefixPlaylistsPage.html",
+                    GetType().Namespace),
+            },
+            new PluginPageInfo
+            {
+                Name = "Harmonie Status",
+                EmbeddedResourcePath = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}.Configuration.statusPage.html",
+                    GetType().Namespace),
+            },
         };
     }
 }

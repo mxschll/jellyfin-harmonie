@@ -3,25 +3,29 @@
 <head>
     <meta charset="utf-8">
     <title>Harmonie</title>
-    <style>
-        /* When a fieldDescription introduces a section (sits right
-           after an <h2>), the h2's bottom margin produces a comfortable
-           gap above it but the next inputContainer sits flush below.
-           Even out the spacing. */
-        #HarmonieConfigPage h2 + .fieldDescription {
-            margin-bottom: 1.25em;
-        }
-    </style>
 </head>
 <body>
     <div id="HarmonieConfigPage"
          data-role="page"
-         class="page type-interior pluginConfigurationPage"
+         class="page type-interior pluginConfigurationPage withTabs harmoniePage"
          data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <style>
+        /* When a fieldDescription introduces a section (sits right
+           after a heading), even out the spacing. */
+        .harmoniePage h2 + .fieldDescription,
+        .harmoniePage h3 + .fieldDescription {
+            margin-bottom: 1.25em;
+        }
+
+        .harmoniePage h3 {
+            margin: 2em 0 0.75em;
+        }
+    </style>
         <div data-role="content">
             <div class="content-primary">
                 <form id="HarmonieConfigForm">
-                    <h2>Harmonie connection</h2>
+<h2>Setup</h2>
+<h3>Connection</h3>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="HarmonieUrl">Harmonie URL</label>
                         <input id="HarmonieUrl" name="HarmonieUrl" type="text" is="emby-input" />
@@ -38,312 +42,29 @@
                     </div>
                     <div>
                         <button is="emby-button" type="button" id="TestConnection" class="raised emby-button">
-                            <span>Refresh status</span>
+                            <span>Test connection</span>
                         </button>
                         <span id="TestConnectionResult" style="margin-left: 1em;"></span>
                     </div>
 
-                    <div id="HarmonieStatusPanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-                            <tbody>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Version</td><td><code id="StatusVersion"></code></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Workers</td><td><span id="StatusWorkers"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Embedding dim</td><td><span id="StatusEmbeddingDim"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="StatusSchemaVersion"></span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Libraries</td><td><span id="StatusLibraries"></span></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <h2>Library scan</h2>
+<h3>Path mappings</h3>
                     <div class="fieldDescription">
-                        Trigger harmonie to scan its libraries for new or changed tracks. The forced variant re-extracts every track instead of skipping unchanged files.
+                        Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>.
                     </div>
-                    <div>
-                        <button is="emby-button" type="button" id="TriggerScan" class="raised emby-button">
-                            <span>Trigger scan</span>
-                        </button>
-                        <button is="emby-button" type="button" id="TriggerScanForce" class="raised emby-button" style="margin-left: 0.5em;">
-                            <span>Trigger scan (force)</span>
-                        </button>
-                    </div>
-
-                    <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-                            <tbody>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">State</td><td><strong id="ScanStateText"></strong></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Phase</td><td><span id="ScanPhaseText"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Failed</td><td><span id="ScanFailed"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
-                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last error</td><td><code id="ScanLastError"></code></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <h2>[RADIO] Defaults</h2>
-
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="RadioSeedCount">[RADIO] seed count</label>
-                        <input id="RadioSeedCount" name="RadioSeedCount" type="number" is="emby-input" min="1" max="20" />
+                        <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mapping</label>
+                        <input id="PathMappings" name="PathMappings" type="text" is="emby-input"
+                               style="font-family: monospace;"
+                               placeholder="/music => /media/Music" />
                         <div class="fieldDescription">
-                            The first N tracks of a <code>[RADIO]</code> playlist are the seeds. Anything below them gets replaced on each refresh. Reorder a track into the top N to make it a seed. 1&ndash;20.
+                            <button is="emby-button" type="button" id="SuggestPathMappings" class="button-link emby-button" style="padding: 0;">
+                                <span>Suggest from libraries</span>
+                            </button>
+                            <span id="SuggestPathMappingsResult" style="margin-left: 0.75em;"></span>
                         </div>
                     </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultRadioN">[RADIO] length (n)</label>
-                        <input id="DefaultRadioN" name="DefaultRadioN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="RadioVariation">[RADIO] variation</label>
-                        <input id="RadioVariation" name="RadioVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="RadioBpmTolerance">[RADIO] BPM tolerance</label>
-                        <input id="RadioBpmTolerance" name="RadioBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
-                        <div class="fieldDescription">
-                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="RadioKeyCompatible" name="RadioKeyCompatible" type="checkbox" is="emby-checkbox" />
-                            <span>[RADIO] mix only harmonically compatible keys</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
-                        </div>
-                    </div>
-
-                    <h2>[DRIFT] Defaults</h2>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultDriftN">[DRIFT] length (n)</label>
-                        <input id="DefaultDriftN" name="DefaultDriftN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DriftVariation">[DRIFT] variation</label>
-                        <input id="DriftVariation" name="DriftVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultChunkSize">[DRIFT] chunk size</label>
-                        <input id="DefaultChunkSize" name="DefaultChunkSize" type="number" is="emby-input" min="1" max="100" />
-                        <div class="fieldDescription">
-                            How many tracks the playlist stays on each anchor before re-anchoring on the most recent pick. Larger values stay closer to the seed; smaller drifts faster. 1&ndash;100.
-                        </div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DriftBpmTolerance">[DRIFT] BPM tolerance</label>
-                        <input id="DriftBpmTolerance" name="DriftBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
-                        <div class="fieldDescription">
-                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="DriftKeyCompatible" name="DriftKeyCompatible" type="checkbox" is="emby-checkbox" />
-                            <span>[DRIFT] mix only harmonically compatible keys</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
-                        </div>
-                    </div>
-
-                    <h2>[MIX] Defaults</h2>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixN">[MIX] length (n)</label>
-                        <input id="DefaultMixN" name="DefaultMixN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="MixVariation">[MIX] variation</label>
-                        <input id="MixVariation" name="MixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixDays">[MIX] playback window (days)</label>
-                        <input id="DefaultMixDays" name="DefaultMixDays" type="number" is="emby-input" min="1" max="365" />
-                        <div class="fieldDescription">
-                            How far back to look for seed tracks. 1&ndash;365.
-                        </div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultMixSeedCap">[MIX] seed count cap</label>
-                        <input id="DefaultMixSeedCap" name="DefaultMixSeedCap" type="number" is="emby-input" min="1" max="100" />
-                        <div class="fieldDescription">
-                            Maximum number of seeds selected from stored listening and preference data. 1&ndash;100.
-                        </div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="DefaultMixUseTopPlayed" name="DefaultMixUseTopPlayed" type="checkbox" is="emby-checkbox" />
-                            <span>[MIX] favor long-term preferences</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Off: recent signals have more weight. On: long-term plays and explicit preferences have more weight. Override with <code>[MIX top]</code>.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="DefaultMixUsesDrift" name="DefaultMixUsesDrift" type="checkbox" is="emby-checkbox" />
-                            <span>[MIX] use drift mode for expansion</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Off: harmonie returns tracks similar to the seeds. On: harmonie walks away from the seeds for more variety. Override per playlist with <code>[MIX drift]</code>.
-                        </div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="MixBpmTolerance">[MIX] BPM tolerance</label>
-                        <input id="MixBpmTolerance" name="MixBpmTolerance" type="number" is="emby-input" min="0" step="any" placeholder="(no constraint)" />
-                        <div class="fieldDescription">
-                            Maximum BPM gap between consecutive tracks. Leave empty for no constraint.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="MixKeyCompatible" name="MixKeyCompatible" type="checkbox" is="emby-checkbox" />
-                            <span>[MIX] mix only harmonically compatible keys</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            When on, consecutive tracks must share a Camelot-compatible key (same key, &plusmn;1 wheel position, or parallel mode). Tracks without key info are excluded.
-                        </div>
-                    </div>
-
-                    <h2>[STYLE] / [GENRE] Defaults</h2>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleGenreN">[STYLE] / [GENRE] length (n)</label>
-                        <input id="DefaultStyleGenreN" name="DefaultStyleGenreN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks. 1&ndash;500.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DefaultStyleMin">[STYLE] / [GENRE] minimum probability</label>
-                        <input id="DefaultStyleMin" name="DefaultStyleMin" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">
-                            Minimum classifier confidence a track needs to qualify. 0.0 lets every loosely-tagged track through; 1.0 only the strongest matches. Override per playlist with <code>style_min=F</code>. 0.0&ndash;1.0.
-                        </div>
-                    </div>
-
-                    <h2>Instant Mix / Song Radio</h2>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableInstantMixOverride" name="EnableInstantMixOverride" type="checkbox" is="emby-checkbox" />
-                            <span>Use audio similarity for Instant Mix and Song Radio</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Replaces Jellyfin's built-in Instant Mix (also called Song Radio in clients like Finamp) with audio-similarity matches from harmonie. When the seed track isn't in harmonie's index, harmonie returns nothing, or the service is unreachable, the plugin falls back to Jellyfin's default genre-based behaviour so the endpoint always returns something.
-                        </div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="InstantMixVariation">Instant Mix variation</label>
-                        <input id="InstantMixVariation" name="InstantMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">0 always returns the same ranking; 1 uses the most variation harmonie allows while preserving similarity.</div>
-                    </div>
-
-                    <h2>Personal Mix playlists</h2>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
-                            <span>Enable per-user Personal Mix playlists</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Optional. The weekly refresh task creates and maintains activity-derived playlists for each Jellyfin user. Adjust the cadence under Scheduled Tasks. As tastes shift, playlists rename and refill in place.
-                        </div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableOnRepeatPlaylists" name="EnableOnRepeatPlaylists" type="checkbox" is="emby-checkbox" />
-                            <span>Enable per-user On Repeat playlists</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Optional. The daily refresh task keeps one playlist per user with the exact tracks they have played on loop over the last month, most-played first. Built from stored listening data only; works without harmonie.
-                        </div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Maximum playlists per user</label>
-                        <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
-                        <div class="fieldDescription">The actual count adapts to available preference data. Reducing the maximum deletes excess playlists. 0&ndash;10.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Activity window (days)</label>
-                        <input id="StylePlaylistDays" name="StylePlaylistDays" type="number" is="emby-input" min="1" max="365" />
-                        <div class="fieldDescription">How far back to look when computing each user's top styles. 1&ndash;365.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
-                        <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
-                        <div class="fieldDescription">Number of tracks in each Personal Mix playlist. 1&ndash;500.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PersonalMixVariation">Personal Mix variation</label>
-                        <input id="PersonalMixVariation" name="PersonalMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
-                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
-                    </div>
-
-                    <h2>Listening data</h2>
-                    <div class="fieldDescription">
-                        The plugin stores listening and preference data in this local database.
-                    </div>
-                    <div id="ListeningActivityPanel" style="margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
-                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-                            <tbody>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Database</td><td><code id="ActivityDatabasePath" style="overflow-wrap: anywhere;"></code></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="ActivitySchemaVersion">—</span></td></tr>
-                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Size</td><td><span id="ActivityDatabaseSize">—</span></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <h2>Path mappings</h2>
-                    <div class="fieldDescription">
-                        Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PathMappings">Mappings</label>
-                        <textarea id="PathMappings"
-                                  name="PathMappings"
-                                  is="emby-input"
-                                  rows="4"
-                                  style="width: 100%; font-family: monospace;"
-                                  placeholder="/music => /media/Music"></textarea>
-                    </div>
-                    <div>
-                        <button is="emby-button" type="button" id="SuggestPathMappings" class="raised emby-button">
-                            <span>Suggest from libraries</span>
-                        </button>
-                        <span id="SuggestPathMappingsResult" style="margin-left: 1em;"></span>
-                    </div>
-
-                    <div>
+                    <div style="margin-top: 2.5em;">
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
                         </button>
@@ -355,10 +76,22 @@
             (function () {
                 var pluginUniqueId = '485e9b6f-f623-4c97-9679-ad33c1db0d18';
 
-                function pathMappingsToText(mappings) {
-                    return (mappings || [])
-                        .map(function (m) { return (m.HarmoniePrefix || '') + ' => ' + (m.JellyfinPrefix || ''); })
-                        .join('\n');
+                function getTabs() {
+                    return [
+                        { href: 'configurationpage?name=Harmonie', name: 'Setup' },
+                        { href: 'configurationpage?name=Harmonie%20Playlists', name: 'Automatic playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Prefixes', name: 'Prefix playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Status', name: 'Status' }
+                    ];
+                }
+
+function pathMappingsToText(mappings) {
+                    // Single-mapping input: render the first mapping only.
+                    // A multi-mapping config from an older version would
+                    // otherwise mangle into one line (inputs strip newlines).
+                    var m = (mappings || [])[0];
+                    if (!m) return '';
+                    return (m.HarmoniePrefix || '') + ' => ' + (m.JellyfinPrefix || '');
                 }
 
                 function pathMappingsFromText(text) {
@@ -380,6 +113,7 @@
 
                 document.querySelector('#HarmonieConfigPage')
                     .addEventListener('pageshow', function () {
+                        LibraryMenu.setTabs('harmonie', 0, getTabs);
                         Dashboard.showLoadingMsg();
                         ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
                             document.querySelector('#HarmonieUrl').value = config.HarmonieUrl || '';
@@ -387,53 +121,10 @@
                             document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds || 30;
                             document.querySelector('#PathMappings').value =
                                 pathMappingsToText(config.PathMappings);
-                            document.querySelector('#RadioSeedCount').value = config.RadioSeedCount || 5;
-                            document.querySelector('#DefaultRadioN').value = config.DefaultRadioN || 20;
-                            document.querySelector('#DefaultDriftN').value = config.DefaultDriftN || 20;
-                            document.querySelector('#DefaultChunkSize').value = config.DefaultChunkSize || 5;
-                            // BPM tolerance fields are nullable. Empty input = null.
-                            function readBpm(field) {
-                                var v = config[field];
-                                return (v === null || v === undefined) ? '' : v;
-                            }
-                            function readVariation(field) {
-                                var v = config[field];
-                                return (v === null || v === undefined) ? 0.25 : v;
-                            }
-                            document.querySelector('#RadioVariation').value = readVariation('RadioVariation');
-                            document.querySelector('#RadioBpmTolerance').value = readBpm('RadioBpmTolerance');
-                            document.querySelector('#RadioKeyCompatible').checked = !!config.RadioKeyCompatible;
-                            document.querySelector('#DriftBpmTolerance').value = readBpm('DriftBpmTolerance');
-                            document.querySelector('#DriftKeyCompatible').checked = !!config.DriftKeyCompatible;
-                            document.querySelector('#DriftVariation').value = readVariation('DriftVariation');
-                            document.querySelector('#MixBpmTolerance').value = readBpm('MixBpmTolerance');
-                            document.querySelector('#MixKeyCompatible').checked = !!config.MixKeyCompatible;
-                            document.querySelector('#MixVariation').value = readVariation('MixVariation');
-                            document.querySelector('#DefaultMixN').value = config.DefaultMixN || 20;
-                            document.querySelector('#DefaultMixDays').value = config.DefaultMixDays || 7;
-                            document.querySelector('#DefaultMixSeedCap').value = config.DefaultMixSeedCap || 10;
-                            document.querySelector('#DefaultMixUseTopPlayed').checked = !!config.DefaultMixUseTopPlayed;
-                            document.querySelector('#DefaultMixUsesDrift').checked = !!config.DefaultMixUsesDrift;
-                            document.querySelector('#DefaultStyleGenreN').value = config.DefaultStyleGenreN || 100;
-                            // DefaultStyleMin can legitimately be 0; only fall back when actually missing.
-                            document.querySelector('#DefaultStyleMin').value =
-                                (config.DefaultStyleMin === null || config.DefaultStyleMin === undefined)
-                                    ? 0.6 : config.DefaultStyleMin;
-                            document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
-                            document.querySelector('#EnableOnRepeatPlaylists').checked = !!config.EnableOnRepeatPlaylists;
-                            document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
-                            document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
-                            document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
-                            document.querySelector('#PersonalMixVariation').value = readVariation('PersonalMixVariation');
-                            // EnableInstantMixOverride defaults to true on fresh installs;
-                            // existing saved configs that pre-date this setting also get true via
-                            // the C# constructor. Treat undefined as true here so the checkbox
-                            // never starts unchecked just because the API response omitted the field.
-                            document.querySelector('#EnableInstantMixOverride').checked =
-                                config.EnableInstantMixOverride === undefined ? true : !!config.EnableInstantMixOverride;
-                            document.querySelector('#InstantMixVariation').value = readVariation('InstantMixVariation');
                             Dashboard.hideLoadingMsg();
-                            loadInitialState();
+                            if (document.querySelector('#HarmonieUrl').value) {
+                                testConnection();
+                            }
                         });
                     });
 
@@ -448,58 +139,6 @@
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
                             config.PathMappings =
                                 pathMappingsFromText(document.querySelector('#PathMappings').value);
-                            config.RadioSeedCount =
-                                parseInt(document.querySelector('#RadioSeedCount').value, 10) || 5;
-                            config.DefaultRadioN =
-                                parseInt(document.querySelector('#DefaultRadioN').value, 10) || 20;
-                            config.DefaultDriftN =
-                                parseInt(document.querySelector('#DefaultDriftN').value, 10) || 20;
-                            config.DefaultChunkSize =
-                                parseInt(document.querySelector('#DefaultChunkSize').value, 10) || 5;
-                            function readVariation(field) {
-                                var parsed = parseFloat(document.querySelector('#' + field).value);
-                                return isNaN(parsed) ? 0.25 : Math.min(1, Math.max(0, parsed));
-                            }
-                            config.RadioVariation = readVariation('RadioVariation');
-                            var bpmTolRadioRaw = document.querySelector('#RadioBpmTolerance').value;
-                            config.RadioBpmTolerance = bpmTolRadioRaw === '' ? null : parseFloat(bpmTolRadioRaw);
-                            config.RadioKeyCompatible = document.querySelector('#RadioKeyCompatible').checked;
-                            var bpmTolDriftRaw = document.querySelector('#DriftBpmTolerance').value;
-                            config.DriftBpmTolerance = bpmTolDriftRaw === '' ? null : parseFloat(bpmTolDriftRaw);
-                            config.DriftKeyCompatible = document.querySelector('#DriftKeyCompatible').checked;
-                            config.DriftVariation = readVariation('DriftVariation');
-                            var bpmTolMixRaw = document.querySelector('#MixBpmTolerance').value;
-                            config.MixBpmTolerance = bpmTolMixRaw === '' ? null : parseFloat(bpmTolMixRaw);
-                            config.MixKeyCompatible = document.querySelector('#MixKeyCompatible').checked;
-                            config.MixVariation = readVariation('MixVariation');
-                            config.DefaultMixN =
-                                parseInt(document.querySelector('#DefaultMixN').value, 10) || 20;
-                            config.DefaultMixDays =
-                                parseInt(document.querySelector('#DefaultMixDays').value, 10) || 7;
-                            config.DefaultMixSeedCap =
-                                parseInt(document.querySelector('#DefaultMixSeedCap').value, 10) || 10;
-                            config.DefaultMixUseTopPlayed = document.querySelector('#DefaultMixUseTopPlayed').checked;
-                            config.DefaultMixUsesDrift = document.querySelector('#DefaultMixUsesDrift').checked;
-                            config.DefaultStyleGenreN =
-                                parseInt(document.querySelector('#DefaultStyleGenreN').value, 10) || 100;
-                            var styleMinRaw = document.querySelector('#DefaultStyleMin').value;
-                            var styleMinParsed = parseFloat(styleMinRaw);
-                            config.DefaultStyleMin =
-                                (styleMinRaw === '' || isNaN(styleMinParsed)) ? 0.6
-                                : Math.min(1, Math.max(0, styleMinParsed));
-                            config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
-                            config.EnableOnRepeatPlaylists = document.querySelector('#EnableOnRepeatPlaylists').checked;
-                            config.StylePlaylistCount =
-                                parseInt(document.querySelector('#StylePlaylistCount').value, 10);
-                            if (isNaN(config.StylePlaylistCount)) { config.StylePlaylistCount = 5; }
-                            config.StylePlaylistDays =
-                                parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
-                            config.StylePlaylistN =
-                                parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
-                            config.PersonalMixVariation = readVariation('PersonalMixVariation');
-                            config.EnableInstantMixOverride =
-                                document.querySelector('#EnableInstantMixOverride').checked;
-                            config.InstantMixVariation = readVariation('InstantMixVariation');
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });
@@ -507,184 +146,39 @@
                         return false;
                     });
 
-                function formatBytes(n) {
-                    if (n == null) return '?';
-                    if (n < 1024) return n + ' B';
-                    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KiB';
-                    if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MiB';
-                    return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
-                }
-
-                function formatDuration(seconds) {
-                    if (seconds == null || seconds < 0) return '?';
-                    var s = Math.floor(seconds);
-                    var h = Math.floor(s / 3600);
-                    var m = Math.floor((s % 3600) / 60);
-                    var rs = s % 60;
-                    if (h > 0) return h + 'h ' + m + 'm';
-                    if (m > 0) return m + 'm ' + rs + 's';
-                    return rs + 's';
-                }
-
-                function renderStatus(status) {
-                    document.querySelector('#StatusVersion').textContent = status.version || '?';
-                    document.querySelector('#StatusTracks').textContent = (status.tracks || 0).toLocaleString();
-                    document.querySelector('#StatusDuration').textContent = formatDuration(status.total_duration_sec);
-                    document.querySelector('#StatusDbSize').textContent = formatBytes(status.db_size_bytes);
-                    document.querySelector('#StatusWorkers').textContent = status.workers || '?';
-                    document.querySelector('#StatusEmbeddingDim').textContent = status.embedding_dim || '?';
-                    document.querySelector('#StatusSchemaVersion').textContent = status.schema_version || '?';
-                    document.querySelector('#StatusLibraries').textContent =
-                        (status.libraries || []).join(', ') || '(none)';
-                    document.querySelector('#HarmonieStatusPanel').style.display = '';
-                }
-
-                function renderScan(scan) {
-                    document.querySelector('#ScanStatePanel').style.display = '';
-                    document.querySelector('#ScanStateText').textContent = scan.state || '?';
-                    document.querySelector('#ScanPhaseText').textContent = scan.phase || 'idle';
-
-                    document.querySelector('#ScanDiscovered').textContent = (scan.discovered || 0).toLocaleString();
-                    document.querySelector('#ScanFull').textContent = (scan.full || 0).toLocaleString();
-                    document.querySelector('#ScanDescriptorsOnly').textContent = (scan.descriptors_only || 0).toLocaleString();
-                    document.querySelector('#ScanSkipped').textContent = (scan.skipped || 0).toLocaleString();
-                    document.querySelector('#ScanFailed').textContent = (scan.failed || 0).toLocaleString();
-                    document.querySelector('#ScanRemoved').textContent = (scan.removed || 0).toLocaleString();
-
-                    document.querySelector('#ScanLastDuration').textContent =
-                        scan.last_duration_sec != null ? formatDuration(scan.last_duration_sec) : '—';
-                    document.querySelector('#ScanLastError').textContent = scan.last_error || '—';
-                }
-
-                function renderListeningActivity(status) {
-                    document.querySelector('#ActivityDatabasePath').textContent = status.database_path || '?';
-                    document.querySelector('#ActivitySchemaVersion').textContent =
-                        status.schema_version == null ? '—' : status.schema_version;
-                    document.querySelector('#ActivityDatabaseSize').textContent = formatBytes(status.size_bytes);
-                }
-
-                function loadListeningActivity() {
-                    return ApiClient.fetch({
-                        type: 'GET',
-                        url: ApiClient.getUrl('Plugins/Harmonie/ListeningActivity'),
+                // Tests against the form values, not the saved config, so
+                // the admin doesn't have to save before verifying a URL
+                // change. Runs on page load and on the button. Details
+                // live on the Status tab.
+                function testConnection() {
+                    var resultEl = document.querySelector('#TestConnectionResult');
+                    resultEl.style.color = '';
+                    resultEl.textContent = 'Testing\u2026';
+                    var body = {
+                        Url: document.querySelector('#HarmonieUrl').value,
+                        ApiKey: document.querySelector('#HarmonieApiKey').value,
+                        TimeoutSeconds: parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30
+                    };
+                    ApiClient.fetch({
+                        type: 'POST',
+                        url: ApiClient.getUrl('Plugins/Harmonie/Status/Test'),
+                        data: JSON.stringify(body),
+                        contentType: 'application/json',
                         dataType: 'json'
-                    }).then(renderListeningActivity).catch(function () {
-                        document.querySelector('#ActivityDatabasePath').textContent = 'Unavailable';
+                    }).then(function (status) {
+                        resultEl.style.color = '#52B54B';
+                        resultEl.textContent = 'Connected to harmonie ' + (status.version || '?') + ' ('
+                            + (status.tracks || 0).toLocaleString() + ' tracks indexed).';
+                    }).catch(function (err) {
+                        resultEl.style.color = '#CC3333';
+                        resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
                     });
-                }
-
-                var scanPollTimer = null;
-                function pollScanWhileRunning() {
-                    if (scanPollTimer) clearTimeout(scanPollTimer);
-                    scanPollTimer = setTimeout(function () {
-                        ApiClient.fetch({
-                            type: 'GET',
-                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
-                            dataType: 'json'
-                        }).then(function (scan) {
-                            renderScan(scan);
-                            // Refresh status counters too — track count moves while scanning.
-                            return ApiClient.fetch({
-                                type: 'GET',
-                                url: ApiClient.getUrl('Plugins/Harmonie/Status'),
-                                dataType: 'json'
-                            }).then(renderStatus).then(function () { return scan; });
-                        }).then(function (scan) {
-                            if (scan.state === 'scanning') {
-                                pollScanWhileRunning();
-                            }
-                        }).catch(function () {
-                            // Stop polling on error; user can refresh manually.
-                        });
-                    }, 2000);
-                }
-
-                function loadInitialState() {
-                    ApiClient.fetch({
-                        type: 'GET',
-                        url: ApiClient.getUrl('Plugins/Harmonie/Status'),
-                        dataType: 'json'
-                    }).then(renderStatus).catch(function () { /* not configured yet */ });
-
-                    ApiClient.fetch({
-                        type: 'GET',
-                        url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
-                        dataType: 'json'
-                    }).then(function (scan) {
-                        renderScan(scan);
-                        if (scan.state === 'scanning') pollScanWhileRunning();
-                    }).catch(function () { /* not configured yet */ });
-
-                    loadListeningActivity();
                 }
 
                 document.querySelector('#TestConnection')
-                    .addEventListener('click', function () {
-                        var resultEl = document.querySelector('#TestConnectionResult');
-                        resultEl.textContent = 'Refreshing\u2026';
-                        // Test against the form values, not the saved
-                        // config. This way the admin doesn't have to
-                        // save before verifying a URL change.
-                        var body = {
-                            Url: document.querySelector('#HarmonieUrl').value,
-                            ApiKey: document.querySelector('#HarmonieApiKey').value,
-                            TimeoutSeconds: parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30
-                        };
-                        ApiClient.fetch({
-                            type: 'POST',
-                            url: ApiClient.getUrl('Plugins/Harmonie/Status/Test'),
-                            data: JSON.stringify(body),
-                            contentType: 'application/json',
-                            dataType: 'json'
-                        }).then(function (status) {
-                            renderStatus(status);
-                            resultEl.textContent = 'Connected.';
-                        }).catch(function (err) {
-                            document.querySelector('#HarmonieStatusPanel').style.display = 'none';
-                            resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
-                        });
-                    });
+                    .addEventListener('click', testConnection);
 
-                function triggerScan(force) {
-                    // Show "scanning" / "starting" immediately so the
-                    // table reacts the moment the button is pressed.
-                    // Real counters arrive on the first poll tick.
-                    document.querySelector('#ScanStatePanel').style.display = '';
-                    document.querySelector('#ScanStateText').textContent = 'scanning';
-                    document.querySelector('#ScanPhaseText').textContent = 'starting';
-                    document.querySelector('#ScanLastDuration').textContent = '—';
-                    document.querySelector('#ScanLastError').textContent = '—';
-
-                    var url = ApiClient.getUrl('Plugins/Harmonie/Scan' + (force ? '?force=true' : ''));
-                    ApiClient.fetch({
-                        type: 'POST',
-                        url: url,
-                        dataType: 'json'
-                    }).then(function (scan) {
-                        // The POST snapshot races with harmonie's worker
-                        // thread starting. If it still shows 'idle', keep
-                        // the optimistic state and let polling catch up;
-                        // otherwise reflect what the server reports.
-                        if (scan && scan.state && scan.state !== 'idle') {
-                            renderScan(scan);
-                        }
-                        pollScanWhileRunning();
-                    }).catch(function () {
-                        // Trigger failed — restore by fetching real state.
-                        ApiClient.fetch({
-                            type: 'GET',
-                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
-                            dataType: 'json'
-                        }).then(renderScan).catch(function () { /* ignore */ });
-                    });
-                }
-
-                document.querySelector('#TriggerScan')
-                    .addEventListener('click', function () { triggerScan(false); });
-                document.querySelector('#TriggerScanForce')
-                    .addEventListener('click', function () { triggerScan(true); });
-
-                // Auto-save connection fields. The status and scan
+// Auto-save connection fields. The status and scan
                 // panels reflect the saved config, so leaving them
                 // stale after a URL edit is a UX trap (the user thinks
                 // the panel is live for the value they just typed).
@@ -709,9 +203,6 @@
                             saved.TimeoutSeconds =
                                 parseInt(document.querySelector('#TimeoutSeconds').value, 10) || 30;
                             return ApiClient.updatePluginConfiguration(pluginUniqueId, saved);
-                        }).then(function () {
-                            // Panels read from the just-saved config.
-                            loadInitialState();
                         }).catch(function (err) {
                             // Keep the panels on whatever state they
                             // last showed; the next keystroke (or
@@ -727,7 +218,7 @@
                 document.querySelector('#TimeoutSeconds')
                     .addEventListener('input', autoSaveConnectionFields);
 
-                function basename(p) {
+function basename(p) {
                     if (!p) return '';
                     var trimmed = p.replace(/[\\/]+$/, '');
                     var idx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
@@ -793,7 +284,8 @@
                         }).then(function (suggestions) {
                             var result = suggestMappings(suggestions);
                             if (result.text) {
-                                document.querySelector('#PathMappings').value = result.text;
+                                // Single-mapping input: use the first suggestion.
+                                document.querySelector('#PathMappings').value = result.text.split('\n')[0];
                             }
 
                             resultEl.textContent = result.note;

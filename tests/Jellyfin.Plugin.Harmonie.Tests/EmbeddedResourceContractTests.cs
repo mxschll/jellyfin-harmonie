@@ -16,6 +16,9 @@ public class EmbeddedResourceContractTests
 {
     [Theory]
     [InlineData("Jellyfin.Plugin.Harmonie.Configuration.configPage.html")]
+    [InlineData("Jellyfin.Plugin.Harmonie.Configuration.autoPlaylistsPage.html")]
+    [InlineData("Jellyfin.Plugin.Harmonie.Configuration.prefixPlaylistsPage.html")]
+    [InlineData("Jellyfin.Plugin.Harmonie.Configuration.statusPage.html")]
     [InlineData("Jellyfin.Plugin.Harmonie.Resources.Inter-Bold.ttf")]
     public void Plugin_assembly_embeds_resource(string name)
     {

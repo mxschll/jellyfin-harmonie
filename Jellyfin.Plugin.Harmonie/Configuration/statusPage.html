@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Harmonie</title>
+</head>
+<body>
+    <div id="HarmonieStatusPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage withTabs harmoniePage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <style>
+        /* When a fieldDescription introduces a section (sits right
+           after a heading), even out the spacing. */
+        .harmoniePage h2 + .fieldDescription,
+        .harmoniePage h3 + .fieldDescription {
+            margin-bottom: 1.25em;
+        }
+
+        .harmoniePage h3 {
+            margin: 2em 0 0.75em;
+        }
+    </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>Status</h2>
+
+                    <h3>Harmonie service</h3>
+                    <div>
+                        <button is="emby-button" type="button" id="RefreshStatus" class="raised emby-button">
+                            <span>Refresh</span>
+                        </button>
+                        <span id="RefreshStatusResult" style="margin-left: 1em;"></span>
+                    </div>
+
+<div id="HarmonieStatusPanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <tbody>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Version</td><td><code id="StatusVersion"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Tracks indexed</td><td><span id="StatusTracks"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Total duration</td><td><span id="StatusDuration"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">DB size</td><td><span id="StatusDbSize"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Workers</td><td><span id="StatusWorkers"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Embedding dim</td><td><span id="StatusEmbeddingDim"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="StatusSchemaVersion"></span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Libraries</td><td><span id="StatusLibraries"></span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+<h3>Library scan</h3>
+                    <div class="fieldDescription">
+                        Trigger harmonie to scan its libraries for new or changed tracks. The forced variant re-extracts every track instead of skipping unchanged files.
+                    </div>
+                    <div>
+                        <button is="emby-button" type="button" id="TriggerScan" class="raised emby-button">
+                            <span>Trigger scan</span>
+                        </button>
+                        <button is="emby-button" type="button" id="TriggerScanForce" class="raised emby-button" style="margin-left: 0.5em;">
+                            <span>Trigger scan (force)</span>
+                        </button>
+                    </div>
+
+                    <div id="ScanStatePanel" style="display: none; margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <tbody>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">State</td><td><strong id="ScanStateText"></strong></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Phase</td><td><span id="ScanPhaseText"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Discovered</td><td><span id="ScanDiscovered"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Full extracts</td><td><span id="ScanFull"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Descriptors only</td><td><span id="ScanDescriptorsOnly"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Skipped</td><td><span id="ScanSkipped"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Failed</td><td><span id="ScanFailed"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Removed</td><td><span id="ScanRemoved"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last duration</td><td><span id="ScanLastDuration"></span></td></tr>
+                                <tr><td style="padding: 0.15em 1em 0.15em 0; opacity: 0.7; width: 12em;">Last error</td><td><code id="ScanLastError"></code></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+<h3>Listening data</h3>
+                    <div class="fieldDescription">
+                        The plugin stores listening and preference data in this local database.
+                    </div>
+                    <div id="ListeningActivityPanel" style="margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <tbody>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Database</td><td><code id="ActivityDatabasePath" style="overflow-wrap: anywhere;"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="ActivitySchemaVersion">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Size</td><td><span id="ActivityDatabaseSize">—</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginUniqueId = '485e9b6f-f623-4c97-9679-ad33c1db0d18';
+
+                function getTabs() {
+                    return [
+                        { href: 'configurationpage?name=Harmonie', name: 'Setup' },
+                        { href: 'configurationpage?name=Harmonie%20Playlists', name: 'Automatic playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Prefixes', name: 'Prefix playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Status', name: 'Status' }
+                    ];
+                }
+
+function formatBytes(n) {
+                    if (n == null) return '?';
+                    if (n < 1024) return n + ' B';
+                    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KiB';
+                    if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MiB';
+                    return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
+                }
+
+                function formatDuration(seconds) {
+                    if (seconds == null || seconds < 0) return '?';
+                    var s = Math.floor(seconds);
+                    var h = Math.floor(s / 3600);
+                    var m = Math.floor((s % 3600) / 60);
+                    var rs = s % 60;
+                    if (h > 0) return h + 'h ' + m + 'm';
+                    if (m > 0) return m + 'm ' + rs + 's';
+                    return rs + 's';
+                }
+
+                function renderStatus(status) {
+                    document.querySelector('#StatusVersion').textContent = status.version || '?';
+                    document.querySelector('#StatusTracks').textContent = (status.tracks || 0).toLocaleString();
+                    document.querySelector('#StatusDuration').textContent = formatDuration(status.total_duration_sec);
+                    document.querySelector('#StatusDbSize').textContent = formatBytes(status.db_size_bytes);
+                    document.querySelector('#StatusWorkers').textContent = status.workers || '?';
+                    document.querySelector('#StatusEmbeddingDim').textContent = status.embedding_dim || '?';
+                    document.querySelector('#StatusSchemaVersion').textContent = status.schema_version || '?';
+                    document.querySelector('#StatusLibraries').textContent =
+                        (status.libraries || []).join(', ') || '(none)';
+                    document.querySelector('#HarmonieStatusPanel').style.display = '';
+                }
+
+                function renderScan(scan) {
+                    document.querySelector('#ScanStatePanel').style.display = '';
+                    document.querySelector('#ScanStateText').textContent = scan.state || '?';
+                    document.querySelector('#ScanPhaseText').textContent = scan.phase || 'idle';
+
+                    document.querySelector('#ScanDiscovered').textContent = (scan.discovered || 0).toLocaleString();
+                    document.querySelector('#ScanFull').textContent = (scan.full || 0).toLocaleString();
+                    document.querySelector('#ScanDescriptorsOnly').textContent = (scan.descriptors_only || 0).toLocaleString();
+                    document.querySelector('#ScanSkipped').textContent = (scan.skipped || 0).toLocaleString();
+                    document.querySelector('#ScanFailed').textContent = (scan.failed || 0).toLocaleString();
+                    document.querySelector('#ScanRemoved').textContent = (scan.removed || 0).toLocaleString();
+
+                    document.querySelector('#ScanLastDuration').textContent =
+                        scan.last_duration_sec != null ? formatDuration(scan.last_duration_sec) : '—';
+                    document.querySelector('#ScanLastError').textContent = scan.last_error || '—';
+                }
+
+                function renderListeningActivity(status) {
+                    document.querySelector('#ActivityDatabasePath').textContent = status.database_path || '?';
+                    document.querySelector('#ActivitySchemaVersion').textContent =
+                        status.schema_version == null ? '—' : status.schema_version;
+                    document.querySelector('#ActivityDatabaseSize').textContent = formatBytes(status.size_bytes);
+                }
+
+                function loadListeningActivity() {
+                    return ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/ListeningActivity'),
+                        dataType: 'json'
+                    }).then(renderListeningActivity).catch(function () {
+                        document.querySelector('#ActivityDatabasePath').textContent = 'Unavailable';
+                    });
+                }
+
+                var scanPollTimer = null;
+                function pollScanWhileRunning() {
+                    if (scanPollTimer) clearTimeout(scanPollTimer);
+                    scanPollTimer = setTimeout(function () {
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                            dataType: 'json'
+                        }).then(function (scan) {
+                            renderScan(scan);
+                            // Refresh status counters too — track count moves while scanning.
+                            return ApiClient.fetch({
+                                type: 'GET',
+                                url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                                dataType: 'json'
+                            }).then(renderStatus).then(function () { return scan; });
+                        }).then(function (scan) {
+                            if (scan.state === 'scanning') {
+                                pollScanWhileRunning();
+                            }
+                        }).catch(function () {
+                            // Stop polling on error; user can refresh manually.
+                        });
+                    }, 2000);
+                }
+
+                function loadInitialState() {
+                    ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                        dataType: 'json'
+                    }).then(renderStatus).catch(function () { /* not configured yet */ });
+
+                    ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                        dataType: 'json'
+                    }).then(function (scan) {
+                        renderScan(scan);
+                        if (scan.state === 'scanning') pollScanWhileRunning();
+                    }).catch(function () { /* not configured yet */ });
+
+                    loadListeningActivity();
+                }
+
+                document.querySelector('#HarmonieStatusPage')
+                    .addEventListener('pageshow', function () {
+                        LibraryMenu.setTabs('harmonie', 3, getTabs);
+                        loadInitialState();
+                    });
+
+                document.querySelector('#RefreshStatus')
+                    .addEventListener('click', function () {
+                        var resultEl = document.querySelector('#RefreshStatusResult');
+                        resultEl.textContent = 'Refreshing\u2026';
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Status'),
+                            dataType: 'json'
+                        }).then(function (status) {
+                            renderStatus(status);
+                            resultEl.textContent = '';
+                        }).catch(function (err) {
+                            document.querySelector('#HarmonieStatusPanel').style.display = 'none';
+                            resultEl.textContent = 'Failed: ' + (err && err.statusText ? err.statusText : 'unknown error');
+                        });
+                    });
+
+function triggerScan(force) {
+                    // Show "scanning" / "starting" immediately so the
+                    // table reacts the moment the button is pressed.
+                    // Real counters arrive on the first poll tick.
+                    document.querySelector('#ScanStatePanel').style.display = '';
+                    document.querySelector('#ScanStateText').textContent = 'scanning';
+                    document.querySelector('#ScanPhaseText').textContent = 'starting';
+                    document.querySelector('#ScanLastDuration').textContent = '—';
+                    document.querySelector('#ScanLastError').textContent = '—';
+
+                    var url = ApiClient.getUrl('Plugins/Harmonie/Scan' + (force ? '?force=true' : ''));
+                    ApiClient.fetch({
+                        type: 'POST',
+                        url: url,
+                        dataType: 'json'
+                    }).then(function (scan) {
+                        // The POST snapshot races with harmonie's worker
+                        // thread starting. If it still shows 'idle', keep
+                        // the optimistic state and let polling catch up;
+                        // otherwise reflect what the server reports.
+                        if (scan && scan.state && scan.state !== 'idle') {
+                            renderScan(scan);
+                        }
+                        pollScanWhileRunning();
+                    }).catch(function () {
+                        // Trigger failed — restore by fetching real state.
+                        ApiClient.fetch({
+                            type: 'GET',
+                            url: ApiClient.getUrl('Plugins/Harmonie/Scan'),
+                            dataType: 'json'
+                        }).then(renderScan).catch(function () { /* ignore */ });
+                    });
+                }
+
+                document.querySelector('#TriggerScan')
+                    .addEventListener('click', function () { triggerScan(false); });
+                document.querySelector('#TriggerScanForce')
+                    .addEventListener('click', function () { triggerScan(true); });
+            })();
+        </script>
+    </div>
+</body>
+</html>

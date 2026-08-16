@@ -91,7 +91,7 @@ Override settings with tokens inside the brackets:
 | --- | --- | --- |
 | `n=N` | any | playlist length, 1 to 500 |
 | `days=N` | mix | playback activity window, 1 to 365 |
-| `top` or `top=N` | mix | favor long-term affinity over recency |
+| `top` or `top=N` | mix | seed from all-time favorites instead of recent plays |
 | `drift` | mix | use drift mode for the expansion |
 | `style_min=F` | style, genre | minimum classifier probability, 0.0 to 1.0. Defaults to 0.6 (configurable in plugin settings) |
 
