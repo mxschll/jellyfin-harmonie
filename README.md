@@ -15,7 +15,7 @@
 
 Jellyfin Harmonie generates playlists from your music library using audio similarity and stored listening data. It replaces Jellyfin's genre- and tag-based Instant Mix selection with tracks matched by the audio itself.
 
-The plugin also provides seeded radio and drift playlists, genre and style playlists, daily mixes, personal mixes, and On Repeat playlists. Audio analysis is provided by the [harmonie](https://github.com/mxschll/harmonie) service.
+The plugin provides personal mixes and On Repeat playlists built from listening habits, plus seeded radio and drift playlists, daily mixes, and genre and style playlists. The [harmonie](https://github.com/mxschll/harmonie) service does the audio analysis.
 
 <p align="center">
   <img src="docs/playlists.png" alt="Covers of Harmonie playlist types: Radio, Drift, Genre, Personal Mix, and On Repeat" width="720" />
@@ -57,7 +57,23 @@ The plugin's settings page shows live harmonie scan progress:
 
 ## Use it
 
-Make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes the contents in the background.
+Once harmonie finishes its first library scan, which can take several hours for a large library, Instant Mix works from the first tap. The personal playlists build themselves from listening data, so they appear and grow over the first days of use, as the scheduled tasks run and listening habits accumulate. Run the tasks by hand or change their schedule under Dashboard → Scheduled Tasks; tune the playlists in the plugin settings.
+
+### Song Radio / Instant Mix
+
+When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Falls back to Jellyfin's default behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
+
+### Personal Mix playlists
+
+The plugin scores each user's recent tracks from plays, completions, skips, favorites, and playlist additions. It groups the strongest tracks by Harmonie style, then expands each group into a private mix. The number of playlists adapts to the available data. Enabled by default and refreshed weekly; both behavior and schedule are configurable.
+
+### On Repeat
+
+One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed daily; toggle it off in plugin settings.
+
+## Prefix playlists
+
+For direct control, make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes the contents in the background.
 
 | Prefix | Result |
 | --- | --- |
@@ -88,18 +104,6 @@ Examples:
 - `[GENRE] Electronic`
 - `[STYLE n=200] House`
 - `[STYLE style_min=0.5] Hard Techno`
-
-## Personal Mix playlists
-
-The plugin scores each user's recent tracks from plays, completions, skips, favorites, and playlist additions. It groups the strongest tracks by Harmonie style, then expands each group into a private mix. The number of playlists adapts to the available data. Enabled by default and refreshed weekly; both behavior and schedule are configurable.
-
-## On Repeat
-
-One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed daily; toggle it off in plugin settings.
-
-## Song Radio / Instant Mix
-
-When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Falls back to Jellyfin's default behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
 
 Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation setting. Higher values produce more varied results while keeping songs similar to the seeds; `0` keeps results deterministic.
 
