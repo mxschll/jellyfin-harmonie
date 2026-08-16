@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.7.3.1",
+        "changelog": "\n### Bug Fixes\n\n- Pin Jellyfin 10.11 floor so plugin loads on all 10.11.x (39c33c1)\n\n### Documentation\n\n- Explain how Harmonie compares to AudioMuse-AI (fb322ea)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.3/jellyfin-harmonie_1.7.3.1.zip",
+        "checksum": "944a51160706035ca1c30f03ecc7747a",
+        "timestamp": "2026-08-16T19:41:55Z"
+      },
+      {
+        "version": "1.7.3.0",
+        "changelog": "\n### Bug Fixes\n\n- Pin Jellyfin 10.11 floor so plugin loads on all 10.11.x (39c33c1)\n\n### Documentation\n\n- Explain how Harmonie compares to AudioMuse-AI (fb322ea)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.3/jellyfin-harmonie_1.7.3.0.zip",
+        "checksum": "bd7ceaf793f6286018516461fe8a5e91",
+        "timestamp": "2026-08-16T19:41:55Z"
+      },
+      {
         "version": "1.7.2.1",
         "changelog": "\n### Bug Fixes\n\n- Key playlist children by path before item id (8a86d80)\n- Make style playlist state store thread-safe (63f4269)\n- Harden test, scan, refresh endpoints (6867d7a)\n\n### CI\n\n- Install .NET 8 SDK so net8.0 tests run (3bb2887)\n\n### Features\n\n- Add Jellyfin 12 (net10.0) build and tests (06f83ba)\n\n### Refactor\n\n- Centralize ABI pins and compat shims (ed198fe)",
         "targetAbi": "10.11.0.0",
