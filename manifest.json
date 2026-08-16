@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.7.2.1",
+        "changelog": "\n### Bug Fixes\n\n- Key playlist children by path before item id (8a86d80)\n- Make style playlist state store thread-safe (63f4269)\n- Harden test, scan, refresh endpoints (6867d7a)\n\n### CI\n\n- Install .NET 8 SDK so net8.0 tests run (3bb2887)\n\n### Features\n\n- Add Jellyfin 12 (net10.0) build and tests (06f83ba)\n\n### Refactor\n\n- Centralize ABI pins and compat shims (ed198fe)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.2/jellyfin-harmonie_1.7.2.1.zip",
+        "checksum": "0e08a3835fe41840e98bccc2ebee76f1",
+        "timestamp": "2026-08-16T18:40:45Z"
+      },
+      {
+        "version": "1.7.2.0",
+        "changelog": "\n### Bug Fixes\n\n- Key playlist children by path before item id (8a86d80)\n- Make style playlist state store thread-safe (63f4269)\n- Harden test, scan, refresh endpoints (6867d7a)\n\n### CI\n\n- Install .NET 8 SDK so net8.0 tests run (3bb2887)\n\n### Features\n\n- Add Jellyfin 12 (net10.0) build and tests (06f83ba)\n\n### Refactor\n\n- Centralize ABI pins and compat shims (ed198fe)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.2/jellyfin-harmonie_1.7.2.0.zip",
+        "checksum": "c7300bf5221f5569ec7eb081f2d265a0",
+        "timestamp": "2026-08-16T18:40:45Z"
+      },
+      {
         "version": "1.7.1.1",
         "changelog": "\n### Bug Fixes\n\n- Keep changelog markdown in manifest (b5ee7cf)",
         "targetAbi": "10.11.0.0",
