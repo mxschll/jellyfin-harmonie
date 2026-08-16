@@ -122,8 +122,6 @@ The plugin stores these signals for each user:
 - Tracks in user playlists and when they were added
 - Play session, client, and device IDs
 
-The data stays in `jellyfin-harmonie.db` on the Jellyfin server. The plugin settings show its path, schema version, and size.
-
 ## Compatibility
 
 Tested on Jellyfin 10.10 and 10.11.
