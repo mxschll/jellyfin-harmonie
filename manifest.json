@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.10.0.1",
+        "changelog": "\n### Features\n\n- Add on repeat auto-playlist type (#25) (7702dea)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.10.0/jellyfin-harmonie_1.10.0.1.zip",
+        "checksum": "962793f028906694460003776d811eac",
+        "timestamp": "2026-08-16T21:46:48Z"
+      },
+      {
+        "version": "1.10.0.0",
+        "changelog": "\n### Features\n\n- Add on repeat auto-playlist type (#25) (7702dea)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.10.0/jellyfin-harmonie_1.10.0.0.zip",
+        "checksum": "bce45a6f4e180d702b6575b889b4321b",
+        "timestamp": "2026-08-16T21:46:48Z"
+      },
+      {
         "version": "1.9.0.1",
         "changelog": "\n### Features\n\n- Refresh personal mixes weekly by default (215bffd)",
         "targetAbi": "10.11.0.0",
