@@ -14,9 +14,9 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 /// Personal Mix playlists are derived from a user's stored preference signals
 /// clustered on style probability vectors; they model medium-term
 /// taste rather than the day's mood. Daily regeneration churns them
-/// and produces a moving target. A 30-day default keeps them stable
-/// for a month at a time while still tracking gradual taste shifts.
-/// Users who want faster cycles can override the schedule from
+/// and produces a moving target. A weekly default keeps each batch
+/// stable long enough to live with while still tracking taste shifts.
+/// Users who want a different cycle can override the schedule from
 /// Dashboard → Scheduled Tasks.
 ///
 /// [RADIO], [DRIFT], and [MIX] prefix playlists are handled by
@@ -40,7 +40,7 @@ public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableSche
     public string Key => "HarmonieRefreshPersonalMix";
 
     public string Description =>
-        "Rebuild the per-user Personal Mix playlists from preference clusters. Defaults to every 30 days; adjust the schedule here.";
+        "Rebuild the per-user Personal Mix playlists from preference clusters. Defaults to weekly; adjust the schedule here.";
 
     public string Category => "Harmonie";
 
@@ -52,7 +52,7 @@ public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableSche
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        HarmonieTriggers.Interval(TimeSpan.FromDays(30)),
+        HarmonieTriggers.Interval(TimeSpan.FromDays(7)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
