@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using MediaBrowser.Common.Configuration;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,13 @@ public class StylePlaylistSlot
     /// refresh.
     /// </summary>
     public string LastStyle { get; set; } = string.Empty;
+
+    public StylePlaylistSlot Clone() => new()
+    {
+        Slot = Slot,
+        PlaylistGuid = PlaylistGuid,
+        LastStyle = LastStyle,
+    };
 }
 
 /// <summary>
@@ -40,19 +48,34 @@ public class UserStylePlaylistState
     public List<StylePlaylistSlot> Slots { get; set; } = new();
 
     public DateTimeOffset LastRefreshedUtc { get; set; }
+
+    public UserStylePlaylistState Clone() => new()
+    {
+        Slots = Slots.Select(s => s.Clone()).ToList(),
+        LastRefreshedUtc = LastRefreshedUtc,
+    };
 }
 
 /// <summary>
 /// Persists per-user slot state for style cluster playlists.
 /// Single JSON file under the plugin's config dir, keyed by user GUID.
 /// </summary>
+/// <remarks>
+/// Thread safety: readers (<see cref="Get"/>, <see cref="FindSlotByPlaylistId"/>)
+/// may be called concurrently with <see cref="Set"/> — e.g. the cover image
+/// provider looks up slots while a Personal Mix refresh writes. The store
+/// uses copy-on-write: <see cref="_cache"/> always references an immutable
+/// snapshot, writers publish a new snapshot under <see cref="_lock"/>, and
+/// state objects are cloned at the API boundary so callers can never mutate
+/// a published snapshot.
+/// </remarks>
 public class StylePlaylistStateStore
 {
     private readonly object _lock = new();
     private readonly IApplicationPaths _appPaths;
     private readonly ILogger<StylePlaylistStateStore> _logger;
 
-    private Dictionary<string, UserStylePlaylistState>? _cache;
+    private volatile Dictionary<string, UserStylePlaylistState>? _cache;
 
     public StylePlaylistStateStore(IApplicationPaths appPaths, ILogger<StylePlaylistStateStore> logger)
     {
@@ -74,7 +97,7 @@ public class StylePlaylistStateStore
     {
         var dict = Load();
         return dict.TryGetValue(userId.ToString("N"), out var state)
-            ? state
+            ? state.Clone()
             : new UserStylePlaylistState();
     }
 
@@ -83,9 +106,11 @@ public class StylePlaylistStateStore
         ArgumentNullException.ThrowIfNull(state);
         lock (_lock)
         {
-            var dict = Load();
-            dict[userId.ToString("N")] = state;
-            Save(dict);
+            var next = new Dictionary<string, UserStylePlaylistState>(Load(), StringComparer.Ordinal)
+            {
+                [userId.ToString("N")] = state.Clone(),
+            };
+            Save(next);
         }
     }
 
@@ -105,7 +130,7 @@ public class StylePlaylistStateStore
             {
                 if (string.Equals(slot.PlaylistGuid, key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return slot;
+                    return slot.Clone();
                 }
             }
         }
