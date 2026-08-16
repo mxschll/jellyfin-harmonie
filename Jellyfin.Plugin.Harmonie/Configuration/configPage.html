@@ -299,6 +299,20 @@
                         <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
                     </div>
 
+                    <h2>Listening data</h2>
+                    <div class="fieldDescription">
+                        The plugin stores listening and preference data in this local database.
+                    </div>
+                    <div id="ListeningActivityPanel" style="margin-top: 1em; padding: 1em; border: 1px solid rgba(127,127,127,0.3); border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                            <tbody>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Database</td><td><code id="ActivityDatabasePath" style="overflow-wrap: anywhere;"></code></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Schema version</td><td><span id="ActivitySchemaVersion">—</span></td></tr>
+                                <tr><td style="padding: 0.25em 1em 0.25em 0; opacity: 0.7; width: 12em;">Size</td><td><span id="ActivityDatabaseSize">—</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                     <h2>Path mappings</h2>
                     <div class="fieldDescription">
                         Optional. Use these only when harmonie and Jellyfin see your music library at different filesystem paths. The plugin uses them as a fallback when a track can't be matched by tags. Format: <code>/harmonie/path =&gt; /jellyfin/path</code>, one per line.
@@ -530,6 +544,23 @@
                     document.querySelector('#ScanLastError').textContent = scan.last_error || '—';
                 }
 
+                function renderListeningActivity(status) {
+                    document.querySelector('#ActivityDatabasePath').textContent = status.database_path || '?';
+                    document.querySelector('#ActivitySchemaVersion').textContent =
+                        status.schema_version == null ? '—' : status.schema_version;
+                    document.querySelector('#ActivityDatabaseSize').textContent = formatBytes(status.size_bytes);
+                }
+
+                function loadListeningActivity() {
+                    return ApiClient.fetch({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Plugins/Harmonie/ListeningActivity'),
+                        dataType: 'json'
+                    }).then(renderListeningActivity).catch(function () {
+                        document.querySelector('#ActivityDatabasePath').textContent = 'Unavailable';
+                    });
+                }
+
                 var scanPollTimer = null;
                 function pollScanWhileRunning() {
                     if (scanPollTimer) clearTimeout(scanPollTimer);
@@ -571,6 +602,8 @@
                         renderScan(scan);
                         if (scan.state === 'scanning') pollScanWhileRunning();
                     }).catch(function () { /* not configured yet */ });
+
+                    loadListeningActivity();
                 }
 
                 document.querySelector('#TestConnection')

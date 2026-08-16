@@ -19,6 +19,11 @@
     <PackageReference Include="Jellyfin.Model" Version="10.10.7">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
+    <!-- Jellyfin 10.10 ships this exact SQLite runtime. Compile against it,
+         but let the host supply the assembly and native provider. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!-- Jellyfin 10.11.x is built against net9 and ships net9 packages. -->
@@ -27,6 +32,10 @@
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
     <PackageReference Include="Jellyfin.Model" Version="10.11.11">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <!-- Jellyfin 10.11 ships this exact SQLite runtime. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.11">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>

@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Harmonie.HarmonieApi;
 using Jellyfin.Plugin.Harmonie.Services;
+using Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
+using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -25,6 +27,7 @@ public class HarmonieController : ControllerBase
     private readonly HarmonieClient _client;
     private readonly PrefixPlaylistService _prefixService;
     private readonly StylePlaylistService _styleService;
+    private readonly ListeningActivityStore _activityStore;
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<HarmonieController> _logger;
 
@@ -32,12 +35,14 @@ public class HarmonieController : ControllerBase
         HarmonieClient client,
         PrefixPlaylistService prefixService,
         StylePlaylistService styleService,
+        ListeningActivityStore activityStore,
         ILibraryManager libraryManager,
         ILogger<HarmonieController> logger)
     {
         _client = client;
         _prefixService = prefixService;
         _styleService = styleService;
+        _activityStore = activityStore;
         _libraryManager = libraryManager;
         _logger = logger;
     }
@@ -185,5 +190,15 @@ public class HarmonieController : ControllerBase
             harmonieLibraries,
             jellyfinLibraries,
         });
+    }
+
+    /// <summary>
+    /// Returns information about the plugin-local listening database.
+    /// </summary>
+    [HttpGet("ListeningActivity")]
+    [Authorize(Policy = Policies.RequiresElevation)]
+    public ActionResult<ListeningActivityStatus> ListeningActivity()
+    {
+        return Ok(_activityStore.GetStatus());
     }
 }

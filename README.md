@@ -108,6 +108,20 @@ The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks r
 
 Both schedules can be changed from the same page, and either can be triggered manually.
 
+## Listening data
+
+The plugin stores these signals for each user:
+
+- Jellyfin user and track IDs
+- Play count and last play time
+- Start and stop times, track length, and playback positions
+- Active listening time, without pauses
+- Pauses and forward or backward seeks
+- Completed plays and early stops
+- Favorite tracks
+- Tracks in user playlists and when they were added
+- Play session, client, and device IDs
+
 ## Compatibility
 
 Tested on Jellyfin 10.10 and 10.11.
