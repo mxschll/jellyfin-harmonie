@@ -79,6 +79,114 @@ public sealed class CoverPainter
     }
 
     /// <summary>
+    /// Renders a 1024×1024 primary cover for an On Repeat playlist: a
+    /// large repeat-loop glyph as the visual focus with "On Repeat"
+    /// beneath it. The glyph is drawn as vector paths so it matches the
+    /// typography covers' flat, art-free style.
+    /// </summary>
+    public byte[] RenderOnRepeat(string badge, SKColor baseColor)
+    {
+        var (top, bottom) = CoverPalette.Gradient(baseColor);
+
+        var info = new SKImageInfo(1024, 1024, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var surface = SKSurface.Create(info);
+        var canvas = surface.Canvas;
+        canvas.Clear(SKColors.Black);
+
+        DrawBackground(canvas, top, bottom, info.Width, info.Height);
+        DrawBadge(canvas, badge);
+
+        const float GlyphWidth = 430f;
+        const float GlyphHeight = 250f;
+        const float TitleSize = 108f;
+        const float Gap = 110f;
+        const string Title = "On Repeat";
+
+        var totalHeight = GlyphHeight + Gap + TitleSize;
+        var blockTop = (info.Height - totalHeight) / 2f;
+
+        DrawRepeatGlyph(
+            canvas,
+            info.Width / 2f,
+            blockTop + (GlyphHeight / 2f),
+            GlyphWidth,
+            GlyphHeight);
+
+        using (var paint = TextPaint(SKColors.White, TitleSize))
+        {
+            var w = MeasureText(paint, Title, TitleSize);
+            var baseline = blockTop + GlyphHeight + Gap + (TitleSize * 0.72f);
+            DrawText(canvas, paint, Title, (info.Width - w) / 2f, baseline, TitleSize);
+        }
+
+        DrawWordmark(canvas, info.Width, info.Height);
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Png, 95);
+        return data.ToArray();
+    }
+
+    /// <summary>
+    /// Draws the classic media repeat icon: a pill-shaped loop with an
+    /// arrowhead on the top run pointing right and one on the bottom run
+    /// pointing left.
+    /// </summary>
+    private static void DrawRepeatGlyph(
+        SKCanvas canvas,
+        float centerX,
+        float centerY,
+        float width,
+        float height)
+    {
+        const float Stroke = 34f;
+
+        var rect = SKRect.Create(
+            centerX - (width / 2f),
+            centerY - (height / 2f),
+            width,
+            height);
+
+        using var loopPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = Stroke,
+        };
+        var radius = height / 2f;
+        canvas.DrawRoundRect(rect, radius, radius, loopPaint);
+
+        using var arrowPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill,
+        };
+
+        // Arrowheads sit on the straight runs, oversized relative to the
+        // stroke so the loop reads as circulating even at thumbnail size.
+        var arrow = Stroke * 2.0f;
+
+        using (var topArrow = new SKPath())
+        {
+            topArrow.MoveTo(centerX + arrow, rect.Top);
+            topArrow.LineTo(centerX - (arrow * 0.55f), rect.Top - (arrow * 0.9f));
+            topArrow.LineTo(centerX - (arrow * 0.55f), rect.Top + (arrow * 0.9f));
+            topArrow.Close();
+            canvas.DrawPath(topArrow, arrowPaint);
+        }
+
+        using (var bottomArrow = new SKPath())
+        {
+            bottomArrow.MoveTo(centerX - arrow, rect.Bottom);
+            bottomArrow.LineTo(centerX + (arrow * 0.55f), rect.Bottom - (arrow * 0.9f));
+            bottomArrow.LineTo(centerX + (arrow * 0.55f), rect.Bottom + (arrow * 0.9f));
+            bottomArrow.Close();
+            canvas.DrawPath(bottomArrow, arrowPaint);
+        }
+    }
+
+    /// <summary>
     /// Renders a 1920×1080 backdrop — just the gradient, no overlaid
     /// text. Jellyfin's playlist detail view overlays its own title on
     /// the backdrop, so duplicating it here would only create noise.
