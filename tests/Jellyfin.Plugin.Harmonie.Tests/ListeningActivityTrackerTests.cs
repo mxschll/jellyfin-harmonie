@@ -117,6 +117,52 @@ public class ListeningActivityTrackerTests
     }
 
     [Fact]
+    public void Playback_progress_creates_one_checkpoint_per_distinct_user()
+    {
+        var firstUser = User("first");
+        var secondUser = User("second");
+        var item = new Audio
+        {
+            Id = Guid.NewGuid(),
+            RunTimeTicks = TimeSpan.FromMinutes(3).Ticks,
+        };
+        var eventArgs = new PlaybackProgressEventArgs
+        {
+            Item = item,
+            Users = new List<User> { firstUser, secondUser, firstUser },
+            PlaybackPositionTicks = TimeSpan.FromSeconds(30).Ticks,
+            PlaySessionId = "play-1",
+            ClientName = "Finamp",
+            DeviceId = "phone",
+        };
+        var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromStart(startedAt, 0, isPaused: false);
+        session.Observe(
+            startedAt.AddSeconds(30),
+            eventArgs.PlaybackPositionTicks,
+            isPaused: false);
+
+        var checkpoints = ListeningActivityTracker.CreateCheckpoints(
+            eventArgs,
+            "session-1",
+            session);
+
+        Assert.Equal(2, checkpoints.Count);
+        Assert.Contains(checkpoints, checkpoint => checkpoint.UserId == firstUser.Id);
+        Assert.Contains(checkpoints, checkpoint => checkpoint.UserId == secondUser.Id);
+        Assert.All(checkpoints, checkpoint =>
+        {
+            Assert.Equal(item.Id, checkpoint.ItemId);
+            Assert.Equal(item.RunTimeTicks, checkpoint.DurationTicks);
+            Assert.Equal(eventArgs.PlaybackPositionTicks, checkpoint.EndPositionTicks);
+            Assert.Equal(TimeSpan.FromSeconds(30).Ticks, checkpoint.ActiveListenTicks);
+            Assert.Equal("play-1", checkpoint.PlaySessionId);
+            Assert.Equal("Finamp", checkpoint.ClientName);
+            Assert.Equal("phone", checkpoint.DeviceId);
+        });
+    }
+
+    [Fact]
     public void Stale_playback_sessions_are_evicted_without_removing_recent_sessions()
     {
         var now = DateTimeOffset.Parse("2026-08-16T18:00:00Z");

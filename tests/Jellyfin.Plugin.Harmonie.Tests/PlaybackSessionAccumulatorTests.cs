@@ -160,4 +160,65 @@ public sealed class PlaybackSessionAccumulatorTests
         Assert.Null(summary.ActiveListenTicks);
         Assert.False(summary.IsEarlySkip);
     }
+
+    [Fact]
+    public void Recovered_near_complete_session_counts_as_a_play()
+    {
+        var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var checkpoint = new PlaybackSessionCheckpoint(
+            SessionKey: "session-1",
+            UserId: Guid.NewGuid(),
+            ItemId: Guid.NewGuid(),
+            StartedUtc: startedAt,
+            LastObservedUtc: startedAt.AddMinutes(2).AddSeconds(50),
+            StartPositionTicks: 0,
+            EndPositionTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            MaxPositionTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            ActiveListenTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            IsPaused: false,
+            DurationTicks: TimeSpan.FromMinutes(3).Ticks,
+            PlaySessionId: "play-1",
+            ClientName: "Finamp",
+            DeviceId: "phone");
+
+        var activity = PlaybackSessionAccumulator.Recover(checkpoint);
+
+        Assert.True(activity.CountedAsPlay);
+        Assert.True(activity.PlayedToCompletion);
+        Assert.False(activity.IsEarlySkip);
+        Assert.Equal(checkpoint.LastObservedUtc, activity.StoppedUtc);
+    }
+
+    [Fact]
+    public void Recovered_seek_to_end_does_not_count_as_a_play()
+    {
+        var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var checkpoint = new PlaybackSessionCheckpoint(
+            SessionKey: "session-1",
+            UserId: Guid.NewGuid(),
+            ItemId: Guid.NewGuid(),
+            StartedUtc: startedAt,
+            LastObservedUtc: startedAt.AddSeconds(8),
+            StartPositionTicks: 0,
+            EndPositionTicks: TimeSpan.FromMinutes(3).Ticks,
+            MaxPositionTicks: TimeSpan.FromMinutes(3).Ticks,
+            ActiveListenTicks: TimeSpan.FromSeconds(8).Ticks,
+            SeekForwardCount: 1,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            IsPaused: false,
+            DurationTicks: TimeSpan.FromMinutes(3).Ticks,
+            PlaySessionId: "play-1",
+            ClientName: "Finamp",
+            DeviceId: "phone");
+
+        var activity = PlaybackSessionAccumulator.Recover(checkpoint);
+
+        Assert.False(activity.CountedAsPlay);
+        Assert.False(activity.PlayedToCompletion);
+        Assert.True(activity.IsEarlySkip);
+    }
 }

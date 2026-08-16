@@ -15,9 +15,9 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 
 /// <summary>
-/// Captures Jellyfin music playback stops and persists them without changing
-/// any recommendation behavior. Existing aggregate activity is imported once
-/// in the background when the database is introduced.
+/// Checkpoints Jellyfin music playback progress and persists completed or
+/// abandoned sessions. Existing aggregate activity is imported once in the
+/// background when the database is introduced.
 /// </summary>
 internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 {
@@ -29,8 +29,8 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     private readonly ListeningActivityStore _store;
     private readonly IListeningActivityBootstrapSource _bootstrapSource;
     private readonly ILogger<ListeningActivityTracker> _logger;
-    private readonly Channel<ListeningActivityEvent> _writes =
-        Channel.CreateUnbounded<ListeningActivityEvent>(new UnboundedChannelOptions
+    private readonly Channel<ListeningActivityWrite> _writes =
+        Channel.CreateUnbounded<ListeningActivityWrite>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false,
@@ -43,6 +43,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     private Task? _writerTask;
     private Task? _bootstrapTask;
+    private Task? _recoveryTask;
     private long _lastSessionSweepUtcTicks;
     private bool _started;
     private bool _stopped;
@@ -78,6 +79,13 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         try
         {
             _database.Initialize();
+            var recovered = _store.RecoverAbandonedPlaybackSessions(DateTimeOffset.MaxValue);
+            if (recovered > 0)
+            {
+                _logger.LogInformation(
+                    "Recovered {Count} unfinished playback session(s) from the previous run.",
+                    recovered);
+            }
         }
         catch (Exception ex)
         {
@@ -90,6 +98,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         _sessionManager.PlaybackStopped += OnPlaybackStopped;
         _writerTask = Task.Run(ProcessWritesAsync, CancellationToken.None);
         _bootstrapTask = Task.Run(BootstrapAsync, CancellationToken.None);
+        _recoveryTask = Task.Run(RecoverStaleSessionsAsync, CancellationToken.None);
         _started = true;
 
         _logger.LogInformation(
@@ -109,8 +118,9 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         _sessionManager.PlaybackProgress -= OnPlaybackProgress;
         _sessionManager.PlaybackStopped -= OnPlaybackStopped;
         await _shutdown.CancelAsync().ConfigureAwait(false);
-        _writes.Writer.TryComplete();
 
+        await AwaitWorkerAsync(_recoveryTask, cancellationToken).ConfigureAwait(false);
+        _writes.Writer.TryComplete();
         await AwaitWorkerAsync(_bootstrapTask, cancellationToken).ConfigureAwait(false);
         await AwaitWorkerAsync(_writerTask, cancellationToken).ConfigureAwait(false);
         _sessions.Clear();
@@ -141,10 +151,12 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
-            _sessions[key] = PlaybackSessionAccumulator.FromStart(
+            var session = PlaybackSessionAccumulator.FromStart(
                 now,
                 eventArgs.PlaybackPositionTicks,
                 eventArgs.IsPaused);
+            _sessions[key] = session;
+            QueueCheckpoint(eventArgs, key, session);
         }
     }
 
@@ -160,19 +172,26 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
-            if (_sessions.TryGetValue(key, out var session))
+            PlaybackSessionAccumulator session;
+            if (_sessions.TryGetValue(key, out var existing))
             {
+                session = existing;
                 session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
             }
             else
             {
-                _sessions.TryAdd(
-                    key,
-                    PlaybackSessionAccumulator.FromProgress(
-                        now,
-                        eventArgs.PlaybackPositionTicks,
-                        eventArgs.IsPaused));
+                session = PlaybackSessionAccumulator.FromProgress(
+                    now,
+                    eventArgs.PlaybackPositionTicks,
+                    eventArgs.IsPaused);
+                if (!_sessions.TryAdd(key, session))
+                {
+                    session = _sessions[key];
+                    session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
+                }
             }
+
+            QueueCheckpoint(eventArgs, key, session);
         }
     }
 
@@ -200,15 +219,56 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             eventArgs.PlaybackPositionTicks,
             audio.RunTimeTicks);
 
-        foreach (var activity in CreateActivities(eventArgs, summary, now))
+        var activities = CreateActivities(eventArgs, summary, now);
+        if (!_writes.Writer.TryWrite(new CompletePlaybackWrite(key, activities)))
         {
-            if (!_writes.Writer.TryWrite(activity))
-            {
-                _logger.LogWarning(
-                    "Could not queue listening activity for item {ItemId}; the tracker is stopping.",
-                    audio.Id);
-            }
+            _logger.LogWarning(
+                "Could not queue listening activity for item {ItemId}; the tracker is stopping.",
+                audio.Id);
         }
+    }
+
+    private void QueueCheckpoint(
+        PlaybackProgressEventArgs eventArgs,
+        string sessionKey,
+        PlaybackSessionAccumulator session)
+    {
+        var checkpoints = CreateCheckpoints(eventArgs, sessionKey, session);
+        if (checkpoints.Count > 0
+            && !_writes.Writer.TryWrite(new CheckpointPlaybackWrite(checkpoints)))
+        {
+            _logger.LogWarning(
+                "Could not checkpoint playback session {SessionKey}; the tracker is stopping.",
+                sessionKey);
+        }
+    }
+
+    internal static IReadOnlyList<PlaybackSessionCheckpoint> CreateCheckpoints(
+        PlaybackProgressEventArgs eventArgs,
+        string sessionKey,
+        PlaybackSessionAccumulator session)
+    {
+        ArgumentNullException.ThrowIfNull(eventArgs);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionKey);
+        ArgumentNullException.ThrowIfNull(session);
+        if (eventArgs.Item is not Audio audio)
+        {
+            return Array.Empty<PlaybackSessionCheckpoint>();
+        }
+
+        return eventArgs.Users
+            .Select(user => user.Id)
+            .Where(userId => userId != Guid.Empty)
+            .Distinct()
+            .Select(userId => session.CreateCheckpoint(
+                sessionKey,
+                userId,
+                audio.Id,
+                audio.RunTimeTicks,
+                eventArgs.PlaySessionId,
+                eventArgs.ClientName,
+                eventArgs.DeviceId))
+            .ToList();
     }
 
     internal static IReadOnlyList<ListeningActivityEvent> CreateActivities(
@@ -251,20 +311,57 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     private async Task ProcessWritesAsync()
     {
-        await foreach (var activity in _writes.Reader.ReadAllAsync().ConfigureAwait(false))
+        await foreach (var write in _writes.Reader.ReadAllAsync().ConfigureAwait(false))
         {
             try
             {
-                _store.RecordPlayback(activity);
+                switch (write)
+                {
+                    case CheckpointPlaybackWrite checkpoint:
+                        _store.UpsertPlaybackSessions(checkpoint.Checkpoints);
+                        break;
+                    case CompletePlaybackWrite complete:
+                        _store.CompletePlaybackSession(
+                            complete.SessionKey,
+                            complete.Activities);
+                        break;
+                    case RecoverPlaybackWrite recover:
+                        var recovered = _store.RecoverAbandonedPlaybackSessions(
+                            recover.ObservedBeforeUtc);
+                        if (recovered > 0)
+                        {
+                            _logger.LogDebug(
+                                "Recovered {Count} stale playback session(s).",
+                                recovered);
+                        }
+
+                        break;
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Could not store listening activity for item {ItemId} and user {UserId}.",
-                    activity.ItemId,
-                    activity.UserId);
+                    "Could not apply a listening activity database write.");
             }
+        }
+    }
+
+    private async Task RecoverStaleSessionsAsync()
+    {
+        using var timer = new PeriodicTimer(SessionSweepInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_shutdown.Token).ConfigureAwait(false))
+            {
+                var cutoff = DateTimeOffset.UtcNow - SessionRetention;
+                EvictStaleSessions(_sessions, cutoff);
+                _writes.Writer.TryWrite(new RecoverPlaybackWrite(cutoff));
+            }
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+        {
+            // Normal hosted-service shutdown.
         }
     }
 
@@ -331,6 +428,8 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var removed = EvictStaleSessions(_sessions, observedAt - SessionRetention);
+        _writes.Writer.TryWrite(
+            new RecoverPlaybackWrite(observedAt - SessionRetention));
         if (removed > 0)
         {
             _logger.LogDebug("Removed {Count} stale playback session(s).", removed);
@@ -361,4 +460,16 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
         await task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    private abstract record ListeningActivityWrite;
+
+    private sealed record CheckpointPlaybackWrite(
+        IReadOnlyList<PlaybackSessionCheckpoint> Checkpoints) : ListeningActivityWrite;
+
+    private sealed record CompletePlaybackWrite(
+        string SessionKey,
+        IReadOnlyList<ListeningActivityEvent> Activities) : ListeningActivityWrite;
+
+    private sealed record RecoverPlaybackWrite(
+        DateTimeOffset ObservedBeforeUtc) : ListeningActivityWrite;
 }

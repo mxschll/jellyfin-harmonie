@@ -355,6 +355,112 @@ public sealed class ListeningActivityStore
         return result;
     }
 
+    internal void UpsertPlaybackSessions(
+        IReadOnlyList<PlaybackSessionCheckpoint> checkpoints)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoints);
+        if (checkpoints.Count == 0)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            using var connection = _database.OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            foreach (var checkpoint in checkpoints)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = """
+                    INSERT INTO playback_sessions (
+                        session_key, user_id, item_id, started_utc,
+                        last_observed_utc, start_position_ticks,
+                        end_position_ticks, max_position_ticks,
+                        active_listen_ticks, seek_forward_count,
+                        seek_backward_count, pause_count, is_paused,
+                        duration_ticks, play_session_id, client_name, device_id)
+                    VALUES (
+                        $session_key, $user_id, $item_id, $started_utc,
+                        $last_observed_utc, $start_position_ticks,
+                        $end_position_ticks, $max_position_ticks,
+                        $active_listen_ticks, $seek_forward_count,
+                        $seek_backward_count, $pause_count, $is_paused,
+                        $duration_ticks, $play_session_id, $client_name, $device_id)
+                    ON CONFLICT (session_key, user_id) DO UPDATE SET
+                        item_id = excluded.item_id,
+                        started_utc = excluded.started_utc,
+                        last_observed_utc = excluded.last_observed_utc,
+                        start_position_ticks = excluded.start_position_ticks,
+                        end_position_ticks = excluded.end_position_ticks,
+                        max_position_ticks = excluded.max_position_ticks,
+                        active_listen_ticks = excluded.active_listen_ticks,
+                        seek_forward_count = excluded.seek_forward_count,
+                        seek_backward_count = excluded.seek_backward_count,
+                        pause_count = excluded.pause_count,
+                        is_paused = excluded.is_paused,
+                        duration_ticks = excluded.duration_ticks,
+                        play_session_id = excluded.play_session_id,
+                        client_name = excluded.client_name,
+                        device_id = excluded.device_id;
+                    """;
+                AddCheckpointParameters(command, checkpoint);
+                command.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+    }
+
+    internal void CompletePlaybackSession(
+        string sessionKey,
+        IReadOnlyList<ListeningActivityEvent> activities)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionKey);
+        ArgumentNullException.ThrowIfNull(activities);
+
+        lock (_sync)
+        {
+            using var connection = _database.OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            foreach (var activity in activities)
+            {
+                WritePlayback(connection, transaction, activity);
+            }
+
+            DeletePlaybackSession(connection, transaction, sessionKey);
+            transaction.Commit();
+        }
+    }
+
+    internal int RecoverAbandonedPlaybackSessions(DateTimeOffset observedBeforeUtc)
+    {
+        lock (_sync)
+        {
+            using var connection = _database.OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            var checkpoints = ReadPlaybackSessions(
+                connection,
+                transaction,
+                observedBeforeUtc);
+            foreach (var checkpoint in checkpoints)
+            {
+                WritePlayback(
+                    connection,
+                    transaction,
+                    PlaybackSessionAccumulator.Recover(checkpoint));
+                DeletePlaybackSession(
+                    connection,
+                    transaction,
+                    checkpoint.SessionKey,
+                    checkpoint.UserId);
+            }
+
+            transaction.Commit();
+            return checkpoints.Count;
+        }
+    }
+
     internal void RecordPlayback(ListeningActivityEvent activity)
     {
         ArgumentNullException.ThrowIfNull(activity);
@@ -362,40 +468,9 @@ public sealed class ListeningActivityStore
         lock (_sync)
         {
             using var connection = _database.OpenConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = """
-                INSERT INTO playback_events (
-                    user_id, item_id, started_utc, stopped_utc,
-                    start_position_ticks, end_position_ticks, max_position_ticks,
-                    active_listen_ticks, seek_forward_count, seek_backward_count,
-                    pause_count, is_early_skip, duration_ticks, played_to_completion,
-                    counted_as_play, play_session_id, client_name, device_id)
-                VALUES (
-                    $user_id, $item_id, $started_utc, $stopped_utc,
-                    $start_position_ticks, $end_position_ticks, $max_position_ticks,
-                    $active_listen_ticks, $seek_forward_count, $seek_backward_count,
-                    $pause_count, $is_early_skip, $duration_ticks, $played_to_completion,
-                    $counted_as_play, $play_session_id, $client_name, $device_id);
-                """;
-            command.Parameters.AddWithValue("$user_id", FormatGuid(activity.UserId));
-            command.Parameters.AddWithValue("$item_id", FormatGuid(activity.ItemId));
-            command.Parameters.AddWithValue("$started_utc", DbValue(activity.StartedUtc));
-            command.Parameters.AddWithValue("$stopped_utc", FormatDate(activity.StoppedUtc));
-            command.Parameters.AddWithValue("$start_position_ticks", DbValue(activity.StartPositionTicks));
-            command.Parameters.AddWithValue("$end_position_ticks", DbValue(activity.EndPositionTicks));
-            command.Parameters.AddWithValue("$max_position_ticks", DbValue(activity.MaxPositionTicks));
-            command.Parameters.AddWithValue("$active_listen_ticks", DbValue(activity.ActiveListenTicks));
-            command.Parameters.AddWithValue("$seek_forward_count", activity.SeekForwardCount);
-            command.Parameters.AddWithValue("$seek_backward_count", activity.SeekBackwardCount);
-            command.Parameters.AddWithValue("$pause_count", activity.PauseCount);
-            command.Parameters.AddWithValue("$is_early_skip", activity.IsEarlySkip ? 1 : 0);
-            command.Parameters.AddWithValue("$duration_ticks", DbValue(activity.DurationTicks));
-            command.Parameters.AddWithValue("$played_to_completion", activity.PlayedToCompletion ? 1 : 0);
-            command.Parameters.AddWithValue("$counted_as_play", activity.CountedAsPlay ? 1 : 0);
-            command.Parameters.AddWithValue("$play_session_id", DbValue(activity.PlaySessionId));
-            command.Parameters.AddWithValue("$client_name", DbValue(activity.ClientName));
-            command.Parameters.AddWithValue("$device_id", DbValue(activity.DeviceId));
-            command.ExecuteNonQuery();
+            using var transaction = connection.BeginTransaction();
+            WritePlayback(connection, transaction, activity);
+            transaction.Commit();
         }
     }
 
@@ -411,6 +486,179 @@ public sealed class ListeningActivityStore
             SchemaVersion = _database.SchemaVersion,
         };
     }
+
+    private static void AddCheckpointParameters(
+        SqliteCommand command,
+        PlaybackSessionCheckpoint checkpoint)
+    {
+        command.Parameters.AddWithValue("$session_key", checkpoint.SessionKey);
+        command.Parameters.AddWithValue("$user_id", FormatGuid(checkpoint.UserId));
+        command.Parameters.AddWithValue("$item_id", FormatGuid(checkpoint.ItemId));
+        command.Parameters.AddWithValue("$started_utc", DbValue(checkpoint.StartedUtc));
+        command.Parameters.AddWithValue(
+            "$last_observed_utc",
+            FormatDate(checkpoint.LastObservedUtc));
+        command.Parameters.AddWithValue(
+            "$start_position_ticks",
+            DbValue(checkpoint.StartPositionTicks));
+        command.Parameters.AddWithValue(
+            "$end_position_ticks",
+            DbValue(checkpoint.EndPositionTicks));
+        command.Parameters.AddWithValue(
+            "$max_position_ticks",
+            DbValue(checkpoint.MaxPositionTicks));
+        command.Parameters.AddWithValue(
+            "$active_listen_ticks",
+            DbValue(checkpoint.ActiveListenTicks));
+        command.Parameters.AddWithValue(
+            "$seek_forward_count",
+            checkpoint.SeekForwardCount);
+        command.Parameters.AddWithValue(
+            "$seek_backward_count",
+            checkpoint.SeekBackwardCount);
+        command.Parameters.AddWithValue("$pause_count", checkpoint.PauseCount);
+        command.Parameters.AddWithValue("$is_paused", checkpoint.IsPaused ? 1 : 0);
+        command.Parameters.AddWithValue("$duration_ticks", DbValue(checkpoint.DurationTicks));
+        command.Parameters.AddWithValue("$play_session_id", DbValue(checkpoint.PlaySessionId));
+        command.Parameters.AddWithValue("$client_name", DbValue(checkpoint.ClientName));
+        command.Parameters.AddWithValue("$device_id", DbValue(checkpoint.DeviceId));
+    }
+
+    private static List<PlaybackSessionCheckpoint> ReadPlaybackSessions(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        DateTimeOffset observedBeforeUtc)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT
+                session_key, user_id, item_id, started_utc,
+                last_observed_utc, start_position_ticks, end_position_ticks,
+                max_position_ticks, active_listen_ticks, seek_forward_count,
+                seek_backward_count, pause_count, is_paused, duration_ticks,
+                play_session_id, client_name, device_id
+            FROM playback_sessions
+            WHERE last_observed_utc < $observed_before_utc
+            ORDER BY last_observed_utc, session_key, user_id;
+            """;
+        command.Parameters.AddWithValue(
+            "$observed_before_utc",
+            FormatDate(observedBeforeUtc));
+        using var reader = command.ExecuteReader();
+        var checkpoints = new List<PlaybackSessionCheckpoint>();
+        while (reader.Read())
+        {
+            if (!Guid.TryParseExact(reader.GetString(1), "N", out var userId)
+                || !Guid.TryParseExact(reader.GetString(2), "N", out var itemId))
+            {
+                continue;
+            }
+
+            checkpoints.Add(new PlaybackSessionCheckpoint(
+                reader.GetString(0),
+                userId,
+                itemId,
+                ReadDate(reader, 3),
+                ReadDate(reader, 4) ?? DateTimeOffset.MinValue,
+                ReadLong(reader, 5),
+                ReadLong(reader, 6),
+                ReadLong(reader, 7),
+                ReadLong(reader, 8),
+                reader.GetInt32(9),
+                reader.GetInt32(10),
+                reader.GetInt32(11),
+                reader.GetInt32(12) != 0,
+                ReadLong(reader, 13),
+                ReadString(reader, 14),
+                ReadString(reader, 15),
+                ReadString(reader, 16)));
+        }
+
+        return checkpoints;
+    }
+
+    private static void WritePlayback(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        ListeningActivityEvent activity)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO playback_events (
+                user_id, item_id, started_utc, stopped_utc,
+                start_position_ticks, end_position_ticks, max_position_ticks,
+                active_listen_ticks, seek_forward_count, seek_backward_count,
+                pause_count, is_early_skip, duration_ticks, played_to_completion,
+                counted_as_play, play_session_id, client_name, device_id)
+            VALUES (
+                $user_id, $item_id, $started_utc, $stopped_utc,
+                $start_position_ticks, $end_position_ticks, $max_position_ticks,
+                $active_listen_ticks, $seek_forward_count, $seek_backward_count,
+                $pause_count, $is_early_skip, $duration_ticks, $played_to_completion,
+                $counted_as_play, $play_session_id, $client_name, $device_id);
+            """;
+        command.Parameters.AddWithValue("$user_id", FormatGuid(activity.UserId));
+        command.Parameters.AddWithValue("$item_id", FormatGuid(activity.ItemId));
+        command.Parameters.AddWithValue("$started_utc", DbValue(activity.StartedUtc));
+        command.Parameters.AddWithValue("$stopped_utc", FormatDate(activity.StoppedUtc));
+        command.Parameters.AddWithValue(
+            "$start_position_ticks",
+            DbValue(activity.StartPositionTicks));
+        command.Parameters.AddWithValue("$end_position_ticks", DbValue(activity.EndPositionTicks));
+        command.Parameters.AddWithValue("$max_position_ticks", DbValue(activity.MaxPositionTicks));
+        command.Parameters.AddWithValue("$active_listen_ticks", DbValue(activity.ActiveListenTicks));
+        command.Parameters.AddWithValue("$seek_forward_count", activity.SeekForwardCount);
+        command.Parameters.AddWithValue("$seek_backward_count", activity.SeekBackwardCount);
+        command.Parameters.AddWithValue("$pause_count", activity.PauseCount);
+        command.Parameters.AddWithValue("$is_early_skip", activity.IsEarlySkip ? 1 : 0);
+        command.Parameters.AddWithValue("$duration_ticks", DbValue(activity.DurationTicks));
+        command.Parameters.AddWithValue(
+            "$played_to_completion",
+            activity.PlayedToCompletion ? 1 : 0);
+        command.Parameters.AddWithValue("$counted_as_play", activity.CountedAsPlay ? 1 : 0);
+        command.Parameters.AddWithValue("$play_session_id", DbValue(activity.PlaySessionId));
+        command.Parameters.AddWithValue("$client_name", DbValue(activity.ClientName));
+        command.Parameters.AddWithValue("$device_id", DbValue(activity.DeviceId));
+        command.ExecuteNonQuery();
+    }
+
+    private static void DeletePlaybackSession(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string sessionKey,
+        Guid? userId = null)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        if (userId is null)
+        {
+            command.CommandText =
+                "DELETE FROM playback_sessions WHERE session_key = $session_key;";
+        }
+        else
+        {
+            command.CommandText = """
+                DELETE FROM playback_sessions
+                WHERE session_key = $session_key AND user_id = $user_id;
+                """;
+        }
+
+        command.Parameters.AddWithValue("$session_key", sessionKey);
+        if (userId is not null)
+        {
+            command.Parameters.AddWithValue("$user_id", FormatGuid(userId.Value));
+        }
+
+        command.ExecuteNonQuery();
+    }
+
+    private static long? ReadLong(SqliteDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal);
+
+    private static string? ReadString(SqliteDataReader reader, int ordinal)
+        => reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
 
     private static string? ReadMetadata(
         SqliteConnection connection,

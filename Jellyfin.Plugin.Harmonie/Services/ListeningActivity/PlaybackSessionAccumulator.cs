@@ -15,8 +15,8 @@ internal sealed record PlaybackSessionSummary(
     bool IsEarlySkip);
 
 /// <summary>
-/// Reduces frequent Jellyfin progress events to one playback summary without
-/// writing each progress sample to the database.
+/// Reduces Jellyfin progress events to current playback metrics that can be
+/// checkpointed and finalized as one playback event.
 /// </summary>
 internal sealed class PlaybackSessionAccumulator
 {
@@ -92,23 +92,119 @@ internal sealed class PlaybackSessionAccumulator
         lock (_sync)
         {
             ObserveCore(stoppedAt, endPositionTicks, _isPaused);
-            long? activeListenTicks = _hasPlaybackStart ? _activeListenTicks : null;
-            var playedToCompletion = IsPlayedToCompletion(
-                endPositionTicks,
-                activeListenTicks,
-                durationTicks);
-            return new PlaybackSessionSummary(
+            return CreateSummary(durationTicks);
+        }
+    }
+
+    internal PlaybackSessionCheckpoint CreateCheckpoint(
+        string sessionKey,
+        Guid userId,
+        Guid itemId,
+        long? durationTicks,
+        string? playSessionId,
+        string? clientName,
+        string? deviceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionKey);
+        lock (_sync)
+        {
+            return new PlaybackSessionCheckpoint(
+                sessionKey,
+                userId,
+                itemId,
                 _startedUtc,
+                _lastObservedAt,
                 _startPositionTicks,
-                endPositionTicks,
+                _lastPositionTicks,
                 _maxPositionTicks,
-                activeListenTicks,
+                _hasPlaybackStart ? _activeListenTicks : null,
                 _seekForwardCount,
                 _seekBackwardCount,
                 _pauseCount,
-                playedToCompletion,
-                IsEarlySkip(activeListenTicks, durationTicks, playedToCompletion));
+                _isPaused,
+                durationTicks,
+                playSessionId,
+                clientName,
+                deviceId);
         }
+    }
+
+    internal static ListeningActivityEvent Recover(PlaybackSessionCheckpoint checkpoint)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        var playedToCompletion = IsPlayedToCompletion(
+            checkpoint.EndPositionTicks,
+            checkpoint.ActiveListenTicks,
+            checkpoint.DurationTicks);
+        return new ListeningActivityEvent(
+            checkpoint.UserId,
+            checkpoint.ItemId,
+            checkpoint.StartedUtc,
+            checkpoint.LastObservedUtc,
+            checkpoint.StartPositionTicks,
+            checkpoint.EndPositionTicks,
+            checkpoint.MaxPositionTicks,
+            checkpoint.ActiveListenTicks,
+            checkpoint.SeekForwardCount,
+            checkpoint.SeekBackwardCount,
+            checkpoint.PauseCount,
+            IsEarlySkip(
+                checkpoint.ActiveListenTicks is not null,
+                checkpoint.ActiveListenTicks,
+                checkpoint.DurationTicks,
+                playedToCompletion),
+            checkpoint.DurationTicks,
+            playedToCompletion,
+            IsCountedAsPlay(
+                checkpoint.EndPositionTicks,
+                checkpoint.ActiveListenTicks,
+                checkpoint.DurationTicks),
+            checkpoint.PlaySessionId,
+            checkpoint.ClientName,
+            checkpoint.DeviceId);
+    }
+
+    internal static bool IsCountedAsPlay(
+        long? endPositionTicks,
+        long? activeListenTicks,
+        long? durationTicks)
+    {
+        if (endPositionTicks is null
+            || activeListenTicks is null
+            || durationTicks is null
+            || durationTicks <= 0
+            || activeListenTicks < durationTicks / 2)
+        {
+            return false;
+        }
+
+        var remainingTicks = Math.Max(0, durationTicks.Value - endPositionTicks.Value);
+        return remainingTicks <= TimeSpan.FromSeconds(10).Ticks
+            || activeListenTicks.Value >= durationTicks.Value * 0.9;
+    }
+
+    private PlaybackSessionSummary CreateSummary(long? durationTicks)
+    {
+        long? activeListenTicks = _hasPlaybackStart ? _activeListenTicks : null;
+        var playedToCompletion = IsPlayedToCompletion(
+            _lastPositionTicks,
+            activeListenTicks,
+            durationTicks);
+        return new PlaybackSessionSummary(
+            _startedUtc,
+            _startPositionTicks,
+            _lastPositionTicks,
+            _maxPositionTicks,
+            activeListenTicks,
+            _seekForwardCount,
+            _seekBackwardCount,
+            _pauseCount,
+            playedToCompletion,
+            IsEarlySkip(
+                _hasPlaybackStart,
+                activeListenTicks,
+                durationTicks,
+                playedToCompletion));
     }
 
     private static bool IsPlayedToCompletion(
@@ -130,7 +226,7 @@ internal sealed class PlaybackSessionAccumulator
         // small margin when reporting the final position.
         var toleranceTicks = Math.Min(
             CompletionToleranceLimitTicks,
-            durationTicks.Value / 20);
+            durationTicks.Value / 5);
         return endPositionTicks.Value >= durationTicks.Value - toleranceTicks;
     }
 
@@ -182,12 +278,13 @@ internal sealed class PlaybackSessionAccumulator
         _isPaused = isPaused;
     }
 
-    private bool IsEarlySkip(
+    private static bool IsEarlySkip(
+        bool hasPlaybackStart,
         long? activeListenTicks,
         long? durationTicks,
         bool playedToCompletion)
     {
-        if (!_hasPlaybackStart
+        if (!hasPlaybackStart
             || playedToCompletion
             || activeListenTicks is null
             || durationTicks is null
