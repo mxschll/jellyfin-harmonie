@@ -55,8 +55,8 @@ public class PluginConfiguration : BasePluginConfiguration
         // plugin-managed content and gets refreshed.
         RadioSeedCount = 5;
 
-        // Defaults for [MIX] playlists — seeds come from Jellyfin's
-        // own listening history. Sweet spots from the harmonie docs:
+        // Defaults for [MIX] playlists — seeds come from stored user
+        // preference signals. Sweet spots from the harmonie docs:
         // 5–15 seeds, 7-day window, 30-track output.
         DefaultMixN = 20;
         DefaultMixDays = 7;
@@ -205,22 +205,23 @@ public class PluginConfiguration : BasePluginConfiguration
     public int DefaultMixN { get; set; }
 
     /// <summary>
-    /// Gets or sets the default listening window for <c>[MIX]</c>
-    /// playlists, in days. 1–365.
+    /// Gets or sets the default playback activity window for <c>[MIX]</c>
+    /// playlists, in days. Current explicit preferences remain eligible.
+    /// 1–365.
     /// </summary>
     public int DefaultMixDays { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum number of seeds taken from listening
-    /// history. Too few (1–2) gives myopic results; too many (50+)
+    /// Gets or sets the maximum number of recommendation seeds. Too few
+    /// (1–2) gives myopic results; too many (50+)
     /// blurs the centroid. 5–15 is the sweet spot per harmonie docs.
     /// </summary>
     public int DefaultMixSeedCap { get; set; }
 
     /// <summary>
-    /// Gets or sets whether mix seeds are picked by play-count rank
-    /// instead of recency. False = "today's mix" (recently played).
-    /// True = "your sound" (heavy rotation).
+    /// Gets or sets whether mix seeds favor long-term affinity instead of
+    /// recency. False gives recent signals more weight; true gives plays and
+    /// explicit preferences more weight.
     /// </summary>
     public bool DefaultMixUseTopPlayed { get; set; }
 
@@ -233,20 +234,20 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets whether the per-user style cluster playlists
     /// feature is enabled. When on, the scheduled refresh task creates
-    /// and maintains adaptive style playlists from each user's recent
-    /// listening history.
+    /// and maintains adaptive style playlists from each user's stored
+    /// preference signals.
     /// </summary>
     public bool EnableStylePlaylists { get; set; }
 
     /// <summary>
     /// Gets or sets the maximum number of per-user activity playlists.
-    /// The actual count adapts to the amount of recent listening history.
+    /// The actual count adapts to the amount of recent preference data.
     /// 0–10. If reduced later, excess playlists are removed.
     /// </summary>
     public int StylePlaylistCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the listening-history window (days) used to pick
+    /// Gets or sets the activity window (days) used to pick
     /// each user's top styles and seed each cluster playlist. 1–365.
     /// </summary>
     public int StylePlaylistDays { get; set; }

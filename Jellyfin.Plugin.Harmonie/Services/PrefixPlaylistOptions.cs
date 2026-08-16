@@ -23,10 +23,9 @@ public enum HarmonieMode
     Drift,
 
     /// <summary>
-    /// <c>[MIX]</c>. Auto-generated from the user's Jellyfin listening
-    /// history. The user never adds tracks manually; the plugin seeds
-    /// from recent or top-played plays, then asks harmonie for the
-    /// neighbourhood.
+    /// <c>[MIX]</c>. Auto-generated from the user's stored listening and
+    /// preference signals. The user never adds tracks manually; the plugin
+    /// scores seeds, then asks harmonie for the neighbourhood.
     /// </summary>
     Mix,
 
@@ -77,8 +76,8 @@ public enum HarmonieMode
 /// by spaces. The set of accepted tokens depends on the mode.
 ///
 ///   n=&lt;int&gt;          override playlist length (all modes).
-///   days=&lt;int&gt;       window for listening history (mix only).
-///   top                use play-count rank instead of recency (mix only).
+///   days=&lt;int&gt;       activity window (mix only).
+///   top                favor long-term affinity over recency (mix only).
 ///   top=&lt;int&gt;        as above, with explicit cap.
 ///   drift              use harmonie's drift mode for expansion (mix only).
 ///   style_min=&lt;f&gt;   minimum classifier probability (style/genre only).
@@ -111,16 +110,16 @@ public class PrefixPlaylistOptions
     public int? N { get; init; }
 
     /// <summary>
-    /// Window in days for mix-mode listening history. Null when not
+    /// Window in days for mix-mode recommendation signals. Null when not
     /// overridden in the title; service uses the configured default.
     /// Mix mode only.
     /// </summary>
     public int? Days { get; init; }
 
     /// <summary>
-    /// True if the title contains the <c>top</c> token (force top-played
-    /// seed selection). False if the title contains a <c>recent</c> hint
-    /// or no selection token. Null = use config default. Mix mode only.
+    /// True if the title contains the <c>top</c> token (favor long-term
+    /// affinity). False if the title contains a <c>recent</c> hint or no
+    /// selection token. Null = use config default. Mix mode only.
     /// </summary>
     public bool? UseTopPlayed { get; init; }
 

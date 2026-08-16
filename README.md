@@ -13,7 +13,7 @@
 > [!NOTE]
 > **Feedback wanted.** If anything in the install steps, settings, or playlist behaviour gets in your way, please open an issue. I want setup to be as painless as possible.
 
-Jellyfin Harmonie generates playlists from your music library using audio similarity and Jellyfin listening history. It replaces Jellyfin's genre- and tag-based Instant Mix selection with tracks matched by the audio itself.
+Jellyfin Harmonie generates playlists from your music library using audio similarity and stored listening data. It replaces Jellyfin's genre- and tag-based Instant Mix selection with tracks matched by the audio itself.
 
 The plugin also provides seeded radio and drift playlists, genre and style playlists, daily mixes, and personal mixes. Audio analysis is provided by the [harmonie](https://github.com/mxschll/harmonie) service.
 
@@ -63,7 +63,7 @@ Make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes
 | --- | --- |
 | `[RADIO]` | Similar tracks based on the first five tracks by default. Earlier seeds have more influence. Reorder or remove tracks to change the seeds. |
 | `[DRIFT]` | An evolving mix starting from the first track. Each group of results becomes the seed for the next. |
-| `[MIX]` | A mix seeded from the user's recent listening history. Manually added tracks are removed. |
+| `[MIX]` | A mix seeded from the user's recent plays, favorites, and playlist additions. Manually added tracks are removed. |
 | <code>[GENRE]&nbsp;X</code> | Tracks classified under a [Discogs genre](docs/discogs-styles.md#genres), such as `[GENRE] Hip Hop`. |
 | <code>[STYLE]&nbsp;X</code> | Tracks classified under a [Discogs style](docs/discogs-styles.md#styles), such as `[STYLE] House`. |
 
@@ -74,8 +74,8 @@ Override settings with tokens inside the brackets:
 | Token | Mode | What it does |
 | --- | --- | --- |
 | `n=N` | any | playlist length, 1 to 500 |
-| `days=N` | mix | listening window, 1 to 365 |
-| `top` or `top=N` | mix | seed by play count rank instead of recency |
+| `days=N` | mix | playback activity window, 1 to 365 |
+| `top` or `top=N` | mix | favor long-term affinity over recency |
 | `drift` | mix | use drift mode for the expansion |
 | `style_min=F` | style, genre | minimum classifier probability, 0.0 to 1.0. Defaults to 0.6 (configurable in plugin settings) |
 
@@ -91,7 +91,7 @@ Examples:
 
 ## Personal Mix playlists
 
-The plugin groups each user's recently played tracks by Harmonie style, weighted by play count, then expands every cluster into a private mix. The number of playlists adapts to the available listening history. As taste shifts, the playlists rename and refill themselves. Enabled by default and refreshed every 30 days; both behavior and schedule are configurable.
+The plugin scores each user's recent tracks from plays, completions, skips, favorites, and playlist additions. It groups the strongest tracks by Harmonie style, then expands each group into a private mix. The number of playlists adapts to the available data. Enabled by default and refreshed every 30 days; both behavior and schedule are configurable.
 
 ## Song Radio / Instant Mix
 
