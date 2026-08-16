@@ -131,7 +131,7 @@ public class CoverPainterTests
     {
         var painter = new CoverPainter();
 
-        var bytes = painter.RenderOnRepeat("REPEAT", SampleColor);
+        var bytes = painter.RenderOnRepeat("AUTO", SampleColor);
 
         AssertPng(bytes, expectedWidth: 1024, expectedHeight: 1024);
     }
@@ -141,8 +141,8 @@ public class CoverPainterTests
     {
         var painter = new CoverPainter();
 
-        var a = painter.RenderOnRepeat("REPEAT", SampleColor);
-        var b = painter.RenderOnRepeat("REPEAT", SampleColor);
+        var a = painter.RenderOnRepeat("AUTO", SampleColor);
+        var b = painter.RenderOnRepeat("AUTO", SampleColor);
 
         Assert.Equal(a, b);
     }

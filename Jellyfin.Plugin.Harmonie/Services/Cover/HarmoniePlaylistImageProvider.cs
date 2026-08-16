@@ -141,12 +141,13 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         }
 
         // On Repeat playlists are also identified by GUID. Rendered
-        // with a repeat-loop glyph as the visual focus.
+        // with a repeat-loop glyph as the visual focus. AUTO badge like
+        // every automatically generated playlist.
         if (_styleStore.IsOnRepeatPlaylist(playlist.Id))
         {
             return new CoverSpec(
                 Title: "On Repeat",
-                Badge: "REPEAT",
+                Badge: "AUTO",
                 Color: new SKColor(0xB5, 0x5C, 0x22),
                 Kind: CoverKind.OnRepeat);
         }
