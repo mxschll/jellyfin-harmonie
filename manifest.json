@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.7.1.1",
+        "changelog": "\n### Bug Fixes\n\n- Keep changelog markdown in manifest (b5ee7cf)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.1/jellyfin-harmonie_1.7.1.1.zip",
+        "checksum": "ba2523b38da83c69995e6627d9774bbe",
+        "timestamp": "2026-08-16T17:22:14Z"
+      },
+      {
+        "version": "1.7.1.0",
+        "changelog": "\n### Bug Fixes\n\n- Keep changelog markdown in manifest (b5ee7cf)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.7.1/jellyfin-harmonie_1.7.1.0.zip",
+        "checksum": "a0ad92b166c3303aa403de59bcb34397",
+        "timestamp": "2026-08-16T17:22:14Z"
+      },
+      {
         "version": "1.7.0.1",
         "changelog": " ### Chores  - Prune legacy manifest entries (08408bf)  ### Features  - User listening activity tracking (#21) (5277645)  ### Other  - Bump xunit.runner.visualstudio from 3.1.5 to 4.0.0 (#20)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (d8c7337) - Bump Microsoft.NET.Test.Sdk from 18.8.1 to 18.9.0 (#19)  Signed-off-by: dependabot[bot] <support@github.com> Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> (645baed)  ",
         "targetAbi": "10.11.0.0",
