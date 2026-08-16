@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.8.2.1",
+        "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.85.4 to 2.85.13 (#23) (361ffbf)\n\n### Chores\n\n- Ignore cross-major SQLitePCLRaw bumps (ef3b857)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.8.2/jellyfin-harmonie_1.8.2.1.zip",
+        "checksum": "5dea9a8e6952ebb160fe3788c001ae00",
+        "timestamp": "2026-08-16T20:30:07Z"
+      },
+      {
+        "version": "1.8.2.0",
+        "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.85.4 to 2.85.13 (#23) (361ffbf)\n\n### Chores\n\n- Ignore cross-major SQLitePCLRaw bumps (ef3b857)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.8.2/jellyfin-harmonie_1.8.2.0.zip",
+        "checksum": "5ae54ee6c3cb670799b52515f2e2c341",
+        "timestamp": "2026-08-16T20:30:07Z"
+      },
+      {
         "version": "1.8.1.1",
         "changelog": "\n### Bug Fixes\n\n- Pin embedded resource names with LogicalName (4dc614b)",
         "targetAbi": "10.11.0.0",
