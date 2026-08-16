@@ -107,7 +107,7 @@ Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation
 
 The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks run in the background (Dashboard, Scheduled Tasks):
 
-* **Refresh Harmonie Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
+* **Refresh Harmonie Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist, plus the On Repeat playlists.
 * **Refresh Harmonie Personal Mix Playlists:** weekly. Rebuilds the per-user Personal Mix playlists.
 
 Both schedules can be changed from the same page, and either can be triggered manually.
