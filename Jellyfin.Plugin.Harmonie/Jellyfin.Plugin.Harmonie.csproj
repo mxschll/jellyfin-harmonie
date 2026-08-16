@@ -33,7 +33,7 @@
     <!-- Lifts the vulnerable transitive SQLitePCLRaw pulled in by every
          Microsoft.Data.Sqlite pin (GHSA-2m69-gcr7-jv3q). Compile-time
          only; the host supplies the runtime copy. -->
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13">
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
