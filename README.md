@@ -122,6 +122,8 @@ The plugin stores these signals for each user:
 - Tracks in user playlists and when they were added
 - Play session, client, and device IDs
 
+The plugin imports Jellyfin's current totals and preferences once. It cannot recover activity from periods when the plugin was disabled or uninstalled.
+
 ## How does this compare to AudioMuse-AI?
 
 The shortest answer: they aim at different things. If you know Plexamp's Sonic Analysis or Spotify's Song Radio and Daily Mixes, Harmonie is that for Jellyfin. Radio from a seed track, per-user mixes built from listening history, surfacing forgotten songs. AudioMuse-AI is a broader discovery toolbox.

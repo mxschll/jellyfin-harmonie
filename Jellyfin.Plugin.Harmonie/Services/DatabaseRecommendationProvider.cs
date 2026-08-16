@@ -91,7 +91,8 @@ public sealed class DatabaseRecommendationProvider
             return Array.Empty<RecommendationSeed>();
         }
 
-        var metricRows = _store.GetRecommendationMetrics(user.Id);
+        var playbackCutoff = now - TimeSpan.FromDays(windowDays);
+        var metricRows = _store.GetRecommendationMetrics(user.Id, playbackCutoff);
         if (metricRows.Count == 0)
         {
             return Array.Empty<RecommendationSeed>();
