@@ -27,7 +27,7 @@ public class DetectReordersTask : IScheduledTask, IConfigurableScheduledTask
         _autoRefresh = autoRefresh;
     }
 
-    public string Name => "Detect Smart Playlist Reorders";
+    public string Name => "Detect Harmonie Playlist Reorders";
 
     public string Key => "HarmonieDetectReorders";
 

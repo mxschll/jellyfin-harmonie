@@ -49,10 +49,18 @@ public class UserStylePlaylistState
 
     public DateTimeOffset LastRefreshedUtc { get; set; }
 
+    /// <summary>
+    /// Jellyfin playlist GUID of the user's On Repeat playlist, or empty
+    /// if it hasn't been created. Identified by GUID for the same reason
+    /// as the slots: the name may collide with user-chosen names.
+    /// </summary>
+    public string OnRepeatPlaylistGuid { get; set; } = string.Empty;
+
     public UserStylePlaylistState Clone() => new()
     {
         Slots = Slots.Select(s => s.Clone()).ToList(),
         LastRefreshedUtc = LastRefreshedUtc,
+        OnRepeatPlaylistGuid = OnRepeatPlaylistGuid,
     };
 }
 
@@ -136,6 +144,25 @@ public class StylePlaylistStateStore
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// True if <paramref name="playlistId"/> is any user's On Repeat
+    /// playlist. Used by the cover image provider.
+    /// </summary>
+    public bool IsOnRepeatPlaylist(Guid playlistId)
+    {
+        var key = playlistId.ToString("N");
+        var dict = Load();
+        foreach (var state in dict.Values)
+        {
+            if (string.Equals(state.OnRepeatPlaylistGuid, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Dictionary<string, UserStylePlaylistState> Load()

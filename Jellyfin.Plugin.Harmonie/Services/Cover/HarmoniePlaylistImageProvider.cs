@@ -42,6 +42,13 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         _logger = logger;
     }
 
+    private enum CoverKind
+    {
+        Prefix,
+        PersonalMix,
+        OnRepeat,
+    }
+
     public string Name => "Harmonie";
 
     public bool Supports(BaseItem item)
@@ -52,7 +59,8 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         }
 
         return HarmoniePlaylistFilter.TryGetOptions(playlist) is not null
-            || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null;
+            || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null
+            || _styleStore.IsOnRepeatPlaylist(playlist.Id);
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
@@ -81,9 +89,12 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         {
             var bytes = type switch
             {
-                ImageType.Primary => spec.IsPersonalMix
-                    ? _painter.RenderPersonalMix(spec.Title, spec.Badge, spec.Color)
-                    : _painter.RenderPrimary(spec.Title, spec.Badge, spec.Color),
+                ImageType.Primary => spec.Kind switch
+                {
+                    CoverKind.PersonalMix => _painter.RenderPersonalMix(spec.Title, spec.Badge, spec.Color),
+                    CoverKind.OnRepeat => _painter.RenderOnRepeat(spec.Badge, spec.Color),
+                    _ => _painter.RenderPrimary(spec.Title, spec.Badge, spec.Color),
+                },
                 ImageType.Backdrop => _painter.RenderBackdrop(spec.Color),
                 _ => null,
             };
@@ -126,7 +137,19 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
                 Title: label,
                 Badge: "AUTO",
                 Color: CoverPalette.StyleColor(label),
-                IsPersonalMix: true);
+                Kind: CoverKind.PersonalMix);
+        }
+
+        // On Repeat playlists are also identified by GUID. Rendered
+        // with a repeat-loop glyph as the visual focus. AUTO badge like
+        // every automatically generated playlist.
+        if (_styleStore.IsOnRepeatPlaylist(playlist.Id))
+        {
+            return new CoverSpec(
+                Title: "On Repeat",
+                Badge: "AUTO",
+                Color: new SKColor(0xB5, 0x5C, 0x22),
+                Kind: CoverKind.OnRepeat);
         }
 
         // Title-prefixed playlists go through the parser so we honour
@@ -147,7 +170,7 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
                 Title: StripBracketPrefix(playlist.Name),
                 Badge: BadgeFor(options.Mode),
                 Color: color,
-                IsPersonalMix: false);
+                Kind: CoverKind.Prefix);
         }
 
         return null;
@@ -170,5 +193,5 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         return idx >= 0 ? name[(idx + 1)..].Trim() : name;
     }
 
-    private sealed record CoverSpec(string Title, string Badge, SKColor Color, bool IsPersonalMix);
+    private sealed record CoverSpec(string Title, string Badge, SKColor Color, CoverKind Kind);
 }

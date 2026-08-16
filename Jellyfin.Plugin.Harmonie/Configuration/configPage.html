@@ -278,6 +278,16 @@
                         </div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableOnRepeatPlaylists" name="EnableOnRepeatPlaylists" type="checkbox" is="emby-checkbox" />
+                            <span>Enable per-user On Repeat playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Optional. The daily refresh task keeps one playlist per user with the exact tracks they have played on loop over the last month, most-played first. Built from stored listening data only; works without harmonie.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Maximum playlists per user</label>
                         <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
@@ -410,6 +420,7 @@
                                 (config.DefaultStyleMin === null || config.DefaultStyleMin === undefined)
                                     ? 0.6 : config.DefaultStyleMin;
                             document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
+                            document.querySelector('#EnableOnRepeatPlaylists').checked = !!config.EnableOnRepeatPlaylists;
                             document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
                             document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
@@ -477,6 +488,7 @@
                                 (styleMinRaw === '' || isNaN(styleMinParsed)) ? 0.6
                                 : Math.min(1, Math.max(0, styleMinParsed));
                             config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
+                            config.EnableOnRepeatPlaylists = document.querySelector('#EnableOnRepeatPlaylists').checked;
                             config.StylePlaylistCount =
                                 parseInt(document.querySelector('#StylePlaylistCount').value, 10);
                             if (isNaN(config.StylePlaylistCount)) { config.StylePlaylistCount = 5; }

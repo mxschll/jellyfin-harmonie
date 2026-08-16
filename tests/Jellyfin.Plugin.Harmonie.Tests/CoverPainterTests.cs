@@ -126,6 +126,27 @@ public class CoverPainterTests
         Assert.Equal(a, b);
     }
 
+    [Fact]
+    public void RenderOnRepeat_returns_a_1024x1024_png()
+    {
+        var painter = new CoverPainter();
+
+        var bytes = painter.RenderOnRepeat("AUTO", SampleColor);
+
+        AssertPng(bytes, expectedWidth: 1024, expectedHeight: 1024);
+    }
+
+    [Fact]
+    public void RenderOnRepeat_is_deterministic_across_calls()
+    {
+        var painter = new CoverPainter();
+
+        var a = painter.RenderOnRepeat("AUTO", SampleColor);
+        var b = painter.RenderOnRepeat("AUTO", SampleColor);
+
+        Assert.Equal(a, b);
+    }
+
     /// <summary>
     /// Sanity check that the input actually drives the output: changing
     /// the title produces a different PNG. Without this, all the

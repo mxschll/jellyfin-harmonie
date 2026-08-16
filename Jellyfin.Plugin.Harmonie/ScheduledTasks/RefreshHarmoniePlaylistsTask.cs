@@ -21,13 +21,16 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {
     private readonly PrefixPlaylistService _prefixService;
+    private readonly OnRepeatPlaylistService _onRepeatService;
     private readonly ILogger<RefreshHarmoniePlaylistsTask> _logger;
 
     public RefreshHarmoniePlaylistsTask(
         PrefixPlaylistService prefixService,
+        OnRepeatPlaylistService onRepeatService,
         ILogger<RefreshHarmoniePlaylistsTask> logger)
     {
         _prefixService = prefixService;
+        _onRepeatService = onRepeatService;
         _logger = logger;
     }
 
@@ -36,7 +39,7 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     public string Key => "HarmonieRefreshPlaylists";
 
     public string Description =>
-        "Rebuild every [RADIO], [DRIFT], and [MIX] playlist by querying the harmonie service. Per-user Personal Mix playlists are refreshed by a separate, slower task.";
+        "Rebuild every [RADIO], [DRIFT], [MIX], [STYLE], and [GENRE] playlist by querying the harmonie service, and the On Repeat playlists from stored listening data. Per-user Personal Mix playlists are refreshed by a separate, slower task.";
 
     public string Category => "Harmonie";
 
@@ -55,6 +58,12 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
     {
         _logger.LogInformation("Starting Harmonie playlist refresh.");
         await _prefixService.RefreshAllAsync(progress, cancellationToken).ConfigureAwait(false);
+
+        // On Repeat runs after the prefix playlists: it reads only the
+        // plugin's own database, so it succeeds even when harmonie is
+        // unreachable and every prefix refresh above was skipped.
+        await _onRepeatService.RefreshAllAsync(cancellationToken).ConfigureAwait(false);
+
         progress.Report(100);
         _logger.LogInformation("Harmonie playlist refresh complete.");
     }
