@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.9.0.1",
+        "changelog": "\n### Features\n\n- Refresh personal mixes weekly by default (215bffd)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.9.0/jellyfin-harmonie_1.9.0.1.zip",
+        "checksum": "ef133395da3cf00b2a73b81316694a0f",
+        "timestamp": "2026-08-16T20:42:57Z"
+      },
+      {
+        "version": "1.9.0.0",
+        "changelog": "\n### Features\n\n- Refresh personal mixes weekly by default (215bffd)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.9.0/jellyfin-harmonie_1.9.0.0.zip",
+        "checksum": "1a64e17631dbd1d6441e24c6d0247703",
+        "timestamp": "2026-08-16T20:42:57Z"
+      },
+      {
         "version": "1.8.2.1",
         "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.85.4 to 2.85.13 (#23) (361ffbf)\n\n### Chores\n\n- Ignore cross-major SQLitePCLRaw bumps (ef3b857)",
         "targetAbi": "10.11.0.0",
