@@ -44,11 +44,18 @@
     <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
   </ItemGroup>
 
+  <!--
+    LogicalName pins the manifest resource names the code looks up
+    (HarmoniePlugin.GetPages, CoverPainter.LoadEmbeddedTypeface).
+    Without it MSBuild derives the name from the file's path relative
+    to the project, which silently drops the folder segment when the
+    build is invoked through a symlinked path (e.g. /tmp on macOS).
+  -->
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
-    <EmbeddedResource Include="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" LogicalName="Jellyfin.Plugin.Harmonie.Configuration.configPage.html" />
     <None Remove="Resources\Inter-Bold.ttf" />
-    <EmbeddedResource Include="Resources\Inter-Bold.ttf" />
+    <EmbeddedResource Include="Resources\Inter-Bold.ttf" LogicalName="Jellyfin.Plugin.Harmonie.Resources.Inter-Bold.ttf" />
   </ItemGroup>
 
   <!--

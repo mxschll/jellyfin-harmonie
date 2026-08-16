@@ -2,7 +2,9 @@
 # Build and install the current checkout into a Jellyfin Server DMG installation.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Physical path (-P): building through a symlinked path (like /tmp on
+# macOS) breaks MSBuild's embedded-resource name computation.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PROJECT="$ROOT/Jellyfin.Plugin.Harmonie/Jellyfin.Plugin.Harmonie.csproj"
 BUILD_PROPS="$ROOT/Directory.Build.props"
 JELLYFIN_APP="${JELLYFIN_APP:-/Applications/Jellyfin.app}"
