@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.Harmonie.Services.Storage;
 /// </summary>
 public sealed class HarmonieDatabase
 {
-    private const string DatabaseFileName = "harmonie.db";
+    private const string DatabaseFileName = "jellyfin-harmonie.db";
 
     private readonly object _sync = new();
     private readonly string _databasePath;

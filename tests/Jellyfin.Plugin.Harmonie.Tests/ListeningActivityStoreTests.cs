@@ -109,6 +109,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
         var playlistId = Guid.NewGuid();
         var firstPlaylistTrack = Guid.NewGuid();
         var secondPlaylistTrack = Guid.NewGuid();
+        var importedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
         var imported = store.StorePreferenceBootstrap(
             new ListeningPreferenceSnapshot(
                 new[]
@@ -123,7 +124,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
                         playlistId,
                         new[] { firstPlaylistTrack, secondPlaylistTrack }),
                 }),
-            DateTimeOffset.UtcNow);
+            importedAt);
 
         store.SetFavorite(userId, firstFavorite, isFavorite: false, DateTimeOffset.UtcNow);
         store.SyncPlaylist(
@@ -136,7 +137,9 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.True(imported);
         Assert.False(store.IsPreferenceBootstrapRequired());
         var metrics = store.GetRecommendationMetrics(userId);
-        Assert.Single(metrics, item => item.IsFavorite);
+        var favorite = Assert.Single(metrics, item => item.IsFavorite);
+        Assert.Equal(secondFavorite, favorite.ItemId);
+        Assert.Equal(importedAt, favorite.FavoriteObservedUtc);
         Assert.Single(metrics, item => item.PlaylistCount > 0);
 
         store.RemovePlaylist(playlistId);
@@ -214,9 +217,46 @@ public sealed class ListeningActivityStoreTests : IDisposable
             .Single(metrics => metrics.ItemId == addedTrack);
         Assert.Equal(1, retainedMetrics.PlaylistCount);
         Assert.Null(retainedMetrics.LastPlaylistAddedUtc);
-        Assert.Equal(importedAt, retainedMetrics.LastPlaylistFirstSeenUtc);
+        Assert.Equal(importedAt, retainedMetrics.LastPlaylistObservedUtc);
         Assert.Equal(addedAt, addedMetrics.LastPlaylistAddedUtc);
-        Assert.Equal(addedAt, addedMetrics.LastPlaylistFirstSeenUtc);
+        Assert.Equal(addedAt, addedMetrics.LastPlaylistObservedUtc);
+    }
+
+    [Fact]
+    public void Playlist_counts_are_scoped_to_the_playlist_owner()
+    {
+        var store = CreateStore();
+        var firstUser = Guid.NewGuid();
+        var secondUser = Guid.NewGuid();
+        var track = Guid.NewGuid();
+        var importedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        store.StorePreferenceBootstrap(
+            new ListeningPreferenceSnapshot(
+                Array.Empty<FavoriteTrackRecord>(),
+                new[]
+                {
+                    new PlaylistMembershipSnapshot(
+                        firstUser,
+                        Guid.NewGuid(),
+                        new[] { track }),
+                    new PlaylistMembershipSnapshot(
+                        firstUser,
+                        Guid.NewGuid(),
+                        new[] { track }),
+                    new PlaylistMembershipSnapshot(
+                        secondUser,
+                        Guid.NewGuid(),
+                        new[] { track }),
+                }),
+            importedAt);
+
+        var firstMetrics = Assert.Single(store.GetRecommendationMetrics(firstUser));
+        var secondMetrics = Assert.Single(store.GetRecommendationMetrics(secondUser));
+
+        Assert.Equal(2, firstMetrics.PlaylistCount);
+        Assert.Equal(1, secondMetrics.PlaylistCount);
+        Assert.Equal(importedAt, firstMetrics.LastPlaylistObservedUtc);
+        Assert.Equal(importedAt, secondMetrics.LastPlaylistObservedUtc);
     }
 
     [Fact]
@@ -256,13 +296,47 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.Equal(itemId, metrics.ItemId);
         Assert.Equal(6, metrics.PlayCount);
         Assert.Equal(capturedAt.AddMinutes(1), metrics.LastPlayedUtc);
+        Assert.Equal(2, metrics.OutcomeSampleCount);
         Assert.Equal(1, metrics.CompletedPlayCount);
         Assert.Equal(1, metrics.EarlySkipCount);
         Assert.Equal(2 * TimeSpan.FromSeconds(20).Ticks, metrics.ActiveListenTicks);
-        Assert.Equal(2, metrics.SeekForwardCount);
-        Assert.Equal(2, metrics.SeekBackwardCount);
-        Assert.Equal(2, metrics.PauseCount);
+        Assert.Equal(capturedAt.AddMinutes(1), metrics.LastCompletedUtc);
+        Assert.Equal(capturedAt.AddSeconds(-1), metrics.LastEarlySkipUtc);
         Assert.True(metrics.IsFavorite);
+        Assert.Equal(capturedAt.AddMinutes(2), metrics.FavoriteObservedUtc);
+    }
+
+    [Fact]
+    public void Outcome_sample_count_excludes_unclassifiable_playbacks()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var stoppedAt = DateTimeOffset.Parse("2026-08-16T12:00:00Z");
+        store.RecordPlayback(new ListeningActivityEvent(
+            userId,
+            itemId,
+            StartedUtc: null,
+            StoppedUtc: stoppedAt,
+            StartPositionTicks: null,
+            EndPositionTicks: TimeSpan.FromSeconds(20).Ticks,
+            MaxPositionTicks: TimeSpan.FromSeconds(20).Ticks,
+            ActiveListenTicks: null,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            IsEarlySkip: false,
+            DurationTicks: TimeSpan.FromMinutes(3).Ticks,
+            PlayedToCompletion: false,
+            PlaySessionId: "partial-play",
+            ClientName: "test",
+            DeviceId: "test"));
+
+        var metrics = Assert.Single(store.GetRecommendationMetrics(userId));
+
+        Assert.Equal(1, metrics.PlayCount);
+        Assert.Equal(0, metrics.OutcomeSampleCount);
+        Assert.Equal(stoppedAt, metrics.LastPlayedUtc);
     }
 
     private ListeningActivityStore CreateStore()

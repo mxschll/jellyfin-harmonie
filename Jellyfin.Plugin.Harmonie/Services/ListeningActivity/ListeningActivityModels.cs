@@ -35,16 +35,17 @@ internal sealed record RecommendationTrackMetrics(
     Guid ItemId,
     long PlayCount,
     DateTimeOffset? LastPlayedUtc,
+    long OutcomeSampleCount,
     long CompletedPlayCount,
     long EarlySkipCount,
     long ActiveListenTicks,
-    long SeekForwardCount,
-    long SeekBackwardCount,
-    long PauseCount,
+    DateTimeOffset? LastCompletedUtc,
+    DateTimeOffset? LastEarlySkipUtc,
     bool IsFavorite,
+    DateTimeOffset? FavoriteObservedUtc,
     long PlaylistCount,
     DateTimeOffset? LastPlaylistAddedUtc,
-    DateTimeOffset? LastPlaylistFirstSeenUtc);
+    DateTimeOffset? LastPlaylistObservedUtc);
 
 /// <summary>
 /// One stopped Jellyfin playback session recorded by the plugin.

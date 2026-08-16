@@ -148,7 +148,7 @@ public sealed class ListeningActivityStore
         Guid userId,
         Guid itemId,
         bool isFavorite,
-        DateTimeOffset updatedAt)
+        DateTimeOffset observedAt)
     {
         if (userId == Guid.Empty || itemId == Guid.Empty)
         {
@@ -161,7 +161,7 @@ public sealed class ListeningActivityStore
             using var transaction = connection.BeginTransaction();
             if (isFavorite)
             {
-                WriteFavorite(connection, transaction, userId, itemId, updatedAt);
+                WriteFavorite(connection, transaction, userId, itemId, observedAt);
             }
             else
             {
@@ -232,78 +232,23 @@ public sealed class ListeningActivityStore
             using var connection = _database.OpenConnection();
             using var command = connection.CreateCommand();
             command.CommandText = """
-                WITH track_keys AS (
-                    SELECT item_id FROM bootstrap_activity WHERE user_id = $user_id
-                    UNION
-                    SELECT item_id FROM playback_events WHERE user_id = $user_id
-                    UNION
-                    SELECT item_id FROM favorite_tracks WHERE user_id = $user_id
-                    UNION
-                    SELECT item_id FROM playlist_tracks WHERE user_id = $user_id
-                ),
-                event_metrics AS (
-                    SELECT
-                        events.item_id,
-                        SUM(CASE
-                            WHEN bootstrap.captured_at_utc IS NULL
-                                OR events.stopped_utc > bootstrap.captured_at_utc
-                            THEN 1 ELSE 0 END) AS new_play_count,
-                        MAX(events.stopped_utc) AS last_played_utc,
-                        SUM(events.played_to_completion) AS completed_play_count,
-                        SUM(events.is_early_skip) AS early_skip_count,
-                        SUM(COALESCE(events.active_listen_ticks, 0)) AS active_listen_ticks,
-                        SUM(events.seek_forward_count) AS seek_forward_count,
-                        SUM(events.seek_backward_count) AS seek_backward_count,
-                        SUM(events.pause_count) AS pause_count
-                    FROM playback_events AS events
-                    LEFT JOIN bootstrap_activity AS bootstrap
-                        ON bootstrap.user_id = events.user_id
-                        AND bootstrap.item_id = events.item_id
-                    WHERE events.user_id = $user_id
-                    GROUP BY events.item_id
-                ),
-                playlist_metrics AS (
-                    SELECT
-                        item_id,
-                        COUNT(*) AS playlist_count,
-                        MAX(added_at_utc) AS last_added_at_utc,
-                        MAX(first_seen_at_utc) AS last_first_seen_at_utc
-                    FROM playlist_tracks
-                    WHERE user_id = $user_id
-                    GROUP BY item_id
-                )
                 SELECT
-                    keys.item_id,
-                    COALESCE(bootstrap.play_count, 0)
-                        + COALESCE(events.new_play_count, 0) AS play_count,
-                    CASE
-                        WHEN bootstrap.last_played_utc IS NULL
-                            THEN events.last_played_utc
-                        WHEN events.last_played_utc IS NULL
-                            THEN bootstrap.last_played_utc
-                        WHEN bootstrap.last_played_utc >= events.last_played_utc
-                            THEN bootstrap.last_played_utc
-                        ELSE events.last_played_utc
-                    END AS last_played_utc,
-                    COALESCE(events.completed_play_count, 0),
-                    COALESCE(events.early_skip_count, 0),
-                    COALESCE(events.active_listen_ticks, 0),
-                    COALESCE(events.seek_forward_count, 0),
-                    COALESCE(events.seek_backward_count, 0),
-                    COALESCE(events.pause_count, 0),
-                    CASE WHEN favorites.item_id IS NULL THEN 0 ELSE 1 END,
-                    COALESCE(playlists.playlist_count, 0),
-                    playlists.last_added_at_utc,
-                    playlists.last_first_seen_at_utc
-                FROM track_keys AS keys
-                LEFT JOIN bootstrap_activity AS bootstrap
-                    ON bootstrap.user_id = $user_id
-                    AND bootstrap.item_id = keys.item_id
-                LEFT JOIN event_metrics AS events ON events.item_id = keys.item_id
-                LEFT JOIN favorite_tracks AS favorites
-                    ON favorites.user_id = $user_id
-                    AND favorites.item_id = keys.item_id
-                LEFT JOIN playlist_metrics AS playlists ON playlists.item_id = keys.item_id;
+                    item_id,
+                    play_count,
+                    last_played_utc,
+                    outcome_sample_count,
+                    completed_play_count,
+                    early_skip_count,
+                    active_listen_ticks,
+                    last_completed_utc,
+                    last_early_skip_utc,
+                    is_favorite,
+                    favorite_observed_utc,
+                    playlist_count,
+                    last_playlist_added_utc,
+                    last_playlist_observed_utc
+                FROM user_track_metrics
+                WHERE user_id = $user_id;
                 """;
             command.Parameters.AddWithValue("$user_id", FormatGuid(userId));
             using var reader = command.ExecuteReader();
@@ -324,12 +269,13 @@ public sealed class ListeningActivityStore
                     reader.GetInt64(4),
                     reader.GetInt64(5),
                     reader.GetInt64(6),
-                    reader.GetInt64(7),
-                    reader.GetInt64(8),
+                    ReadDate(reader, 7),
+                    ReadDate(reader, 8),
                     reader.GetInt64(9) != 0,
-                    reader.GetInt64(10),
-                    ReadDate(reader, 11),
-                    ReadDate(reader, 12)));
+                    ReadDate(reader, 10),
+                    reader.GetInt64(11),
+                    ReadDate(reader, 12),
+                    ReadDate(reader, 13)));
             }
 
             return result;
@@ -429,19 +375,19 @@ public sealed class ListeningActivityStore
         SqliteTransaction transaction,
         Guid userId,
         Guid itemId,
-        DateTimeOffset updatedAt)
+        DateTimeOffset observedAt)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            INSERT INTO favorite_tracks (user_id, item_id, updated_at_utc)
-            VALUES ($user_id, $item_id, $updated_at_utc)
+            INSERT INTO favorite_tracks (user_id, item_id, observed_at_utc)
+            VALUES ($user_id, $item_id, $observed_at_utc)
             ON CONFLICT (user_id, item_id) DO UPDATE SET
-                updated_at_utc = excluded.updated_at_utc;
+                observed_at_utc = excluded.observed_at_utc;
             """;
         command.Parameters.AddWithValue("$user_id", FormatGuid(userId));
         command.Parameters.AddWithValue("$item_id", FormatGuid(itemId));
-        command.Parameters.AddWithValue("$updated_at_utc", FormatDate(updatedAt));
+        command.Parameters.AddWithValue("$observed_at_utc", FormatDate(observedAt));
         command.ExecuteNonQuery();
     }
 
