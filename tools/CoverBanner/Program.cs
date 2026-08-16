@@ -16,14 +16,15 @@ var output = args.Length > 0 ? args[0] : "docs/playlists.png";
 
 var painter = new CoverPainter();
 
-// One entry per playlist type, in the order the README introduces them.
+// One entry per showcased playlist type, in the order the README
+// introduces them. Mix and Style are omitted to keep the row readable:
+// Personal Mix already represents the mix family, and Style covers
+// look like Genre covers.
 var covers = new[]
 {
     painter.RenderPrimary("Workout", "RADIO", CoverPalette.ModeColor(HarmonieMode.Radio)),
     painter.RenderPrimary("Late Night", "DRIFT", CoverPalette.ModeColor(HarmonieMode.Drift)),
-    painter.RenderPrimary("Discovery", "MIX", CoverPalette.ModeColor(HarmonieMode.Mix)),
     painter.RenderPrimary("Hip Hop", "GENRE", CoverPalette.StyleColor("Hip Hop")),
-    painter.RenderPrimary("House", "STYLE", CoverPalette.StyleColor("House")),
     painter.RenderPersonalMix("Bassline-Dubstep", "AUTO", CoverPalette.StyleColor("Bassline")),
     painter.RenderOnRepeat("AUTO", new SKColor(0xB5, 0x5C, 0x22)),
 };

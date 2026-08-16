@@ -18,7 +18,7 @@ Jellyfin Harmonie generates playlists from your music library using audio simila
 The plugin also provides seeded radio and drift playlists, genre and style playlists, daily mixes, and personal mixes. Audio analysis is provided by the [harmonie](https://github.com/mxschll/harmonie) service.
 
 <p align="center">
-  <img src="docs/playlists.png" alt="Covers of the playlist types Harmonie generates: Radio, Drift, Mix, Genre, Style, Personal Mix, and On Repeat" width="720" />
+  <img src="docs/playlists.png" alt="Covers of Harmonie playlist types: Radio, Drift, Genre, Personal Mix, and On Repeat" width="720" />
 </p>
 
 ## Install
