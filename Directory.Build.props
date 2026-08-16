@@ -14,7 +14,7 @@
       Jellyfin itself bumps it first (Dependabot is configured to ignore it).
       Verify against the upstream release tag before changing:
       https://github.com/jellyfin/jellyfin/blob/v10.10.7/Directory.Packages.props
-      https://github.com/jellyfin/jellyfin/blob/v10.11.11/Directory.Packages.props
+      https://github.com/jellyfin/jellyfin/blob/v10.11.0/Directory.Packages.props
       https://github.com/jellyfin/jellyfin/blob/v12.0-rc5/Directory.Packages.props
     -->
     <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -24,10 +24,17 @@
         <SqliteVersion>8.0.11</SqliteVersion>
     </PropertyGroup>
     <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-        <!-- Jellyfin 10.11.x -->
-        <JellyfinVersion>10.11.11</JellyfinVersion>
+        <!--
+          Jellyfin 10.11.x. Pinned to the FLOOR of the line, not the latest
+          patch: plugin assemblies compiled against a later patch (e.g.
+          10.11.11) fail to load on earlier servers (e.g. 10.11.8) with
+          "incompatible version of one of the shared libraries". Compiling
+          against 10.11.0 loads on every 10.11.x host. API differences
+          within the line are handled at runtime in JellyfinCompat.
+        -->
+        <JellyfinVersion>10.11.0</JellyfinVersion>
         <SkiaSharpVersion>3.116.1</SkiaSharpVersion>
-        <SqliteVersion>9.0.11</SqliteVersion>
+        <SqliteVersion>9.0.10</SqliteVersion>
     </PropertyGroup>
     <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
         <!-- Jellyfin 12.x (RC) -->
