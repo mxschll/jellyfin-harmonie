@@ -193,26 +193,12 @@ public class HarmonieController : ControllerBase
     }
 
     /// <summary>
-    /// Returns the path and counters for the plugin-local listening activity
-    /// database.
+    /// Returns information about the plugin-local listening database.
     /// </summary>
     [HttpGet("ListeningActivity")]
     [Authorize(Policy = Policies.RequiresElevation)]
     public ActionResult<ListeningActivityStatus> ListeningActivity()
     {
         return Ok(_activityStore.GetStatus());
-    }
-
-    /// <summary>
-    /// Clears imported and recorded listening activity. The empty database is
-    /// retained and will continue collecting new playback events.
-    /// </summary>
-    [HttpDelete("ListeningActivity")]
-    [Authorize(Policy = Policies.RequiresElevation)]
-    public ActionResult<ListeningActivityStatus> ClearListeningActivity()
-    {
-        var status = _activityStore.Clear();
-        _logger.LogInformation("Harmonie listening activity was cleared by an administrator.");
-        return Ok(status);
     }
 }

@@ -23,7 +23,11 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<HarmonieDatabase>();
         serviceCollection.AddSingleton<ListeningActivityStore>();
         serviceCollection.AddSingleton<IListeningActivityBootstrapSource, JellyfinActivityBootstrapSource>();
+        serviceCollection.AddSingleton<
+            IListeningPreferenceSnapshotSource,
+            JellyfinPreferenceSnapshotSource>();
         serviceCollection.AddHostedService<ListeningActivityTracker>();
+        serviceCollection.AddHostedService<ListeningPreferenceTracker>();
         serviceCollection.AddSingleton<PlaylistContentReplacer>();
         serviceCollection.AddSingleton<CoverRefreshQueuer>();
         serviceCollection.AddSingleton<PrefixPlaylistService>();

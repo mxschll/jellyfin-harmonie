@@ -93,18 +93,6 @@ Examples:
 
 The plugin groups each user's recently played tracks by Harmonie style, weighted by play count, then expands every cluster into a private mix. The number of playlists adapts to the available listening history. As taste shifts, the playlists rename and refill themselves. Enabled by default and refreshed every 30 days; both behavior and schedule are configurable.
 
-## Listening data
-
-The plugin keeps a local play log so it can improve each user's recommendations. On first start, it copies the last play time, play count, and favorite state for played tracks from Jellyfin. For each new play, it stores:
-
-- Jellyfin user and track IDs
-- Start and stop times
-- Stop position and track length
-- Whether the track finished
-- Play session, client, and device IDs
-
-The data stays in `harmonie.db` on the Jellyfin server. The plugin settings show its path, size, and record counts. You can clear the stored activity there.
-
 ## Song Radio / Instant Mix
 
 When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Falls back to Jellyfin's default behaviour when harmonie is unreachable or the track isn't in its index, so the button always works. Toggle off in plugin settings under "Instant Mix / Song Radio".
@@ -119,6 +107,22 @@ The plugin refreshes a playlist shortly after you edit it. Two scheduled tasks r
 * **Refresh Harmonie Personal Mix Playlists:** every 30 days. Rebuilds the per-user Personal Mix playlists.
 
 Both schedules can be changed from the same page, and either can be triggered manually.
+
+## Listening data
+
+The plugin stores these signals for each user:
+
+- Jellyfin user and track IDs
+- Play count and last play time
+- Start and stop times, track length, and playback positions
+- Active listening time, without pauses
+- Pauses and forward or backward seeks
+- Completed plays and early stops
+- Favorite tracks
+- Tracks in user playlists and when they were added
+- Play session, client, and device IDs
+
+The data stays in `harmonie.db` on the Jellyfin server. The plugin settings show its path, schema version, and size.
 
 ## Compatibility
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
@@ -12,7 +13,38 @@ internal sealed record ListeningActivityBootstrapRecord(
     Guid ItemId,
     DateTimeOffset LastPlayedUtc,
     int PlayCount,
-    bool IsFavorite);
+    DateTimeOffset CapturedAtUtc);
+
+internal sealed record FavoriteTrackRecord(Guid UserId, Guid ItemId);
+
+internal sealed record PlaylistMembershipSnapshot(
+    Guid UserId,
+    Guid PlaylistId,
+    IReadOnlyList<Guid> ItemIds);
+
+internal sealed record ListeningPreferenceSnapshot(
+    IReadOnlyList<FavoriteTrackRecord> Favorites,
+    IReadOnlyList<PlaylistMembershipSnapshot> Playlists);
+
+/// <summary>
+/// User-track signals reconstructed from the imported Jellyfin totals and
+/// events recorded after each total was captured.
+/// </summary>
+internal sealed record RecommendationTrackMetrics(
+    Guid UserId,
+    Guid ItemId,
+    long PlayCount,
+    DateTimeOffset? LastPlayedUtc,
+    long CompletedPlayCount,
+    long EarlySkipCount,
+    long ActiveListenTicks,
+    long SeekForwardCount,
+    long SeekBackwardCount,
+    long PauseCount,
+    bool IsFavorite,
+    long PlaylistCount,
+    DateTimeOffset? LastPlaylistAddedUtc,
+    DateTimeOffset? LastPlaylistFirstSeenUtc);
 
 /// <summary>
 /// One completed Jellyfin playback session recorded by the plugin.
@@ -22,7 +54,14 @@ internal sealed record ListeningActivityEvent(
     Guid ItemId,
     DateTimeOffset? StartedUtc,
     DateTimeOffset StoppedUtc,
-    long? PositionTicks,
+    long? StartPositionTicks,
+    long? EndPositionTicks,
+    long? MaxPositionTicks,
+    long? ActiveListenTicks,
+    int SeekForwardCount,
+    int SeekBackwardCount,
+    int PauseCount,
+    bool IsEarlySkip,
     long? DurationTicks,
     bool PlayedToCompletion,
     string? PlaySessionId,
@@ -30,7 +69,7 @@ internal sealed record ListeningActivityEvent(
     string? DeviceId);
 
 /// <summary>
-/// Administrative status for the listening-activity database.
+/// Administrative information about the listening database.
 /// </summary>
 public sealed class ListeningActivityStatus
 {
@@ -42,16 +81,4 @@ public sealed class ListeningActivityStatus
 
     [JsonPropertyName("schema_version")]
     public int SchemaVersion { get; init; }
-
-    [JsonPropertyName("playback_events")]
-    public long PlaybackEvents { get; init; }
-
-    [JsonPropertyName("bootstrap_records")]
-    public long BootstrapRecords { get; init; }
-
-    [JsonPropertyName("bootstrap_completed_at")]
-    public DateTimeOffset? BootstrapCompletedAt { get; init; }
-
-    [JsonPropertyName("cleared_at")]
-    public DateTimeOffset? ClearedAt { get; init; }
 }

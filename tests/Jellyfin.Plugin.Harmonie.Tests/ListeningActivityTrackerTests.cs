@@ -36,8 +36,18 @@ public class ListeningActivityTrackerTests
         };
         var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
         var stoppedAt = startedAt.AddMinutes(3);
+        var summary = new PlaybackSessionSummary(
+            startedAt,
+            StartPositionTicks: 0,
+            EndPositionTicks: eventArgs.PlaybackPositionTicks,
+            MaxPositionTicks: eventArgs.PlaybackPositionTicks,
+            ActiveListenTicks: TimeSpan.FromMinutes(3).Ticks,
+            SeekForwardCount: 1,
+            SeekBackwardCount: 0,
+            PauseCount: 1,
+            IsEarlySkip: false);
 
-        var activities = ListeningActivityTracker.CreateActivities(eventArgs, startedAt, stoppedAt);
+        var activities = ListeningActivityTracker.CreateActivities(eventArgs, summary, stoppedAt);
 
         Assert.Equal(2, activities.Count);
         Assert.Contains(activities, activity => activity.UserId == firstUser.Id);
@@ -46,7 +56,12 @@ public class ListeningActivityTrackerTests
         {
             Assert.Equal(item.Id, activity.ItemId);
             Assert.Equal(item.RunTimeTicks, activity.DurationTicks);
-            Assert.Equal(eventArgs.PlaybackPositionTicks, activity.PositionTicks);
+            Assert.Equal(summary.StartPositionTicks, activity.StartPositionTicks);
+            Assert.Equal(summary.EndPositionTicks, activity.EndPositionTicks);
+            Assert.Equal(summary.MaxPositionTicks, activity.MaxPositionTicks);
+            Assert.Equal(summary.ActiveListenTicks, activity.ActiveListenTicks);
+            Assert.Equal(1, activity.SeekForwardCount);
+            Assert.Equal(1, activity.PauseCount);
             Assert.True(activity.PlayedToCompletion);
             Assert.Equal(startedAt, activity.StartedUtc);
             Assert.Equal(stoppedAt, activity.StoppedUtc);
@@ -60,7 +75,7 @@ public class ListeningActivityTrackerTests
 
         var activities = ListeningActivityTracker.CreateActivities(
             eventArgs,
-            null,
+            new PlaybackSessionSummary(null, null, null, null, null, 0, 0, 0, false),
             DateTimeOffset.UtcNow);
 
         Assert.Empty(activities);

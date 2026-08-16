@@ -94,7 +94,7 @@ internal sealed class JellyfinActivityBootstrapSource : IListeningActivityBootst
                     audio.Id,
                     ToUtc(data.LastPlayedDate.Value),
                     data.PlayCount,
-                    data.IsFavorite));
+                    DateTimeOffset.UtcNow));
             }
 
             startIndex += page.Count;

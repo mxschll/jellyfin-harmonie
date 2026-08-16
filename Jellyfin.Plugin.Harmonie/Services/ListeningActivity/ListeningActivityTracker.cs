@@ -33,7 +33,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             SingleWriter = false,
         });
 
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _startedAt =
+    private readonly ConcurrentDictionary<string, PlaybackSessionAccumulator> _sessions =
         new(StringComparer.Ordinal);
 
     private readonly CancellationTokenSource _shutdown = new();
@@ -103,7 +103,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
         await AwaitWorkerAsync(_bootstrapTask, cancellationToken).ConfigureAwait(false);
         await AwaitWorkerAsync(_writerTask, cancellationToken).ConfigureAwait(false);
-        _startedAt.Clear();
+        _sessions.Clear();
         _started = false;
     }
 
@@ -128,7 +128,11 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         var key = ActivityKey(eventArgs);
         if (key is not null)
         {
-            _startedAt[key] = DateTimeOffset.UtcNow;
+            var now = DateTimeOffset.UtcNow;
+            _sessions[key] = PlaybackSessionAccumulator.FromStart(
+                now,
+                eventArgs.PlaybackPositionTicks,
+                eventArgs.IsPaused);
         }
     }
 
@@ -142,7 +146,20 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         var key = ActivityKey(eventArgs);
         if (key is not null)
         {
-            _startedAt.TryAdd(key, DateTimeOffset.UtcNow);
+            var now = DateTimeOffset.UtcNow;
+            if (_sessions.TryGetValue(key, out var session))
+            {
+                session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
+            }
+            else
+            {
+                _sessions.TryAdd(
+                    key,
+                    PlaybackSessionAccumulator.FromProgress(
+                        now,
+                        eventArgs.PlaybackPositionTicks,
+                        eventArgs.IsPaused));
+            }
         }
     }
 
@@ -154,14 +171,31 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var now = DateTimeOffset.UtcNow;
-        DateTimeOffset? startedAt = null;
+        PlaybackSessionSummary summary;
         var key = ActivityKey(eventArgs);
-        if (key is not null && _startedAt.TryRemove(key, out var found))
+        if (key is not null && _sessions.TryRemove(key, out var session))
         {
-            startedAt = found;
+            summary = session.Finish(
+                now,
+                eventArgs.PlaybackPositionTicks,
+                audio.RunTimeTicks,
+                eventArgs.PlayedToCompletion);
+        }
+        else
+        {
+            summary = new PlaybackSessionSummary(
+                null,
+                null,
+                eventArgs.PlaybackPositionTicks,
+                eventArgs.PlaybackPositionTicks,
+                null,
+                0,
+                0,
+                0,
+                IsEarlySkip: false);
         }
 
-        foreach (var activity in CreateActivities(eventArgs, startedAt, now))
+        foreach (var activity in CreateActivities(eventArgs, summary, now))
         {
             if (!_writes.Writer.TryWrite(activity))
             {
@@ -174,10 +208,11 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     internal static IReadOnlyList<ListeningActivityEvent> CreateActivities(
         PlaybackStopEventArgs eventArgs,
-        DateTimeOffset? startedAt,
+        PlaybackSessionSummary summary,
         DateTimeOffset stoppedAt)
     {
         ArgumentNullException.ThrowIfNull(eventArgs);
+        ArgumentNullException.ThrowIfNull(summary);
         if (eventArgs.Item is not Audio audio)
         {
             return Array.Empty<ListeningActivityEvent>();
@@ -190,9 +225,16 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             .Select(userId => new ListeningActivityEvent(
                 userId,
                 audio.Id,
-                startedAt,
+                summary.StartedUtc,
                 stoppedAt,
-                eventArgs.PlaybackPositionTicks,
+                summary.StartPositionTicks,
+                summary.EndPositionTicks,
+                summary.MaxPositionTicks,
+                summary.ActiveListenTicks,
+                summary.SeekForwardCount,
+                summary.SeekBackwardCount,
+                summary.PauseCount,
+                summary.IsEarlySkip,
                 audio.RunTimeTicks,
                 eventArgs.PlayedToCompletion,
                 eventArgs.PlaySessionId,
