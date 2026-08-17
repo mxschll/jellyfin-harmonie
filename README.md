@@ -115,7 +115,7 @@ The plugin refreshes a playlist shortly after you edit it. Three scheduled tasks
 * **Refresh Harmonie Personal Mix Playlists:** weekly. Rebuilds the per-user Personal Mix playlists.
 * **Refresh Harmonie On Repeat Playlists:** every five days. Rebuilds the per-user On Repeat playlists.
 
-Both schedules can be changed from the same page, and either can be triggered manually.
+Change any schedule from the same page, or run a task by hand.
 
 ## Listening data
 

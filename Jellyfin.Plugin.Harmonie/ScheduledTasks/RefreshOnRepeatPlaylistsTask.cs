@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 
 /// <summary>
-/// Rebuilds the per-user On Repeat playlists on a weekly schedule.
+/// Rebuilds the per-user On Repeat playlists every five days.
 ///
 /// On Repeat mirrors a rolling 30-day play window from the plugin's
 /// own stored listening data — it never calls harmonie, so it runs as
