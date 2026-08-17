@@ -119,19 +119,9 @@ Change any schedule from the same page, or run a task by hand.
 
 ## Listening data
 
-The plugin stores these signals for each user:
+The plugin records each listen in a local SQLite database: when it started and stopped, how much of the track was actually heard, pauses and seeks, whether it completed or was skipped early, and which client played it. It also tracks favorites and playlist memberships. Unfinished sessions are checkpointed, so listens survive clients that quit without a stop signal and server restarts. [docs/database.md](docs/database.md) describes every table and column.
 
-- Jellyfin user and track IDs
-- Play count and last play time
-- Start and stop times, track length, and playback positions
-- Active listening time, without pauses
-- Pauses and forward or backward seeks
-- Completed plays and early stops
-- Favorite tracks
-- Tracks in user playlists and when they were added
-- Play session, client, and device IDs
-
-The plugin imports Jellyfin's current totals and preferences once. It cannot recover activity from periods when the plugin was disabled or uninstalled.
+The plugin imports Jellyfin's play totals once at install. It cannot recover activity from periods when the plugin was disabled or uninstalled.
 
 ## How does this compare to AudioMuse-AI?
 
