@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.11.0.1",
+        "changelog": "\n### Features\n\n- Persist playback checkpoints (#27) (0fb2287)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.11.0/jellyfin-harmonie_1.11.0.1.zip",
+        "checksum": "f99b5477c32893e9341652c6e867afd0",
+        "timestamp": "2026-08-17T07:45:06Z"
+      },
+      {
+        "version": "1.11.0.0",
+        "changelog": "\n### Features\n\n- Persist playback checkpoints (#27) (0fb2287)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.11.0/jellyfin-harmonie_1.11.0.0.zip",
+        "checksum": "c9d7d55849fef9e88e9eff4afb6fa3d6",
+        "timestamp": "2026-08-17T07:45:06Z"
+      },
+      {
         "version": "1.10.0.1",
         "changelog": "\n### Features\n\n- Add on repeat auto-playlist type (#25) (7702dea)",
         "targetAbi": "10.11.0.0",
