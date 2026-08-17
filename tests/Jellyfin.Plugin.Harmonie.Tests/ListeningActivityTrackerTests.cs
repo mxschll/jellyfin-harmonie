@@ -163,6 +163,71 @@ public class ListeningActivityTrackerTests
     }
 
     [Fact]
+    public void Switching_tracks_finalizes_the_previous_track_as_a_play()
+    {
+        var user = User("listener");
+        var itemId = Guid.NewGuid();
+        var startedAt = DateTimeOffset.Parse("2026-08-17T10:00:00Z");
+        var duration = TimeSpan.FromMinutes(3).Ticks;
+        var session = PlaybackSessionAccumulator.FromStart(startedAt, 0, isPaused: false);
+        session.Observe(
+            startedAt.AddSeconds(175),
+            TimeSpan.FromSeconds(175).Ticks,
+            isPaused: false);
+        var switchedAt = startedAt.AddSeconds(176);
+        var summary = session.Finish(switchedAt, null, duration);
+
+        var activities = ListeningActivityTracker.CreateSwitchActivities(
+            new ListeningActivityTracker.ActiveSessionTrack(
+                "session-1:item",
+                itemId,
+                new[] { user.Id },
+                duration,
+                null,
+                "Finamp",
+                "phone"),
+            summary,
+            switchedAt);
+
+        var activity = Assert.Single(activities);
+        Assert.Equal(user.Id, activity.UserId);
+        Assert.Equal(itemId, activity.ItemId);
+        Assert.Equal(switchedAt, activity.StoppedUtc);
+        // 175 of 180 seconds actively listened: counts as a play without
+        // any stop event from the client.
+        Assert.True(activity.CountedAsPlay);
+        Assert.False(activity.IsEarlySkip);
+        Assert.Equal("Finamp", activity.ClientName);
+    }
+
+    [Fact]
+    public void Tracks_sharing_one_play_session_id_get_distinct_keys()
+    {
+        var first = new PlaybackProgressEventArgs
+        {
+            Item = new Audio { Id = Guid.NewGuid() },
+            Users = new List<User>(),
+            PlaySessionId = "queue-play-1",
+        };
+        var second = new PlaybackProgressEventArgs
+        {
+            Item = new Audio { Id = Guid.NewGuid() },
+            Users = new List<User>(),
+            PlaySessionId = "queue-play-1",
+        };
+
+        var firstKey = ListeningActivityTracker.ActivityKey(first);
+        var secondKey = ListeningActivityTracker.ActivityKey(second);
+
+        // A queue that reuses one play session id must not collapse
+        // consecutive tracks into one key: the second track's start would
+        // silently overwrite the first track's listen.
+        Assert.NotNull(firstKey);
+        Assert.NotNull(secondKey);
+        Assert.NotEqual(firstKey, secondKey);
+    }
+
+    [Fact]
     public void Stale_playback_sessions_are_evicted_without_removing_recent_sessions()
     {
         var now = DateTimeOffset.Parse("2026-08-16T18:00:00Z");

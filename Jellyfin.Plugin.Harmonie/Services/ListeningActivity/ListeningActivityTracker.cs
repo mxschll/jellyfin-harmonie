@@ -53,6 +53,14 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     private readonly ConcurrentDictionary<string, DateTimeOffset> _completedKeys =
         new(StringComparer.Ordinal);
 
+    // Which track each Jellyfin session is currently playing. Some clients
+    // never send a stop when the user taps another track; the next track's
+    // events are the only signal the previous listen ended, so a switch
+    // finalizes the previous track immediately instead of leaving it to the
+    // 24-hour checkpoint recovery.
+    private readonly ConcurrentDictionary<string, ActiveSessionTrack> _activeTracks =
+        new(StringComparer.Ordinal);
+
     private readonly CancellationTokenSource _shutdown = new();
 
     private Task? _writerTask;
@@ -150,6 +158,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         await AwaitWorkerAsync(_writerTask, cancellationToken).ConfigureAwait(false);
         _sessions.Clear();
         _completedKeys.Clear();
+        _activeTracks.Clear();
         _started = false;
         _stopped = true;
     }
@@ -178,6 +187,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
             _completedKeys.TryRemove(key, out _);
+            FinalizeSwitchedTrack(eventArgs, key, now);
             var session = PlaybackSessionAccumulator.FromStart(
                 now,
                 eventArgs.PlaybackPositionTicks,
@@ -199,6 +209,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
+            FinalizeSwitchedTrack(eventArgs, key, now);
             PlaybackSessionAccumulator session;
             if (_sessions.TryGetValue(key, out var existing))
             {
@@ -264,6 +275,13 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         _completedKeys[key] = now;
+        if (eventArgs.Session?.Id is { } stoppedSessionId
+            && _activeTracks.TryGetValue(stoppedSessionId, out var active)
+            && active.Key == key)
+        {
+            _activeTracks.TryRemove(
+                new KeyValuePair<string, ActiveSessionTrack>(stoppedSessionId, active));
+        }
 
         var summary = session.Finish(
             now,
@@ -277,6 +295,107 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 "Could not queue listening activity for item {ItemId}; the tracker is stopping.",
                 audio.Id);
         }
+    }
+
+    /// <summary>
+    /// Records which track a Jellyfin session is playing; when the session
+    /// switches to a different track, finalizes the previous one as if a
+    /// stop had arrived. Runs before the new track's accumulator is touched.
+    /// </summary>
+    private void FinalizeSwitchedTrack(
+        PlaybackProgressEventArgs eventArgs,
+        string key,
+        DateTimeOffset now)
+    {
+        if (eventArgs.Session?.Id is not { } jellyfinSessionId
+            || eventArgs.Item is not Audio audio)
+        {
+            return;
+        }
+
+        var current = new ActiveSessionTrack(
+            key,
+            audio.Id,
+            eventArgs.Users
+                .Select(user => user.Id)
+                .Where(userId => userId != Guid.Empty)
+                .Distinct()
+                .ToArray(),
+            audio.RunTimeTicks,
+            eventArgs.PlaySessionId,
+            eventArgs.ClientName,
+            eventArgs.DeviceId);
+        if (!_activeTracks.TryGetValue(jellyfinSessionId, out var previous))
+        {
+            _activeTracks[jellyfinSessionId] = current;
+            return;
+        }
+
+        if (previous.Key == key)
+        {
+            return;
+        }
+
+        _activeTracks[jellyfinSessionId] = current;
+        if (!_sessions.TryRemove(previous.Key, out var session))
+        {
+            session = ResumeFromCheckpoint(previous.Key, now);
+            if (session is null)
+            {
+                return;
+            }
+        }
+
+        _completedKeys[previous.Key] = now;
+        var summary = session.Finish(now, null, previous.DurationTicks);
+        var activities = CreateSwitchActivities(previous, summary, now);
+        if (!_writes.Writer.TryWrite(
+                new CompletePlaybackWrite(previous.Key, session.Generation, activities)))
+        {
+            _logger.LogWarning(
+                "Could not queue the switched-away track for session {SessionKey}; the tracker is stopping.",
+                previous.Key);
+        }
+    }
+
+    /// <summary>
+    /// Builds the playback events for a track the user switched away from.
+    /// No stop event exists, so the play-count judgment falls back to the
+    /// same heuristic recovery uses.
+    /// </summary>
+    internal static IReadOnlyList<ListeningActivityEvent> CreateSwitchActivities(
+        ActiveSessionTrack track,
+        PlaybackSessionSummary summary,
+        DateTimeOffset stoppedAt)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        ArgumentNullException.ThrowIfNull(summary);
+        // The users captured when the track registered, not the new track's:
+        // the session's user can change between the two.
+        return track.UserIds
+            .Select(userId => new ListeningActivityEvent(
+                userId,
+                track.ItemId,
+                summary.StartedUtc,
+                stoppedAt,
+                summary.StartPositionTicks,
+                summary.EndPositionTicks,
+                summary.MaxPositionTicks,
+                summary.ActiveListenTicks,
+                summary.SeekForwardCount,
+                summary.SeekBackwardCount,
+                summary.PauseCount,
+                summary.IsEarlySkip,
+                track.DurationTicks,
+                summary.PlayedToCompletion,
+                PlaybackSessionAccumulator.IsCountedAsPlay(
+                    summary.EndPositionTicks,
+                    summary.ActiveListenTicks,
+                    track.DurationTicks),
+                track.PlaySessionId,
+                track.ClientName,
+                track.DeviceId))
+            .ToList();
     }
 
     private PlaybackSessionAccumulator? ResumeFromCheckpoint(
@@ -524,6 +643,15 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var removed = EvictStaleSessions(_sessions, observedAt - SessionRetention);
+        foreach (var entry in _activeTracks)
+        {
+            if (!_sessions.ContainsKey(entry.Value.Key))
+            {
+                ((ICollection<KeyValuePair<string, ActiveSessionTrack>>)_activeTracks)
+                    .Remove(entry);
+            }
+        }
+
         foreach (var entry in _completedKeys)
         {
             if (entry.Value < observedAt - CompletedKeyRetention)
@@ -539,16 +667,28 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
     }
 
-    private static string? ActivityKey(PlaybackProgressEventArgs eventArgs)
+    /// <summary>
+    /// The tracking key for one track's playback. Item-specific on purpose:
+    /// some clients reuse one play session id for a whole queue, and a key
+    /// without the item would make consecutive tracks overwrite each other.
+    /// </summary>
+    internal static string? ActivityKey(PlaybackProgressEventArgs eventArgs)
     {
-        if (!string.IsNullOrWhiteSpace(eventArgs.PlaySessionId))
+        ArgumentNullException.ThrowIfNull(eventArgs);
+        if (eventArgs.Item is null)
         {
-            return eventArgs.PlaySessionId;
+            return null;
         }
 
-        if (eventArgs.Session is not null && eventArgs.Item is not null)
+        var item = eventArgs.Item.Id.ToString("N");
+        if (!string.IsNullOrWhiteSpace(eventArgs.PlaySessionId))
         {
-            return string.Concat(eventArgs.Session.Id, ":", eventArgs.Item.Id.ToString("N"));
+            return string.Concat(eventArgs.PlaySessionId, ":", item);
+        }
+
+        if (eventArgs.Session is not null)
+        {
+            return string.Concat(eventArgs.Session.Id, ":", item);
         }
 
         return null;
@@ -563,6 +703,19 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
         await task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// The track a Jellyfin session is currently playing, with everything
+    /// needed to finalize it when the session switches tracks.
+    /// </summary>
+    internal sealed record ActiveSessionTrack(
+        string Key,
+        Guid ItemId,
+        IReadOnlyList<Guid> UserIds,
+        long? DurationTicks,
+        string? PlaySessionId,
+        string? ClientName,
+        string? DeviceId);
 
     private abstract record ListeningActivityWrite;
 
