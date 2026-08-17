@@ -20,7 +20,8 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 /// Dashboard → Scheduled Tasks.
 ///
 /// [RADIO], [DRIFT], and [MIX] prefix playlists are handled by
-/// <see cref="RefreshHarmoniePlaylistsTask"/> on a daily schedule.
+/// <see cref="RefreshHarmoniePlaylistsTask"/> on a daily schedule;
+/// On Repeat by <see cref="RefreshOnRepeatPlaylistsTask"/>.
 /// </summary>
 public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {

@@ -9,37 +9,30 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 
 /// <summary>
-/// Refreshes every prefix-mode smart playlist ([RADIO], [DRIFT],
-/// [MIX]) on a daily schedule. These all reflect short-term inputs —
-/// either tracks the user pinned, or recent listen history — so a
-/// daily refresh keeps them current.
-///
-/// The per-user Personal Mix playlists run on their own slow cadence
-/// in <see cref="RefreshPersonalMixPlaylistsTask"/>; they model
-/// medium-term taste and don't benefit from daily regeneration.
+/// Rebuilds every prefix-mode playlist ([RADIO], [DRIFT], [MIX],
+/// [STYLE], [GENRE]) on a daily schedule. These all reflect short-term
+/// inputs — either tracks the user pinned, or recent listen history —
+/// so a daily refresh keeps them current.
 /// </summary>
 public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {
     private readonly PrefixPlaylistService _prefixService;
-    private readonly OnRepeatPlaylistService _onRepeatService;
     private readonly ILogger<RefreshHarmoniePlaylistsTask> _logger;
 
     public RefreshHarmoniePlaylistsTask(
         PrefixPlaylistService prefixService,
-        OnRepeatPlaylistService onRepeatService,
         ILogger<RefreshHarmoniePlaylistsTask> logger)
     {
         _prefixService = prefixService;
-        _onRepeatService = onRepeatService;
         _logger = logger;
     }
 
-    public string Name => "Refresh Harmonie Playlists";
+    public string Name => "Refresh Harmonie Prefix Playlists";
 
     public string Key => "HarmonieRefreshPlaylists";
 
     public string Description =>
-        "Rebuild every [RADIO], [DRIFT], [MIX], [STYLE], and [GENRE] playlist by querying the harmonie service, and the On Repeat playlists from stored listening data. Per-user Personal Mix playlists are refreshed by a separate, slower task.";
+        "Rebuild every [RADIO], [DRIFT], [MIX], [STYLE], and [GENRE] playlist by querying the harmonie service.";
 
     public string Category => "Harmonie";
 
@@ -56,15 +49,9 @@ public class RefreshHarmoniePlaylistsTask : IScheduledTask, IConfigurableSchedul
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting Harmonie playlist refresh.");
+        _logger.LogInformation("Starting Harmonie prefix playlist refresh.");
         await _prefixService.RefreshAllAsync(progress, cancellationToken).ConfigureAwait(false);
-
-        // On Repeat runs after the prefix playlists: it reads only the
-        // plugin's own database, so it succeeds even when harmonie is
-        // unreachable and every prefix refresh above was skipped.
-        await _onRepeatService.RefreshAllAsync(cancellationToken).ConfigureAwait(false);
-
         progress.Report(100);
-        _logger.LogInformation("Harmonie playlist refresh complete.");
+        _logger.LogInformation("Harmonie prefix playlist refresh complete.");
     }
 }

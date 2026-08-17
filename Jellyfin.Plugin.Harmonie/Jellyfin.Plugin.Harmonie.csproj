@@ -54,6 +54,12 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" LogicalName="Jellyfin.Plugin.Harmonie.Configuration.configPage.html" />
+    <None Remove="Configuration\autoPlaylistsPage.html" />
+    <EmbeddedResource Include="Configuration\autoPlaylistsPage.html" LogicalName="Jellyfin.Plugin.Harmonie.Configuration.autoPlaylistsPage.html" />
+    <None Remove="Configuration\prefixPlaylistsPage.html" />
+    <EmbeddedResource Include="Configuration\prefixPlaylistsPage.html" LogicalName="Jellyfin.Plugin.Harmonie.Configuration.prefixPlaylistsPage.html" />
+    <None Remove="Configuration\statusPage.html" />
+    <EmbeddedResource Include="Configuration\statusPage.html" LogicalName="Jellyfin.Plugin.Harmonie.Configuration.statusPage.html" />
     <None Remove="Resources\Inter-Bold.ttf" />
     <EmbeddedResource Include="Resources\Inter-Bold.ttf" LogicalName="Jellyfin.Plugin.Harmonie.Resources.Inter-Bold.ttf" />
   </ItemGroup>

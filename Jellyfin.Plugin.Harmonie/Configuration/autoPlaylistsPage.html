@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Harmonie</title>
+</head>
+<body>
+    <div id="HarmonieAutoPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage withTabs harmoniePage"
+         data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <style>
+        /* When a fieldDescription introduces a section (sits right
+           after a heading), even out the spacing. */
+        .harmoniePage h2 + .fieldDescription,
+        .harmoniePage h3 + .fieldDescription {
+            margin-bottom: 1.25em;
+        }
+
+        .harmoniePage h3 {
+            margin: 2em 0 0.75em;
+        }
+    </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="HarmonieAutoForm">
+                    <h2>Automatic playlists</h2>
+                    <div class="fieldDescription">
+                        These playlists are generated automatically on a schedule. Run or adjust the schedules under <a is="emby-linkbutton" class="button-link" href="#/dashboard/tasks">Scheduled Tasks</a>.
+                    </div>
+
+                    <h3>Instant Mix / Song Radio</h3>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableInstantMixOverride" name="EnableInstantMixOverride" type="checkbox" is="emby-checkbox" />
+                            <span>Use audio similarity for Instant Mix and Song Radio</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Replaces Jellyfin's built-in Instant Mix (also called Song Radio in clients like Finamp) with audio-similarity matches from harmonie. When the seed track isn't in harmonie's index, harmonie returns nothing, or the service is unreachable, the plugin falls back to Jellyfin's default genre-based behaviour so the endpoint always returns something.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="InstantMixVariation">Variation</label>
+                        <input id="InstantMixVariation" name="InstantMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 always returns the same ranking; 1 uses the most variation harmonie allows while preserving similarity.</div>
+                    </div>
+
+                    <h3>Personal Mix</h3>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableStylePlaylists" name="EnableStylePlaylists" type="checkbox" is="emby-checkbox" />
+                            <span>Enable Personal Mix playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            One set of private mix playlists per user, built from their strongest listening signals and grouped by style. As tastes shift, playlists rename and refill in place. Refreshed weekly.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistCount">Maximum playlists per user</label>
+                        <input id="StylePlaylistCount" name="StylePlaylistCount" type="number" is="emby-input" min="0" max="10" />
+                        <div class="fieldDescription">The actual count adapts to available preference data. Reducing the maximum deletes excess playlists. 0&ndash;10.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistDays">Listening window (days)</label>
+                        <input id="StylePlaylistDays" name="StylePlaylistDays" type="number" is="emby-input" min="1" max="365" />
+                        <div class="fieldDescription">How far back to look when computing each user's top styles. 1&ndash;365.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StylePlaylistN">Tracks per playlist</label>
+                        <input id="StylePlaylistN" name="StylePlaylistN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PersonalMixVariation">Variation</label>
+                        <input id="PersonalMixVariation" name="PersonalMixVariation" type="number" is="emby-input" min="0" max="1" step="0.05" />
+                        <div class="fieldDescription">0 is deterministic; 1 uses the most variation harmonie allows while preserving similarity.</div>
+                    </div>
+
+                    <h3>On Repeat</h3>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableOnRepeatPlaylists" name="EnableOnRepeatPlaylists" type="checkbox" is="emby-checkbox" />
+                            <span>Enable On Repeat playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            One playlist per user with the exact tracks they have played on loop over the last month, most-played first. Refreshed every five days.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2.5em;">
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginUniqueId = '485e9b6f-f623-4c97-9679-ad33c1db0d18';
+
+                function getTabs() {
+                    return [
+                        { href: 'configurationpage?name=Harmonie', name: 'Setup' },
+                        { href: 'configurationpage?name=Harmonie%20Playlists', name: 'Automatic playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Prefixes', name: 'Prefix playlists' },
+                        { href: 'configurationpage?name=Harmonie%20Status', name: 'Status' }
+                    ];
+                }
+
+                function readVariation(config, field) {
+                    var v = config[field];
+                    return (v === null || v === undefined) ? 0.25 : v;
+                }
+
+                function parseVariation(field) {
+                    var parsed = parseFloat(document.querySelector('#' + field).value);
+                    return isNaN(parsed) ? 0.25 : Math.min(1, Math.max(0, parsed));
+                }
+
+                document.querySelector('#HarmonieAutoPage')
+                    .addEventListener('pageshow', function () {
+                        LibraryMenu.setTabs('harmonie', 1, getTabs);
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                            // EnableInstantMixOverride defaults to true on fresh installs;
+                            // treat undefined as true so the checkbox never starts
+                            // unchecked just because the API response omitted the field.
+                            document.querySelector('#EnableInstantMixOverride').checked =
+                                config.EnableInstantMixOverride === undefined ? true : !!config.EnableInstantMixOverride;
+                            document.querySelector('#InstantMixVariation').value = readVariation(config, 'InstantMixVariation');
+                            document.querySelector('#EnableStylePlaylists').checked = !!config.EnableStylePlaylists;
+                            document.querySelector('#EnableOnRepeatPlaylists').checked = !!config.EnableOnRepeatPlaylists;
+                            document.querySelector('#StylePlaylistCount').value = config.StylePlaylistCount || 5;
+                            document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
+                            document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
+                            document.querySelector('#PersonalMixVariation').value = readVariation(config, 'PersonalMixVariation');
+                            Dashboard.hideLoadingMsg();
+                        });
+                    });
+
+                document.querySelector('#HarmonieAutoForm')
+                    .addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                            config.EnableInstantMixOverride =
+                                document.querySelector('#EnableInstantMixOverride').checked;
+                            config.InstantMixVariation = parseVariation('InstantMixVariation');
+                            config.EnableStylePlaylists = document.querySelector('#EnableStylePlaylists').checked;
+                            config.EnableOnRepeatPlaylists = document.querySelector('#EnableOnRepeatPlaylists').checked;
+                            config.StylePlaylistCount =
+                                parseInt(document.querySelector('#StylePlaylistCount').value, 10);
+                            if (isNaN(config.StylePlaylistCount)) { config.StylePlaylistCount = 5; }
+                            config.StylePlaylistDays =
+                                parseInt(document.querySelector('#StylePlaylistDays').value, 10) || 30;
+                            config.StylePlaylistN =
+                                parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
+                            config.PersonalMixVariation = parseVariation('PersonalMixVariation');
+                            ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
+                                Dashboard.processPluginConfigurationUpdateResult(result);
+                            });
+                        });
+                        return false;
+                    });
+            })();
+        </script>
+    </div>
+</body>
+</html>
