@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.12.0.1",
+        "changelog": "\n### Features\n\n- Restructure plugin settings into tabbed pages (#26) (2f129d3)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.0/jellyfin-harmonie_1.12.0.1.zip",
+        "checksum": "4aed1dc95ae4bd1d13f4530968eeb898",
+        "timestamp": "2026-08-17T08:05:28Z"
+      },
+      {
+        "version": "1.12.0.0",
+        "changelog": "\n### Features\n\n- Restructure plugin settings into tabbed pages (#26) (2f129d3)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.0/jellyfin-harmonie_1.12.0.0.zip",
+        "checksum": "31da3ca47b20418e664bd4cf7b8b740c",
+        "timestamp": "2026-08-17T08:05:28Z"
+      },
+      {
         "version": "1.11.0.1",
         "changelog": "\n### Features\n\n- Persist playback checkpoints (#27) (0fb2287)",
         "targetAbi": "10.11.0.0",
