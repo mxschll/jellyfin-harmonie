@@ -178,10 +178,10 @@ public class ListeningActivityTrackerTests
         var summary = session.Finish(switchedAt, null, duration);
 
         var activities = ListeningActivityTracker.CreateSwitchActivities(
-            new List<User> { user, user },
             new ListeningActivityTracker.ActiveSessionTrack(
                 "session-1:item",
                 itemId,
+                new[] { user.Id },
                 duration,
                 null,
                 "Finamp",
@@ -198,6 +198,33 @@ public class ListeningActivityTrackerTests
         Assert.True(activity.CountedAsPlay);
         Assert.False(activity.IsEarlySkip);
         Assert.Equal("Finamp", activity.ClientName);
+    }
+
+    [Fact]
+    public void Tracks_sharing_one_play_session_id_get_distinct_keys()
+    {
+        var first = new PlaybackProgressEventArgs
+        {
+            Item = new Audio { Id = Guid.NewGuid() },
+            Users = new List<User>(),
+            PlaySessionId = "queue-play-1",
+        };
+        var second = new PlaybackProgressEventArgs
+        {
+            Item = new Audio { Id = Guid.NewGuid() },
+            Users = new List<User>(),
+            PlaySessionId = "queue-play-1",
+        };
+
+        var firstKey = ListeningActivityTracker.ActivityKey(first);
+        var secondKey = ListeningActivityTracker.ActivityKey(second);
+
+        // A queue that reuses one play session id must not collapse
+        // consecutive tracks into one key: the second track's start would
+        // silently overwrite the first track's listen.
+        Assert.NotNull(firstKey);
+        Assert.NotNull(secondKey);
+        Assert.NotEqual(firstKey, secondKey);
     }
 
     [Fact]

@@ -316,6 +316,11 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         var current = new ActiveSessionTrack(
             key,
             audio.Id,
+            eventArgs.Users
+                .Select(user => user.Id)
+                .Where(userId => userId != Guid.Empty)
+                .Distinct()
+                .ToArray(),
             audio.RunTimeTicks,
             eventArgs.PlaySessionId,
             eventArgs.ClientName,
@@ -343,11 +348,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
         _completedKeys[previous.Key] = now;
         var summary = session.Finish(now, null, previous.DurationTicks);
-        var activities = CreateSwitchActivities(
-            eventArgs.Users,
-            previous,
-            summary,
-            now);
+        var activities = CreateSwitchActivities(previous, summary, now);
         if (!_writes.Writer.TryWrite(
                 new CompletePlaybackWrite(previous.Key, session.Generation, activities)))
         {
@@ -363,18 +364,15 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     /// same heuristic recovery uses.
     /// </summary>
     internal static IReadOnlyList<ListeningActivityEvent> CreateSwitchActivities(
-        IReadOnlyList<User> users,
         ActiveSessionTrack track,
         PlaybackSessionSummary summary,
         DateTimeOffset stoppedAt)
     {
-        ArgumentNullException.ThrowIfNull(users);
         ArgumentNullException.ThrowIfNull(track);
         ArgumentNullException.ThrowIfNull(summary);
-        return users
-            .Select(user => user.Id)
-            .Where(userId => userId != Guid.Empty)
-            .Distinct()
+        // The users captured when the track registered, not the new track's:
+        // the session's user can change between the two.
+        return track.UserIds
             .Select(userId => new ListeningActivityEvent(
                 userId,
                 track.ItemId,
@@ -669,16 +667,28 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
     }
 
-    private static string? ActivityKey(PlaybackProgressEventArgs eventArgs)
+    /// <summary>
+    /// The tracking key for one track's playback. Item-specific on purpose:
+    /// some clients reuse one play session id for a whole queue, and a key
+    /// without the item would make consecutive tracks overwrite each other.
+    /// </summary>
+    internal static string? ActivityKey(PlaybackProgressEventArgs eventArgs)
     {
-        if (!string.IsNullOrWhiteSpace(eventArgs.PlaySessionId))
+        ArgumentNullException.ThrowIfNull(eventArgs);
+        if (eventArgs.Item is null)
         {
-            return eventArgs.PlaySessionId;
+            return null;
         }
 
-        if (eventArgs.Session is not null && eventArgs.Item is not null)
+        var item = eventArgs.Item.Id.ToString("N");
+        if (!string.IsNullOrWhiteSpace(eventArgs.PlaySessionId))
         {
-            return string.Concat(eventArgs.Session.Id, ":", eventArgs.Item.Id.ToString("N"));
+            return string.Concat(eventArgs.PlaySessionId, ":", item);
+        }
+
+        if (eventArgs.Session is not null)
+        {
+            return string.Concat(eventArgs.Session.Id, ":", item);
         }
 
         return null;
@@ -701,6 +711,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     internal sealed record ActiveSessionTrack(
         string Key,
         Guid ItemId,
+        IReadOnlyList<Guid> UserIds,
         long? DurationTicks,
         string? PlaySessionId,
         string? ClientName,
