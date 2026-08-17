@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 
@@ -31,6 +32,14 @@ internal sealed class PlaybackSessionAccumulator
     private static readonly long EarlySkipLimitTicks = TimeSpan.FromSeconds(30).Ticks;
     private static readonly long CompletionToleranceLimitTicks = TimeSpan.FromSeconds(10).Ticks;
     private static readonly TimeSpan CheckpointWriteInterval = TimeSpan.FromSeconds(30);
+
+    // Near the end of a track the durable state must not lag: recovery
+    // counts a play only when the persisted position is close to the end,
+    // so a 30-second-stale checkpoint would drop a near-complete listen.
+    private static readonly long EndZoneTicks = TimeSpan.FromSeconds(45).Ticks;
+    private static readonly TimeSpan EndZoneCheckpointInterval = TimeSpan.FromSeconds(5);
+
+    private static long _nextGeneration;
 
     private readonly object _sync = new();
     private readonly DateTimeOffset? _startedUtc;
@@ -96,6 +105,13 @@ internal sealed class PlaybackSessionAccumulator
         }
     }
 
+    /// <summary>
+    /// Gets a value identifying this accumulator instance across the write
+    /// queue, so a checkpoint that was queued after its session completed
+    /// can be rejected instead of resurrecting the session.
+    /// </summary>
+    internal long Generation { get; } = Interlocked.Increment(ref _nextGeneration);
+
     internal static PlaybackSessionAccumulator FromStart(
         DateTimeOffset startedAt,
         long? positionTicks,
@@ -124,14 +140,23 @@ internal sealed class PlaybackSessionAccumulator
         }
     }
 
-    internal bool ShouldCheckpoint(DateTimeOffset now)
+    internal bool ShouldCheckpoint(DateTimeOffset now, long? durationTicks)
     {
         lock (_sync)
         {
             // Progress events arrive every few seconds; a checkpoint only
             // needs the latest state within the write interval, except when
-            // a pause or seek transition would otherwise be lost.
-            if (now - _lastCheckpointAt < CheckpointWriteInterval
+            // a pause or seek transition would otherwise be lost, or when
+            // the track nears its end and recovery accuracy is at stake.
+            var interval = CheckpointWriteInterval;
+            if (durationTicks is > 0
+                && _lastPositionTicks is not null
+                && durationTicks.Value - _lastPositionTicks.Value <= EndZoneTicks)
+            {
+                interval = EndZoneCheckpointInterval;
+            }
+
+            if (now - _lastCheckpointAt < interval
                 && _checkpointedPauseCount == _pauseCount
                 && _checkpointedSeekForwardCount == _seekForwardCount
                 && _checkpointedSeekBackwardCount == _seekBackwardCount

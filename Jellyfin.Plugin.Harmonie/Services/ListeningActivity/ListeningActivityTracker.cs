@@ -29,6 +29,12 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     private static readonly TimeSpan CheckpointRetention = TimeSpan.FromHours(24);
     private static readonly TimeSpan SessionSweepInterval = TimeSpan.FromHours(1);
 
+    // A stop tombstones its session key briefly so straggler progress events
+    // (the server's automated ticks race real stops) can neither checkpoint
+    // nor rehydrate a session that just completed. A new play for the same
+    // key clears the tombstone through its start event.
+    private static readonly TimeSpan CompletedKeyRetention = TimeSpan.FromMinutes(5);
+
     private readonly ISessionManager _sessionManager;
     private readonly HarmonieDatabase _database;
     private readonly ListeningActivityStore _store;
@@ -42,6 +48,9 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         });
 
     private readonly ConcurrentDictionary<string, PlaybackSessionAccumulator> _sessions =
+        new(StringComparer.Ordinal);
+
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _completedKeys =
         new(StringComparer.Ordinal);
 
     private readonly CancellationTokenSource _shutdown = new();
@@ -140,6 +149,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         await AwaitWorkerAsync(_bootstrapTask, cancellationToken).ConfigureAwait(false);
         await AwaitWorkerAsync(_writerTask, cancellationToken).ConfigureAwait(false);
         _sessions.Clear();
+        _completedKeys.Clear();
         _started = false;
         _stopped = true;
     }
@@ -167,6 +177,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
+            _completedKeys.TryRemove(key, out _);
             var session = PlaybackSessionAccumulator.FromStart(
                 now,
                 eventArgs.PlaybackPositionTicks,
@@ -184,7 +195,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var key = ActivityKey(eventArgs);
-        if (key is not null)
+        if (key is not null && !_completedKeys.ContainsKey(key))
         {
             var now = DateTimeOffset.UtcNow;
             SweepStaleSessions(now);
@@ -233,6 +244,11 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
         if (!_sessions.TryRemove(key, out var session))
         {
+            if (_completedKeys.ContainsKey(key))
+            {
+                return;
+            }
+
             // The in-memory session may have been evicted (long pause, plugin
             // restart) while its durable checkpoint survived. Resume from the
             // checkpoint so the whole listen still lands as one event.
@@ -247,13 +263,15 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             }
         }
 
+        _completedKeys[key] = now;
+
         var summary = session.Finish(
             now,
             eventArgs.PlaybackPositionTicks,
             audio.RunTimeTicks);
 
         var activities = CreateActivities(eventArgs, summary, now);
-        if (!_writes.Writer.TryWrite(new CompletePlaybackWrite(key, activities)))
+        if (!_writes.Writer.TryWrite(new CompletePlaybackWrite(key, session.Generation, activities)))
         {
             _logger.LogWarning(
                 "Could not queue listening activity for item {ItemId}; the tracker is stopping.",
@@ -287,14 +305,17 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         string sessionKey,
         PlaybackSessionAccumulator session)
     {
-        if (!session.ShouldCheckpoint(DateTimeOffset.UtcNow))
+        if (!session.ShouldCheckpoint(
+                DateTimeOffset.UtcNow,
+                (eventArgs.Item as Audio)?.RunTimeTicks))
         {
             return;
         }
 
         var checkpoints = CreateCheckpoints(eventArgs, sessionKey, session);
         if (checkpoints.Count > 0
-            && !_writes.Writer.TryWrite(new CheckpointPlaybackWrite(checkpoints)))
+            && !_writes.Writer.TryWrite(
+                new CheckpointPlaybackWrite(session.Generation, checkpoints)))
         {
             _logger.LogWarning(
                 "Could not checkpoint playback session {SessionKey}; the tracker is stopping.",
@@ -370,6 +391,10 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 
     private async Task ProcessWritesAsync()
     {
+        // Generations completed recently; a checkpoint that lost the race
+        // against its session's completion must not resurrect the session.
+        var completedGenerations = new HashSet<long>();
+        var completedOrder = new Queue<long>();
         await foreach (var write in _writes.Reader.ReadAllAsync().ConfigureAwait(false))
         {
             try
@@ -377,12 +402,23 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 switch (write)
                 {
                     case CheckpointPlaybackWrite checkpoint:
-                        _store.UpsertPlaybackSessions(checkpoint.Checkpoints);
+                        if (!completedGenerations.Contains(checkpoint.Generation))
+                        {
+                            _store.UpsertPlaybackSessions(checkpoint.Checkpoints);
+                        }
+
                         break;
                     case CompletePlaybackWrite complete:
                         _store.CompletePlaybackSession(
                             complete.SessionKey,
                             complete.Activities);
+                        completedGenerations.Add(complete.Generation);
+                        completedOrder.Enqueue(complete.Generation);
+                        while (completedOrder.Count > 4096)
+                        {
+                            completedGenerations.Remove(completedOrder.Dequeue());
+                        }
+
                         break;
                     case RecoverPlaybackWrite recover:
                         var recovered = _store.RecoverAbandonedPlaybackSessions(
@@ -488,6 +524,15 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var removed = EvictStaleSessions(_sessions, observedAt - SessionRetention);
+        foreach (var entry in _completedKeys)
+        {
+            if (entry.Value < observedAt - CompletedKeyRetention)
+            {
+                ((ICollection<KeyValuePair<string, DateTimeOffset>>)_completedKeys)
+                    .Remove(entry);
+            }
+        }
+
         if (removed > 0)
         {
             _logger.LogDebug("Removed {Count} stale playback session(s).", removed);
@@ -522,10 +567,12 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
     private abstract record ListeningActivityWrite;
 
     private sealed record CheckpointPlaybackWrite(
+        long Generation,
         IReadOnlyList<PlaybackSessionCheckpoint> Checkpoints) : ListeningActivityWrite;
 
     private sealed record CompletePlaybackWrite(
         string SessionKey,
+        long Generation,
         IReadOnlyList<ListeningActivityEvent> Activities) : ListeningActivityWrite;
 
     private sealed record RecoverPlaybackWrite(

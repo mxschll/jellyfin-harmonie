@@ -316,16 +316,54 @@ public sealed class PlaybackSessionAccumulatorTests
         var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
         var session = PlaybackSessionAccumulator.FromStart(startedAt, 0, isPaused: false);
 
-        Assert.True(session.ShouldCheckpoint(startedAt));
+        var duration = TimeSpan.FromMinutes(10).Ticks;
+        Assert.True(session.ShouldCheckpoint(startedAt, duration));
         session.Observe(startedAt.AddSeconds(10), TimeSpan.FromSeconds(10).Ticks, isPaused: false);
-        Assert.False(session.ShouldCheckpoint(startedAt.AddSeconds(10)));
+        Assert.False(session.ShouldCheckpoint(startedAt.AddSeconds(10), duration));
 
         // A pause transition bypasses the interval.
         session.Observe(startedAt.AddSeconds(15), TimeSpan.FromSeconds(15).Ticks, isPaused: true);
-        Assert.True(session.ShouldCheckpoint(startedAt.AddSeconds(15)));
-        Assert.False(session.ShouldCheckpoint(startedAt.AddSeconds(20)));
+        Assert.True(session.ShouldCheckpoint(startedAt.AddSeconds(15), duration));
+        Assert.False(session.ShouldCheckpoint(startedAt.AddSeconds(20), duration));
 
         // The interval elapsing does too.
-        Assert.True(session.ShouldCheckpoint(startedAt.AddSeconds(50)));
+        Assert.True(session.ShouldCheckpoint(startedAt.AddSeconds(50), duration));
+    }
+
+    [Fact]
+    public void Near_complete_play_is_counted_despite_checkpoint_throttling()
+    {
+        var startedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var duration = TimeSpan.FromSeconds(180).Ticks;
+        var session = PlaybackSessionAccumulator.FromStart(startedAt, 0, isPaused: false);
+        PlaybackSessionCheckpoint? lastCheckpoint = null;
+
+        // Progress events every ten seconds until the client dies at 170s,
+        // checkpointing exactly when the throttle allows.
+        for (var second = 0; second <= 170; second += 10)
+        {
+            var at = startedAt.AddSeconds(second);
+            session.Observe(at, TimeSpan.FromSeconds(second).Ticks, isPaused: false);
+            if (session.ShouldCheckpoint(at, duration))
+            {
+                lastCheckpoint = session.CreateCheckpoint(
+                    "session-1",
+                    Guid.NewGuid(),
+                    Guid.NewGuid(),
+                    duration,
+                    "play-1",
+                    "Finamp",
+                    "phone");
+            }
+        }
+
+        Assert.NotNull(lastCheckpoint);
+        var activity = PlaybackSessionAccumulator.Recover(lastCheckpoint);
+
+        // The end zone tightens the checkpoint interval, so the persisted
+        // position must be close enough to the end to count the play.
+        Assert.Equal(TimeSpan.FromSeconds(170).Ticks, lastCheckpoint.EndPositionTicks);
+        Assert.True(activity.CountedAsPlay);
+        Assert.True(activity.PlayedToCompletion);
     }
 }
