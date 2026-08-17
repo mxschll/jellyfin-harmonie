@@ -483,6 +483,50 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.Equal("phone", reader.GetString(6));
     }
 
+    [Fact]
+    public void Resumed_checkpoint_finishes_as_a_single_event()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var observedAt = DateTimeOffset.Parse("2026-08-16T12:00:00Z");
+        store.UpsertPlaybackSessions(new[]
+        {
+            Checkpoint(userId, itemId, observedAt),
+        });
+
+        var checkpoint = store.TryGetPlaybackSession("session-1");
+        Assert.NotNull(checkpoint);
+        var resumedAt = observedAt.AddHours(10);
+        var session = PlaybackSessionAccumulator.FromCheckpoint(checkpoint, resumedAt);
+        var summary = session.Finish(
+            resumedAt.AddSeconds(10),
+            TimeSpan.FromMinutes(3).Ticks,
+            TimeSpan.FromMinutes(3).Ticks);
+        store.CompletePlaybackSession(
+            "session-1",
+            new[]
+            {
+                Playback(
+                    userId,
+                    itemId,
+                    resumedAt.AddSeconds(10),
+                    completed: summary.PlayedToCompletion,
+                    earlySkip: summary.IsEarlySkip),
+            });
+
+        using var connection = new HarmonieDatabase(
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
+        Assert.Equal(0L, Scalar(connection, "SELECT COUNT(*) FROM playback_sessions;"));
+        Assert.Equal(1L, Scalar(connection, "SELECT COUNT(*) FROM playback_events;"));
+    }
+
+    [Fact]
+    public void Missing_checkpoint_reads_as_null()
+    {
+        Assert.Null(CreateStore().TryGetPlaybackSession("no-such-session"));
+    }
+
     private ListeningActivityStore CreateStore()
         => new(new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db")));
 

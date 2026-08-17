@@ -433,6 +433,35 @@ public sealed class ListeningActivityStore
         }
     }
 
+    /// <summary>
+    /// Reads the durable state of an unfinished session so an evicted
+    /// in-memory session can resume where it left off. Any user's row works:
+    /// the playback metrics are identical across a session's rows.
+    /// </summary>
+    internal PlaybackSessionCheckpoint? TryGetPlaybackSession(string sessionKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionKey);
+        lock (_sync)
+        {
+            using var connection = _database.OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT
+                    session_key, user_id, item_id, started_utc,
+                    last_observed_utc, start_position_ticks, end_position_ticks,
+                    max_position_ticks, active_listen_ticks, seek_forward_count,
+                    seek_backward_count, pause_count, is_paused, duration_ticks,
+                    play_session_id, client_name, device_id
+                FROM playback_sessions
+                WHERE session_key = $session_key
+                LIMIT 1;
+                """;
+            command.Parameters.AddWithValue("$session_key", sessionKey);
+            using var reader = command.ExecuteReader();
+            return reader.Read() ? ReadCheckpoint(reader) : null;
+        }
+    }
+
     internal int RecoverAbandonedPlaybackSessions(DateTimeOffset observedBeforeUtc)
     {
         lock (_sync)
@@ -549,33 +578,41 @@ public sealed class ListeningActivityStore
         var checkpoints = new List<PlaybackSessionCheckpoint>();
         while (reader.Read())
         {
-            if (!Guid.TryParseExact(reader.GetString(1), "N", out var userId)
-                || !Guid.TryParseExact(reader.GetString(2), "N", out var itemId))
+            if (ReadCheckpoint(reader) is { } checkpoint)
             {
-                continue;
+                checkpoints.Add(checkpoint);
             }
-
-            checkpoints.Add(new PlaybackSessionCheckpoint(
-                reader.GetString(0),
-                userId,
-                itemId,
-                ReadDate(reader, 3),
-                ReadDate(reader, 4) ?? DateTimeOffset.MinValue,
-                ReadLong(reader, 5),
-                ReadLong(reader, 6),
-                ReadLong(reader, 7),
-                ReadLong(reader, 8),
-                reader.GetInt32(9),
-                reader.GetInt32(10),
-                reader.GetInt32(11),
-                reader.GetInt32(12) != 0,
-                ReadLong(reader, 13),
-                ReadString(reader, 14),
-                ReadString(reader, 15),
-                ReadString(reader, 16)));
         }
 
         return checkpoints;
+    }
+
+    private static PlaybackSessionCheckpoint? ReadCheckpoint(SqliteDataReader reader)
+    {
+        if (!Guid.TryParseExact(reader.GetString(1), "N", out var userId)
+            || !Guid.TryParseExact(reader.GetString(2), "N", out var itemId))
+        {
+            return null;
+        }
+
+        return new PlaybackSessionCheckpoint(
+            reader.GetString(0),
+            userId,
+            itemId,
+            ReadDate(reader, 3),
+            ReadDate(reader, 4) ?? DateTimeOffset.MinValue,
+            ReadLong(reader, 5),
+            ReadLong(reader, 6),
+            ReadLong(reader, 7),
+            ReadLong(reader, 8),
+            reader.GetInt32(9),
+            reader.GetInt32(10),
+            reader.GetInt32(11),
+            reader.GetInt32(12) != 0,
+            ReadLong(reader, 13),
+            ReadString(reader, 14),
+            ReadString(reader, 15),
+            ReadString(reader, 16));
     }
 
     private static void WritePlayback(

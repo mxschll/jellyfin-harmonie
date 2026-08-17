@@ -20,9 +20,17 @@ internal sealed record PlaybackSessionSummary(
 /// </summary>
 internal sealed class PlaybackSessionAccumulator
 {
+    // A live stop reports the real end position, so completion keeps a tight
+    // margin. A recovered checkpoint ends at the last progress report, which
+    // lags the true end by up to one report interval, so recovery gets a
+    // wider margin on short tracks.
+    private const long LiveCompletionToleranceDivisor = 20;
+    private const long RecoveredCompletionToleranceDivisor = 5;
+
     private static readonly long SeekThresholdTicks = TimeSpan.FromSeconds(10).Ticks;
     private static readonly long EarlySkipLimitTicks = TimeSpan.FromSeconds(30).Ticks;
     private static readonly long CompletionToleranceLimitTicks = TimeSpan.FromSeconds(10).Ticks;
+    private static readonly TimeSpan CheckpointWriteInterval = TimeSpan.FromSeconds(30);
 
     private readonly object _sync = new();
     private readonly DateTimeOffset? _startedUtc;
@@ -36,6 +44,11 @@ internal sealed class PlaybackSessionAccumulator
     private int _seekForwardCount;
     private int _seekBackwardCount;
     private int _pauseCount;
+    private DateTimeOffset _lastCheckpointAt = DateTimeOffset.MinValue;
+    private int _checkpointedSeekForwardCount;
+    private int _checkpointedSeekBackwardCount;
+    private int _checkpointedPauseCount;
+    private bool _checkpointedIsPaused;
 
     private PlaybackSessionAccumulator(
         DateTimeOffset? startedUtc,
@@ -51,6 +64,25 @@ internal sealed class PlaybackSessionAccumulator
         _maxPositionTicks = positionTicks;
         _isPaused = isPaused;
         _hasPlaybackStart = hasPlaybackStart;
+    }
+
+    private PlaybackSessionAccumulator(
+        PlaybackSessionCheckpoint checkpoint,
+        DateTimeOffset resumedAt)
+    {
+        _startedUtc = checkpoint.StartedUtc;
+        _hasPlaybackStart = checkpoint.ActiveListenTicks is not null;
+        _startPositionTicks = checkpoint.StartPositionTicks;
+        // Resuming from now means the silent gap between the checkpoint and
+        // this moment is never credited as listening time.
+        _lastObservedAt = resumedAt;
+        _lastPositionTicks = checkpoint.EndPositionTicks;
+        _maxPositionTicks = checkpoint.MaxPositionTicks;
+        _activeListenTicks = checkpoint.ActiveListenTicks ?? 0;
+        _isPaused = checkpoint.IsPaused;
+        _seekForwardCount = checkpoint.SeekForwardCount;
+        _seekBackwardCount = checkpoint.SeekBackwardCount;
+        _pauseCount = checkpoint.PauseCount;
     }
 
     internal DateTimeOffset LastObservedUtc
@@ -76,11 +108,44 @@ internal sealed class PlaybackSessionAccumulator
         bool isPaused)
         => new(null, observedAt, positionTicks, isPaused, hasPlaybackStart: false);
 
+    internal static PlaybackSessionAccumulator FromCheckpoint(
+        PlaybackSessionCheckpoint checkpoint,
+        DateTimeOffset resumedAt)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        return new(checkpoint, resumedAt);
+    }
+
     internal void Observe(DateTimeOffset observedAt, long? positionTicks, bool isPaused)
     {
         lock (_sync)
         {
             ObserveCore(observedAt, positionTicks, isPaused);
+        }
+    }
+
+    internal bool ShouldCheckpoint(DateTimeOffset now)
+    {
+        lock (_sync)
+        {
+            // Progress events arrive every few seconds; a checkpoint only
+            // needs the latest state within the write interval, except when
+            // a pause or seek transition would otherwise be lost.
+            if (now - _lastCheckpointAt < CheckpointWriteInterval
+                && _checkpointedPauseCount == _pauseCount
+                && _checkpointedSeekForwardCount == _seekForwardCount
+                && _checkpointedSeekBackwardCount == _seekBackwardCount
+                && _checkpointedIsPaused == _isPaused)
+            {
+                return false;
+            }
+
+            _lastCheckpointAt = now;
+            _checkpointedPauseCount = _pauseCount;
+            _checkpointedSeekForwardCount = _seekForwardCount;
+            _checkpointedSeekBackwardCount = _seekBackwardCount;
+            _checkpointedIsPaused = _isPaused;
+            return true;
         }
     }
 
@@ -135,7 +200,8 @@ internal sealed class PlaybackSessionAccumulator
         var playedToCompletion = IsPlayedToCompletion(
             checkpoint.EndPositionTicks,
             checkpoint.ActiveListenTicks,
-            checkpoint.DurationTicks);
+            checkpoint.DurationTicks,
+            RecoveredCompletionToleranceDivisor);
         return new ListeningActivityEvent(
             checkpoint.UserId,
             checkpoint.ItemId,
@@ -189,7 +255,8 @@ internal sealed class PlaybackSessionAccumulator
         var playedToCompletion = IsPlayedToCompletion(
             _lastPositionTicks,
             activeListenTicks,
-            durationTicks);
+            durationTicks,
+            LiveCompletionToleranceDivisor);
         return new PlaybackSessionSummary(
             _startedUtc,
             _startPositionTicks,
@@ -210,7 +277,8 @@ internal sealed class PlaybackSessionAccumulator
     private static bool IsPlayedToCompletion(
         long? endPositionTicks,
         long? activeListenTicks,
-        long? durationTicks)
+        long? durationTicks,
+        long toleranceDivisor)
     {
         if (endPositionTicks is null
             || activeListenTicks is null
@@ -226,7 +294,7 @@ internal sealed class PlaybackSessionAccumulator
         // small margin when reporting the final position.
         var toleranceTicks = Math.Min(
             CompletionToleranceLimitTicks,
-            durationTicks.Value / 5);
+            durationTicks.Value / toleranceDivisor);
         return endPositionTicks.Value >= durationTicks.Value - toleranceTicks;
     }
 

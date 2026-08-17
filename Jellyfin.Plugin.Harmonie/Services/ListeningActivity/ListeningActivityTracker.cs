@@ -21,7 +21,12 @@ namespace Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 /// </summary>
 internal sealed class ListeningActivityTracker : IHostedService, IDisposable
 {
+    // In-memory accumulators are dropped after six quiet hours; their durable
+    // checkpoints live on for a day so a resumed session (an overnight pause,
+    // a sleeping device) continues as one listen instead of splitting in two.
+    // Only after a quiet day is a checkpoint finalized as a playback event.
     private static readonly TimeSpan SessionRetention = TimeSpan.FromHours(6);
+    private static readonly TimeSpan CheckpointRetention = TimeSpan.FromHours(24);
     private static readonly TimeSpan SessionSweepInterval = TimeSpan.FromHours(1);
 
     private readonly ISessionManager _sessionManager;
@@ -79,7 +84,19 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         try
         {
             _database.Initialize();
-            var recovered = _store.RecoverAbandonedPlaybackSessions(DateTimeOffset.MaxValue);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not initialize the Harmonie listening activity database; tracking is disabled.");
+            return Task.CompletedTask;
+        }
+
+        // A recovery failure must not disable tracking; the periodic sweep
+        // retries every hour.
+        try
+        {
+            var recovered = _store.RecoverAbandonedPlaybackSessions(
+                DateTimeOffset.UtcNow - CheckpointRetention);
             if (recovered > 0)
             {
                 _logger.LogInformation(
@@ -89,8 +106,7 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not initialize the Harmonie listening activity database; tracking is disabled.");
-            return Task.CompletedTask;
+            _logger.LogError(ex, "Could not recover unfinished playback sessions; continuing.");
         }
 
         _sessionManager.PlaybackStart += OnPlaybackStart;
@@ -180,11 +196,16 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
             }
             else
             {
-                session = PlaybackSessionAccumulator.FromProgress(
-                    now,
-                    eventArgs.PlaybackPositionTicks,
-                    eventArgs.IsPaused);
-                if (!_sessions.TryAdd(key, session))
+                session = ResumeFromCheckpoint(key, now)
+                    ?? PlaybackSessionAccumulator.FromProgress(
+                        now,
+                        eventArgs.PlaybackPositionTicks,
+                        eventArgs.IsPaused);
+                if (_sessions.TryAdd(key, session))
+                {
+                    session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
+                }
+                else
                 {
                     session = _sessions[key];
                     session.Observe(now, eventArgs.PlaybackPositionTicks, eventArgs.IsPaused);
@@ -205,13 +226,25 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         var now = DateTimeOffset.UtcNow;
         SweepStaleSessions(now);
         var key = ActivityKey(eventArgs);
-        if (key is null || !_sessions.TryRemove(key, out var session))
+        if (key is null)
         {
-            _logger.LogDebug(
-                "Ignoring unmatched playback stop for item {ItemId} and play session {PlaySessionId}.",
-                audio.Id,
-                eventArgs.PlaySessionId);
             return;
+        }
+
+        if (!_sessions.TryRemove(key, out var session))
+        {
+            // The in-memory session may have been evicted (long pause, plugin
+            // restart) while its durable checkpoint survived. Resume from the
+            // checkpoint so the whole listen still lands as one event.
+            session = ResumeFromCheckpoint(key, now);
+            if (session is null)
+            {
+                _logger.LogDebug(
+                    "Ignoring unmatched playback stop for item {ItemId} and play session {PlaySessionId}.",
+                    audio.Id,
+                    eventArgs.PlaySessionId);
+                return;
+            }
         }
 
         var summary = session.Finish(
@@ -228,11 +261,37 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
     }
 
+    private PlaybackSessionAccumulator? ResumeFromCheckpoint(
+        string sessionKey,
+        DateTimeOffset resumedAt)
+    {
+        try
+        {
+            var checkpoint = _store.TryGetPlaybackSession(sessionKey);
+            return checkpoint is null
+                ? null
+                : PlaybackSessionAccumulator.FromCheckpoint(checkpoint, resumedAt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Could not resume playback session {SessionKey} from its checkpoint.",
+                sessionKey);
+            return null;
+        }
+    }
+
     private void QueueCheckpoint(
         PlaybackProgressEventArgs eventArgs,
         string sessionKey,
         PlaybackSessionAccumulator session)
     {
+        if (!session.ShouldCheckpoint(DateTimeOffset.UtcNow))
+        {
+            return;
+        }
+
         var checkpoints = CreateCheckpoints(eventArgs, sessionKey, session);
         if (checkpoints.Count > 0
             && !_writes.Writer.TryWrite(new CheckpointPlaybackWrite(checkpoints)))
@@ -354,9 +413,10 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         {
             while (await timer.WaitForNextTickAsync(_shutdown.Token).ConfigureAwait(false))
             {
-                var cutoff = DateTimeOffset.UtcNow - SessionRetention;
-                EvictStaleSessions(_sessions, cutoff);
-                _writes.Writer.TryWrite(new RecoverPlaybackWrite(cutoff));
+                var now = DateTimeOffset.UtcNow;
+                EvictStaleSessions(_sessions, now - SessionRetention);
+                _writes.Writer.TryWrite(
+                    new RecoverPlaybackWrite(now - CheckpointRetention));
             }
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
@@ -428,8 +488,6 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
         }
 
         var removed = EvictStaleSessions(_sessions, observedAt - SessionRetention);
-        _writes.Writer.TryWrite(
-            new RecoverPlaybackWrite(observedAt - SessionRetention));
         if (removed > 0)
         {
             _logger.LogDebug("Removed {Count} stale playback session(s).", removed);
