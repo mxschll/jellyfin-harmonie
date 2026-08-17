@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.12.1.1",
+        "changelog": "\n### Bug Fixes\n\n- Record the previous track when a session switches (#28) (aa8eca9)\n\n### Documentation\n\n- Describe the listening database (2f0f93b)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.1/jellyfin-harmonie_1.12.1.1.zip",
+        "checksum": "51317bf7dc354f1a0b92227a4448575b",
+        "timestamp": "2026-08-17T09:37:21Z"
+      },
+      {
+        "version": "1.12.1.0",
+        "changelog": "\n### Bug Fixes\n\n- Record the previous track when a session switches (#28) (aa8eca9)\n\n### Documentation\n\n- Describe the listening database (2f0f93b)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.1/jellyfin-harmonie_1.12.1.0.zip",
+        "checksum": "54a133465d16021dce33990caf7a5e67",
+        "timestamp": "2026-08-17T09:37:21Z"
+      },
+      {
         "version": "1.12.0.1",
         "changelog": "\n### Features\n\n- Restructure plugin settings into tabbed pages (#26) (2f129d3)",
         "targetAbi": "10.11.0.0",
