@@ -80,6 +80,29 @@ internal sealed record ListeningActivityEvent(
     string? DeviceId);
 
 /// <summary>
+/// Latest durable state for a playback that has not produced a stop event.
+/// One session has one row per participating user.
+/// </summary>
+internal sealed record PlaybackSessionCheckpoint(
+    string SessionKey,
+    Guid UserId,
+    Guid ItemId,
+    DateTimeOffset? StartedUtc,
+    DateTimeOffset LastObservedUtc,
+    long? StartPositionTicks,
+    long? EndPositionTicks,
+    long? MaxPositionTicks,
+    long? ActiveListenTicks,
+    int SeekForwardCount,
+    int SeekBackwardCount,
+    int PauseCount,
+    bool IsPaused,
+    long? DurationTicks,
+    string? PlaySessionId,
+    string? ClientName,
+    string? DeviceId);
+
+/// <summary>
 /// Administrative information about the listening database.
 /// </summary>
 public sealed class ListeningActivityStatus

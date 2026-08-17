@@ -42,7 +42,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
 
         Assert.True(first);
         Assert.False(second);
-        Assert.Equal(2, status.SchemaVersion);
+        Assert.Equal(3, status.SchemaVersion);
         Assert.False(store.IsBootstrapRequired());
 
         using var connection = new HarmonieDatabase(
@@ -79,7 +79,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
 
         var status = store.GetStatus();
 
-        Assert.Equal(2, status.SchemaVersion);
+        Assert.Equal(3, status.SchemaVersion);
         Assert.True(status.SizeBytes > 0);
         Assert.Equal(Path.GetFullPath(Path.Combine(_directory, "jellyfin-harmonie.db")), status.DatabasePath);
 
@@ -416,6 +416,117 @@ public sealed class ListeningActivityStoreTests : IDisposable
         Assert.Contains(metrics, item => item.ItemId == playlistTrack);
     }
 
+    [Fact]
+    public void Completing_playback_replaces_its_checkpoint_without_double_counting()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var observedAt = DateTimeOffset.Parse("2026-08-16T12:00:00Z");
+        store.UpsertPlaybackSessions(new[]
+        {
+            Checkpoint(userId, itemId, observedAt),
+        });
+
+        store.CompletePlaybackSession(
+            "session-1",
+            new[]
+            {
+                Playback(
+                    userId,
+                    itemId,
+                    observedAt.AddSeconds(10),
+                    completed: true,
+                    earlySkip: false),
+            });
+
+        using var connection = new HarmonieDatabase(
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
+        Assert.Equal(0L, Scalar(connection, "SELECT COUNT(*) FROM playback_sessions;"));
+        Assert.Equal(1L, Scalar(connection, "SELECT COUNT(*) FROM playback_events;"));
+        Assert.Equal(1L, Scalar(connection, "SELECT counted_as_play FROM playback_events;"));
+    }
+
+    [Fact]
+    public void Abandoned_checkpoint_is_recovered_after_database_reopen()
+    {
+        var path = Path.Combine(_directory, "jellyfin-harmonie.db");
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var observedAt = DateTimeOffset.Parse("2026-08-16T12:02:50Z");
+        CreateStore().UpsertPlaybackSessions(new[]
+        {
+            Checkpoint(userId, itemId, observedAt),
+        });
+
+        var reopened = new ListeningActivityStore(new HarmonieDatabase(path));
+        var recovered = reopened.RecoverAbandonedPlaybackSessions(observedAt.AddSeconds(1));
+
+        Assert.Equal(1, recovered);
+        using var connection = new HarmonieDatabase(path).OpenConnection();
+        Assert.Equal(0L, Scalar(connection, "SELECT COUNT(*) FROM playback_sessions;"));
+        Assert.Equal(1L, Scalar(connection, "SELECT COUNT(*) FROM playback_events;"));
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT user_id, item_id, stopped_utc, counted_as_play,
+                   play_session_id, client_name, device_id
+            FROM playback_events;
+            """;
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal(userId.ToString("N"), reader.GetString(0));
+        Assert.Equal(itemId.ToString("N"), reader.GetString(1));
+        Assert.Equal(observedAt, DateTimeOffset.Parse(reader.GetString(2)));
+        Assert.Equal(1, reader.GetInt32(3));
+        Assert.Equal("play-1", reader.GetString(4));
+        Assert.Equal("Finamp", reader.GetString(5));
+        Assert.Equal("phone", reader.GetString(6));
+    }
+
+    [Fact]
+    public void Resumed_checkpoint_finishes_as_a_single_event()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var observedAt = DateTimeOffset.Parse("2026-08-16T12:00:00Z");
+        store.UpsertPlaybackSessions(new[]
+        {
+            Checkpoint(userId, itemId, observedAt),
+        });
+
+        var checkpoint = store.TryGetPlaybackSession("session-1");
+        Assert.NotNull(checkpoint);
+        var resumedAt = observedAt.AddHours(10);
+        var session = PlaybackSessionAccumulator.FromCheckpoint(checkpoint, resumedAt);
+        var summary = session.Finish(
+            resumedAt.AddSeconds(10),
+            TimeSpan.FromMinutes(3).Ticks,
+            TimeSpan.FromMinutes(3).Ticks);
+        store.CompletePlaybackSession(
+            "session-1",
+            new[]
+            {
+                Playback(
+                    userId,
+                    itemId,
+                    resumedAt.AddSeconds(10),
+                    completed: summary.PlayedToCompletion,
+                    earlySkip: summary.IsEarlySkip),
+            });
+
+        using var connection = new HarmonieDatabase(
+            Path.Combine(_directory, "jellyfin-harmonie.db")).OpenConnection();
+        Assert.Equal(0L, Scalar(connection, "SELECT COUNT(*) FROM playback_sessions;"));
+        Assert.Equal(1L, Scalar(connection, "SELECT COUNT(*) FROM playback_events;"));
+    }
+
+    [Fact]
+    public void Missing_checkpoint_reads_as_null()
+    {
+        Assert.Null(CreateStore().TryGetPlaybackSession("no-such-session"));
+    }
+
     private ListeningActivityStore CreateStore()
         => new(new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db")));
 
@@ -453,4 +564,34 @@ public sealed class ListeningActivityStoreTests : IDisposable
             PlaySessionId: Guid.NewGuid().ToString("N"),
             ClientName: "test",
             DeviceId: "test");
+
+    private static PlaybackSessionCheckpoint Checkpoint(
+        Guid userId,
+        Guid itemId,
+        DateTimeOffset observedAt)
+        => new(
+            SessionKey: "session-1",
+            UserId: userId,
+            ItemId: itemId,
+            StartedUtc: observedAt.AddMinutes(-2).AddSeconds(-50),
+            LastObservedUtc: observedAt,
+            StartPositionTicks: 0,
+            EndPositionTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            MaxPositionTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            ActiveListenTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(50)).Ticks,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            IsPaused: false,
+            DurationTicks: TimeSpan.FromMinutes(3).Ticks,
+            PlaySessionId: "play-1",
+            ClientName: "Finamp",
+            DeviceId: "phone");
+
+    private static long Scalar(Microsoft.Data.Sqlite.SqliteConnection connection, string sql)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToInt64(command.ExecuteScalar());
+    }
 }

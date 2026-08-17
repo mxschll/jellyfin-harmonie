@@ -76,7 +76,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void Recommendation_index_is_added_when_schema_one_is_upgraded()
+    public void Recommendation_index_and_checkpoint_table_are_added_when_schema_one_is_upgraded()
     {
         var path = Path.Combine(_directory, "jellyfin-harmonie.db");
         new HarmonieDatabase(
@@ -97,8 +97,16 @@ public sealed class HarmonieDatabaseTests : IDisposable
             columns.Add(reader.GetString(2));
         }
 
-        Assert.Equal(2, upgraded.SchemaVersion);
+        Assert.Equal(3, upgraded.SchemaVersion);
         Assert.Equal(new[] { "user_id", "item_id", "stopped_utc" }, columns);
+
+        using var tableCommand = connection.CreateCommand();
+        tableCommand.CommandText = """
+            SELECT COUNT(*)
+            FROM sqlite_master
+            WHERE type = 'table' AND name = 'playback_sessions';
+            """;
+        Assert.Equal(1L, tableCommand.ExecuteScalar());
     }
 
     private sealed class RecordingMigration : IHarmonieDatabaseMigration
