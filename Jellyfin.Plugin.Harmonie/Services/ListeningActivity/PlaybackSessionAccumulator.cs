@@ -31,6 +31,11 @@ internal sealed class PlaybackSessionAccumulator
     private static readonly long SeekThresholdTicks = TimeSpan.FromSeconds(10).Ticks;
     private static readonly long EarlySkipLimitTicks = TimeSpan.FromSeconds(30).Ticks;
     private static readonly long CompletionToleranceLimitTicks = TimeSpan.FromSeconds(10).Ticks;
+
+    // How close to the track end playback must stop for the listen to count.
+    // Separate from the completion tolerance above: completion describes the
+    // track finishing, this decides whether a play is credited.
+    private static readonly long PlayEndToleranceTicks = TimeSpan.FromSeconds(10).Ticks;
     private static readonly TimeSpan CheckpointWriteInterval = TimeSpan.FromSeconds(30);
 
     // Near the end of a track the durable state must not lag: recovery
@@ -249,29 +254,56 @@ internal sealed class PlaybackSessionAccumulator
             IsCountedAsPlay(
                 checkpoint.EndPositionTicks,
                 checkpoint.ActiveListenTicks,
-                checkpoint.DurationTicks),
+                checkpoint.DurationTicks,
+                checkpoint.StartPositionTicks,
+                checkpoint.SeekForwardCount),
             checkpoint.PlaySessionId,
             checkpoint.ClientName,
             checkpoint.DeviceId);
     }
 
+    /// <summary>
+    /// True when a listen counts toward play counts.
+    ///
+    /// <para>
+    /// With active listening time known, at least half the track must have
+    /// been listened to, and playback must either end within ten seconds of
+    /// the track end or cover nine tenths of the track.
+    /// </para>
+    /// <para>
+    /// Active listening is unknown when no start event was seen: some clients
+    /// report progress without a start, and a session already playing when
+    /// the plugin loads has no start either. Positions and seek counts are
+    /// still measured in that case, so the listen counts when playback ran
+    /// from the first observed position through to the end without jumping
+    /// ahead. Joining by the halfway mark leaves at least half the track
+    /// played in real time, the same floor the measured rule applies.
+    /// </para>
+    /// </summary>
     internal static bool IsCountedAsPlay(
         long? endPositionTicks,
         long? activeListenTicks,
-        long? durationTicks)
+        long? durationTicks,
+        long? startPositionTicks,
+        int seekForwardCount)
     {
-        if (endPositionTicks is null
-            || activeListenTicks is null
-            || durationTicks is null
-            || durationTicks <= 0
-            || activeListenTicks < durationTicks / 2)
+        if (endPositionTicks is null || durationTicks is null || durationTicks <= 0)
         {
             return false;
         }
 
-        var remainingTicks = Math.Max(0, durationTicks.Value - endPositionTicks.Value);
-        return remainingTicks <= TimeSpan.FromSeconds(10).Ticks
-            || activeListenTicks.Value >= durationTicks.Value * 0.9;
+        var reachedEnd = durationTicks.Value - endPositionTicks.Value <= PlayEndToleranceTicks;
+
+        if (activeListenTicks is not null)
+        {
+            return activeListenTicks >= durationTicks / 2
+                && (reachedEnd || activeListenTicks.Value >= durationTicks.Value * 0.9);
+        }
+
+        return reachedEnd
+            && seekForwardCount == 0
+            && startPositionTicks is not null
+            && startPositionTicks.Value <= durationTicks.Value / 2;
     }
 
     private PlaybackSessionSummary CreateSummary(long? durationTicks)

@@ -42,7 +42,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
 
         Assert.True(first);
         Assert.False(second);
-        Assert.Equal(3, status.SchemaVersion);
+        Assert.Equal(4, status.SchemaVersion);
         Assert.False(store.IsBootstrapRequired());
 
         using var connection = new HarmonieDatabase(
@@ -79,7 +79,7 @@ public sealed class ListeningActivityStoreTests : IDisposable
 
         var status = store.GetStatus();
 
-        Assert.Equal(3, status.SchemaVersion);
+        Assert.Equal(4, status.SchemaVersion);
         Assert.True(status.SizeBytes > 0);
         Assert.Equal(Path.GetFullPath(Path.Combine(_directory, "jellyfin-harmonie.db")), status.DatabasePath);
 

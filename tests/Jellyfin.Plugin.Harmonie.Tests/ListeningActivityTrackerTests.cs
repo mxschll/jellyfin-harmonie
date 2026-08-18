@@ -80,7 +80,7 @@ public class ListeningActivityTrackerTests
     }
 
     [Fact]
-    public void Playback_stop_uses_the_derived_completion_value()
+    public void Playback_stop_does_not_use_jellyfin_completion_as_play_count()
     {
         var user = User("listener");
         var item = new Audio
@@ -111,6 +111,44 @@ public class ListeningActivityTrackerTests
             eventArgs,
             summary,
             DateTimeOffset.Parse("2026-08-16T10:02:00Z")));
+
+        Assert.False(activity.PlayedToCompletion);
+        Assert.False(activity.CountedAsPlay);
+    }
+
+    [Fact]
+    public void Playback_stop_counts_a_qualified_listen_when_jellyfin_does_not()
+    {
+        var user = User("listener");
+        var duration = TimeSpan.FromMinutes(4).Ticks;
+        var listened = TimeSpan.FromSeconds(220).Ticks;
+        var eventArgs = new PlaybackStopEventArgs
+        {
+            Item = new Audio
+            {
+                Id = Guid.NewGuid(),
+                RunTimeTicks = duration,
+            },
+            Users = new List<User> { user },
+            PlaybackPositionTicks = listened,
+            PlayedToCompletion = false,
+        };
+        var summary = new PlaybackSessionSummary(
+            DateTimeOffset.Parse("2026-08-16T10:00:00Z"),
+            StartPositionTicks: 0,
+            EndPositionTicks: listened,
+            MaxPositionTicks: listened,
+            ActiveListenTicks: listened,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            PlayedToCompletion: false,
+            IsEarlySkip: false);
+
+        var activity = Assert.Single(ListeningActivityTracker.CreateActivities(
+            eventArgs,
+            summary,
+            DateTimeOffset.Parse("2026-08-16T10:03:40Z")));
 
         Assert.False(activity.PlayedToCompletion);
         Assert.True(activity.CountedAsPlay);
@@ -248,6 +286,84 @@ public class ListeningActivityTrackerTests
         Assert.Equal(1, removed);
         Assert.DoesNotContain("stale", sessions.Keys);
         Assert.Contains("recent", sessions.Keys);
+    }
+
+    /// <summary>
+    /// A client that reports progress without a start leaves active listening
+    /// unmeasurable. The listen must still count when playback ran from the
+    /// first observed position through to the end.
+    /// </summary>
+    [Fact]
+    public void Playback_stop_counts_a_progress_only_listen_that_reached_the_end()
+    {
+        var user = User("listener");
+        var duration = TimeSpan.FromMinutes(4).Ticks;
+        var eventArgs = new PlaybackStopEventArgs
+        {
+            Item = new Audio
+            {
+                Id = Guid.NewGuid(),
+                RunTimeTicks = duration,
+            },
+            Users = new List<User> { user },
+            PlaybackPositionTicks = duration,
+            PlayedToCompletion = false,
+        };
+        var summary = new PlaybackSessionSummary(
+            StartedUtc: null,
+            StartPositionTicks: TimeSpan.FromSeconds(12).Ticks,
+            EndPositionTicks: duration,
+            MaxPositionTicks: duration,
+            ActiveListenTicks: null,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            PlayedToCompletion: false,
+            IsEarlySkip: false);
+
+        var activity = Assert.Single(ListeningActivityTracker.CreateActivities(
+            eventArgs,
+            summary,
+            DateTimeOffset.Parse("2026-08-16T10:04:00Z")));
+
+        Assert.Null(activity.ActiveListenTicks);
+        Assert.True(activity.CountedAsPlay);
+    }
+
+    [Fact]
+    public void Playback_stop_does_not_count_a_progress_only_listen_that_jumped_ahead()
+    {
+        var user = User("listener");
+        var duration = TimeSpan.FromMinutes(4).Ticks;
+        var eventArgs = new PlaybackStopEventArgs
+        {
+            Item = new Audio
+            {
+                Id = Guid.NewGuid(),
+                RunTimeTicks = duration,
+            },
+            Users = new List<User> { user },
+            PlaybackPositionTicks = duration,
+            PlayedToCompletion = true,
+        };
+        var summary = new PlaybackSessionSummary(
+            StartedUtc: null,
+            StartPositionTicks: 0,
+            EndPositionTicks: duration,
+            MaxPositionTicks: duration,
+            ActiveListenTicks: null,
+            SeekForwardCount: 1,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            PlayedToCompletion: false,
+            IsEarlySkip: false);
+
+        var activity = Assert.Single(ListeningActivityTracker.CreateActivities(
+            eventArgs,
+            summary,
+            DateTimeOffset.Parse("2026-08-16T10:00:30Z")));
+
+        Assert.False(activity.CountedAsPlay);
     }
 
     private static User User(string name)
