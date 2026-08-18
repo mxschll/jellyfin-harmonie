@@ -222,6 +222,135 @@ public sealed class PlaybackSessionAccumulatorTests
         Assert.True(activity.IsEarlySkip);
     }
 
+    /// <summary>
+    /// A client that reports progress without a start leaves active listening
+    /// unmeasurable. The listen still counts when playback ran from the first
+    /// observed position through to the end without jumping ahead.
+    /// </summary>
+    [Fact]
+    public void Progress_only_session_that_runs_to_the_end_counts_as_a_play()
+    {
+        var duration = TimeSpan.FromMinutes(3);
+        var observed = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromProgress(
+            observed,
+            TimeSpan.FromSeconds(20).Ticks,
+            isPaused: false);
+
+        var summary = session.Finish(
+            observed.Add(duration).AddSeconds(-20),
+            duration.Ticks,
+            duration.Ticks);
+
+        Assert.Null(summary.ActiveListenTicks);
+        Assert.True(PlaybackSessionAccumulator.IsCountedAsPlay(
+            summary.EndPositionTicks,
+            summary.ActiveListenTicks,
+            duration.Ticks,
+            summary.StartPositionTicks,
+            summary.SeekForwardCount));
+    }
+
+    [Fact]
+    public void Progress_only_session_that_jumps_ahead_does_not_count()
+    {
+        var duration = TimeSpan.FromMinutes(3);
+        var observed = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var session = PlaybackSessionAccumulator.FromProgress(
+            observed,
+            TimeSpan.FromSeconds(20).Ticks,
+            isPaused: false);
+        session.Observe(
+            observed.AddSeconds(5),
+            TimeSpan.FromSeconds(150).Ticks,
+            isPaused: false);
+
+        var summary = session.Finish(
+            observed.AddSeconds(35),
+            duration.Ticks,
+            duration.Ticks);
+
+        Assert.Equal(1, summary.SeekForwardCount);
+        Assert.False(PlaybackSessionAccumulator.IsCountedAsPlay(
+            summary.EndPositionTicks,
+            summary.ActiveListenTicks,
+            duration.Ticks,
+            summary.StartPositionTicks,
+            summary.SeekForwardCount));
+    }
+
+    /// <summary>
+    /// Joining past the halfway mark leaves less than half the track played,
+    /// which is the floor the measured rule applies.
+    /// </summary>
+    [Fact]
+    public void Progress_only_session_joined_past_halfway_does_not_count()
+    {
+        var duration = TimeSpan.FromMinutes(4);
+
+        Assert.False(PlaybackSessionAccumulator.IsCountedAsPlay(
+            endPositionTicks: duration.Ticks,
+            activeListenTicks: null,
+            durationTicks: duration.Ticks,
+            startPositionTicks: TimeSpan.FromMinutes(2).Add(TimeSpan.FromSeconds(1)).Ticks,
+            seekForwardCount: 0));
+
+        Assert.True(PlaybackSessionAccumulator.IsCountedAsPlay(
+            endPositionTicks: duration.Ticks,
+            activeListenTicks: null,
+            durationTicks: duration.Ticks,
+            startPositionTicks: TimeSpan.FromMinutes(2).Ticks,
+            seekForwardCount: 0));
+    }
+
+    [Fact]
+    public void Progress_only_session_stopped_short_of_the_end_does_not_count()
+    {
+        var duration = TimeSpan.FromMinutes(4);
+
+        Assert.False(PlaybackSessionAccumulator.IsCountedAsPlay(
+            endPositionTicks: duration.Ticks - TimeSpan.FromSeconds(11).Ticks,
+            activeListenTicks: null,
+            durationTicks: duration.Ticks,
+            startPositionTicks: 0,
+            seekForwardCount: 0));
+    }
+
+    /// <summary>
+    /// A progress-only session recovered from its checkpoint follows the same
+    /// rule: the checkpoint carries the join position and the seek counts.
+    /// </summary>
+    [Fact]
+    public void Recovered_progress_only_session_counts_as_a_play()
+    {
+        var duration = TimeSpan.FromMinutes(3);
+        var observedAt = DateTimeOffset.Parse("2026-08-16T10:00:00Z");
+        var checkpoint = new PlaybackSessionCheckpoint(
+            SessionKey: "session-1",
+            UserId: Guid.NewGuid(),
+            ItemId: Guid.NewGuid(),
+            StartedUtc: null,
+            LastObservedUtc: observedAt.Add(duration),
+            StartPositionTicks: TimeSpan.FromSeconds(15).Ticks,
+            EndPositionTicks: duration.Ticks,
+            MaxPositionTicks: duration.Ticks,
+            ActiveListenTicks: null,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            IsPaused: false,
+            DurationTicks: duration.Ticks,
+            PlaySessionId: "play-1",
+            ClientName: "Finamp",
+            DeviceId: "phone");
+
+        var activity = PlaybackSessionAccumulator.Recover(checkpoint);
+
+        Assert.True(activity.CountedAsPlay);
+        Assert.False(activity.PlayedToCompletion);
+        Assert.False(activity.IsEarlySkip);
+    }
+
     [Fact]
     public void Live_stop_keeps_the_tight_completion_margin_on_short_tracks()
     {

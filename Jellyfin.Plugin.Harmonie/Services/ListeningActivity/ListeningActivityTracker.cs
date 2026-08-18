@@ -391,7 +391,9 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 PlaybackSessionAccumulator.IsCountedAsPlay(
                     summary.EndPositionTicks,
                     summary.ActiveListenTicks,
-                    track.DurationTicks),
+                    track.DurationTicks,
+                    summary.StartPositionTicks,
+                    summary.SeekForwardCount),
                 track.PlaySessionId,
                 track.ClientName,
                 track.DeviceId))
@@ -504,7 +506,9 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 PlaybackSessionAccumulator.IsCountedAsPlay(
                     summary.EndPositionTicks,
                     summary.ActiveListenTicks,
-                    audio.RunTimeTicks),
+                    audio.RunTimeTicks,
+                    summary.StartPositionTicks,
+                    summary.SeekForwardCount),
                 eventArgs.PlaySessionId,
                 eventArgs.ClientName,
                 eventArgs.DeviceId))
