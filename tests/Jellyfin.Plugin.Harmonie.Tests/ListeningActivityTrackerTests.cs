@@ -80,7 +80,7 @@ public class ListeningActivityTrackerTests
     }
 
     [Fact]
-    public void Playback_stop_uses_the_derived_completion_value()
+    public void Playback_stop_does_not_use_jellyfin_completion_as_play_count()
     {
         var user = User("listener");
         var item = new Audio
@@ -111,6 +111,44 @@ public class ListeningActivityTrackerTests
             eventArgs,
             summary,
             DateTimeOffset.Parse("2026-08-16T10:02:00Z")));
+
+        Assert.False(activity.PlayedToCompletion);
+        Assert.False(activity.CountedAsPlay);
+    }
+
+    [Fact]
+    public void Playback_stop_counts_a_qualified_listen_when_jellyfin_does_not()
+    {
+        var user = User("listener");
+        var duration = TimeSpan.FromMinutes(4).Ticks;
+        var listened = TimeSpan.FromSeconds(220).Ticks;
+        var eventArgs = new PlaybackStopEventArgs
+        {
+            Item = new Audio
+            {
+                Id = Guid.NewGuid(),
+                RunTimeTicks = duration,
+            },
+            Users = new List<User> { user },
+            PlaybackPositionTicks = listened,
+            PlayedToCompletion = false,
+        };
+        var summary = new PlaybackSessionSummary(
+            DateTimeOffset.Parse("2026-08-16T10:00:00Z"),
+            StartPositionTicks: 0,
+            EndPositionTicks: listened,
+            MaxPositionTicks: listened,
+            ActiveListenTicks: listened,
+            SeekForwardCount: 0,
+            SeekBackwardCount: 0,
+            PauseCount: 0,
+            PlayedToCompletion: false,
+            IsEarlySkip: false);
+
+        var activity = Assert.Single(ListeningActivityTracker.CreateActivities(
+            eventArgs,
+            summary,
+            DateTimeOffset.Parse("2026-08-16T10:03:40Z")));
 
         Assert.False(activity.PlayedToCompletion);
         Assert.True(activity.CountedAsPlay);

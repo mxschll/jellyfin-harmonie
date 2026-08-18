@@ -11,5 +11,6 @@ internal static class HarmonieDatabaseMigrations
             new Migration001ListeningActivity(),
             new Migration002RecommendationMetricsIndex(),
             new Migration003PlaybackSessionCheckpoints(),
+            new Migration004UnifiedPlayCounting(),
         };
 }

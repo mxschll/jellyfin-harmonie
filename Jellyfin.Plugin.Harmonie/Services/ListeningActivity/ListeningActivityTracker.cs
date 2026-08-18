@@ -501,7 +501,10 @@ internal sealed class ListeningActivityTracker : IHostedService, IDisposable
                 summary.IsEarlySkip,
                 audio.RunTimeTicks,
                 summary.PlayedToCompletion,
-                eventArgs.PlayedToCompletion,
+                PlaybackSessionAccumulator.IsCountedAsPlay(
+                    summary.EndPositionTicks,
+                    summary.ActiveListenTicks,
+                    audio.RunTimeTicks),
                 eventArgs.PlaySessionId,
                 eventArgs.ClientName,
                 eventArgs.DeviceId))

@@ -27,7 +27,7 @@ abandoned session is recovered from its checkpoint.
 | `is_early_skip` | 1 when active listening stayed under `min(30s, duration / 5)` and the track did not complete. |
 | `duration_ticks` | The track's runtime. |
 | `played_to_completion` | 1 when the end position reached the track end (within `min(10s, duration / 20)` live; a wider `duration / 5` margin for recovered sessions) and at least half the track was actively listened. The listening floor stops a seek to the end from counting. |
-| `counted_as_play` | 1 when the listen counts toward play counts. Live stops take Jellyfin's own judgment, the same one that raises the user's play count. Recovered sessions and tracks the user switched away from without a stop use a stand-in: at least half the track actively listened, and either the position within 10 seconds of the end or 90% of the track listened. |
+| `counted_as_play` | 1 when at least half the track was actively listened to, and playback either ended within the final 10 seconds or active listening covered at least 90% of the track. The same rule applies to reported stops, switched tracks, and recovered sessions. |
 | `play_session_id` | The client's play session id, when it sent one. |
 | `client_name` | The reporting client, such as `Finamp`. |
 | `device_id` | The reporting device. |

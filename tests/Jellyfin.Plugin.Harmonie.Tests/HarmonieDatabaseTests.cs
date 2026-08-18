@@ -76,7 +76,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void Recommendation_index_and_checkpoint_table_are_added_when_schema_one_is_upgraded()
+    public void Later_schema_changes_are_added_when_schema_one_is_upgraded()
     {
         var path = Path.Combine(_directory, "jellyfin-harmonie.db");
         new HarmonieDatabase(
@@ -97,7 +97,7 @@ public sealed class HarmonieDatabaseTests : IDisposable
             columns.Add(reader.GetString(2));
         }
 
-        Assert.Equal(3, upgraded.SchemaVersion);
+        Assert.Equal(4, upgraded.SchemaVersion);
         Assert.Equal(new[] { "user_id", "item_id", "stopped_utc" }, columns);
 
         using var tableCommand = connection.CreateCommand();
@@ -107,6 +107,65 @@ public sealed class HarmonieDatabaseTests : IDisposable
             WHERE type = 'table' AND name = 'playback_sessions';
             """;
         Assert.Equal(1L, tableCommand.ExecuteScalar());
+    }
+
+    [Fact]
+    public void Unified_play_counting_migration_reclassifies_existing_events()
+    {
+        var path = Path.Combine(_directory, "jellyfin-harmonie.db");
+        new HarmonieDatabase(
+            path,
+            new IHarmonieDatabaseMigration[]
+            {
+                new Migration001ListeningActivity(),
+                new Migration002RecommendationMetricsIndex(),
+                new Migration003PlaybackSessionCheckpoints(),
+            }).Initialize();
+
+        using (var connection = new HarmonieDatabase(
+                   path,
+                   new IHarmonieDatabaseMigration[]
+                   {
+                       new Migration001ListeningActivity(),
+                       new Migration002RecommendationMetricsIndex(),
+                       new Migration003PlaybackSessionCheckpoints(),
+                   }).OpenConnection())
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO playback_events (
+                    user_id, item_id, stopped_utc, end_position_ticks,
+                    active_listen_ticks, seek_forward_count,
+                    seek_backward_count, pause_count, is_early_skip,
+                    duration_ticks, played_to_completion, counted_as_play)
+                VALUES
+                    ('user', 'short', '2026-08-18T10:00:00Z', 200000000,
+                     200000000, 0, 0, 0, 1, 2400000000, 0, 1),
+                    ('user', 'ninety-percent', '2026-08-18T10:01:00Z', 2200000000,
+                     2200000000, 0, 0, 0, 0, 2400000000, 0, 0),
+                    ('user', 'near-end', '2026-08-18T10:02:00Z', 2350000000,
+                     1200000000, 0, 0, 0, 0, 2400000000, 0, 0),
+                    ('user', 'unknown', '2026-08-18T10:03:00Z', NULL,
+                     NULL, 0, 0, 0, 0, 2400000000, 1, 1);
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var upgraded = new HarmonieDatabase(path);
+        upgraded.Initialize();
+
+        using var upgradedConnection = upgraded.OpenConnection();
+        using var resultCommand = upgradedConnection.CreateCommand();
+        resultCommand.CommandText = "SELECT counted_as_play FROM playback_events ORDER BY id;";
+        using var reader = resultCommand.ExecuteReader();
+        var results = new List<long>();
+        while (reader.Read())
+        {
+            results.Add(reader.GetInt64(0));
+        }
+
+        Assert.Equal(4, upgraded.SchemaVersion);
+        Assert.Equal(new long[] { 0, 1, 1, 0 }, results);
     }
 
     private sealed class RecordingMigration : IHarmonieDatabaseMigration
