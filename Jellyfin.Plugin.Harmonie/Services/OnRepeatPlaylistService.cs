@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -16,8 +16,16 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
-/// Maintains one "On Repeat" playlist per user: the exact tracks the
-/// user has played on loop over the last month, most-played first.
+/// Maintains one "On Repeat" playlist per user: the tracks the user has
+/// played on loop, longest-unplayed first.
+///
+/// The playlist grows rather than sliding. Tracks qualify on a rolling
+/// 45-day window, but once in they stay — a track only leaves when a
+/// newly repeated one needs its slot — so a quiet month leaves the
+/// playlist standing instead of draining it. Ordering it by last play
+/// puts the tracks nearest the exit at the top, where a forgotten
+/// repeat gets heard again before it goes. The rotation is stored per
+/// user in <see cref="StylePlaylistStateStore"/>.
 ///
 /// Unlike every other Harmonie playlist this one never asks harmonie
 /// for anything — no similarity expansion, no resolution. It is a pure
@@ -26,8 +34,12 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 /// </summary>
 public class OnRepeatPlaylistService
 {
-    /// <summary>Playback window. "On repeat" means this month, not ever.</summary>
-    internal const int WindowDays = 30;
+    /// <summary>
+    /// Playback window a track must repeat inside to qualify. Wider than
+    /// Spotify's month so a repeat spread over six or seven weeks still
+    /// counts as one.
+    /// </summary>
+    internal const int WindowDays = 45;
 
     /// <summary>
     /// Minimum counted plays inside the window before a track qualifies.
@@ -35,7 +47,10 @@ public class OnRepeatPlaylistService
     /// </summary>
     internal const int MinimumPlays = 3;
 
-    /// <summary>Cap on playlist length.</summary>
+    /// <summary>
+    /// Cap on playlist length. The rotation grows to this size and from
+    /// then on each newly repeated track evicts the stalest carry-over.
+    /// </summary>
     internal const int MaximumTracks = 30;
 
     /// <summary>
@@ -107,36 +122,35 @@ public class OnRepeatPlaylistService
     private async Task RefreshForUserAsync(User user, CancellationToken ct)
     {
         var cutoff = DateTimeOffset.UtcNow - TimeSpan.FromDays(WindowDays);
-        var repeats = _store.GetOnRepeatTracks(user.Id, cutoff, MinimumPlays, MaximumTracks);
-
-        // Drop tracks that no longer resolve in the library (deleted,
-        // unavailable) while keeping the most-played-first order.
-        var trackIds = new List<Guid>(repeats.Count);
-        foreach (var repeat in repeats)
-        {
-            if (_libraryManager.GetItemById(repeat.ItemId) is Audio)
-            {
-                trackIds.Add(repeat.ItemId);
-            }
-        }
+        var qualifying = _store.GetOnRepeatTracks(user.Id, cutoff, MinimumPlays, MaximumTracks);
 
         var state = _stateStore.Get(user.Id);
         var playlist = FindExistingPlaylist(state);
 
+        // Tracks that no longer resolve in the library (deleted,
+        // unavailable) leave the rotation instead of holding a slot;
+        // they return if the user plays them again. Filtering before the
+        // merge means a carry-over fills the freed slot.
+        var current = qualifying.Where(t => IsAudio(t.ItemId)).ToList();
+        var carried = state.OnRepeatTracks.Where(e => IsAudio(e.ItemId)).ToList();
+
+        var rotation = OnRepeatRotation.Merge(current, carried, MaximumTracks);
+        var trackIds = rotation.Select(e => e.ItemId).ToList();
+        state.OnRepeatTracks = rotation;
+
         if (trackIds.Count == 0)
         {
-            // Nothing qualifies this month. Never create an empty
-            // playlist; empty an existing one so it doesn't lie about
-            // the window.
+            // Nothing has ever qualified, or every track in the rotation
+            // is gone from the library. Never create an empty playlist;
+            // empty an existing one so it doesn't list missing tracks.
+            _stateStore.Set(user.Id, state);
             if (playlist is not null)
             {
                 await _contentReplacer
                     .ReplaceContentsAsync(playlist, user.Id, Array.Empty<Guid>(), ct)
                     .ConfigureAwait(false);
                 _logger.LogInformation(
-                    "On Repeat: no track passed {Min}+ plays in {Days} days for {User}; emptied '{Title}'.",
-                    MinimumPlays,
-                    WindowDays,
+                    "On Repeat: nothing left in the rotation for {User}; emptied '{Title}'.",
                     user.Username,
                     playlist.Name);
             }
@@ -146,11 +160,14 @@ public class OnRepeatPlaylistService
 
         if (playlist is null)
         {
-            if (trackIds.Count < MinimumTracksToCreate)
+            if (rotation.Count < MinimumTracksToCreate)
             {
+                // Persist anyway: the rotation accumulates across
+                // refreshes until it reaches the floor.
+                _stateStore.Set(user.Id, state);
                 _logger.LogDebug(
-                    "On Repeat: only {Count} track(s) qualify for {User} (need {Min} to create); skipping.",
-                    trackIds.Count,
+                    "On Repeat: only {Count} track(s) in the rotation for {User} (need {Min} to create); skipping.",
+                    rotation.Count,
                     user.Username,
                     MinimumTracksToCreate);
                 return;
@@ -162,6 +179,10 @@ public class OnRepeatPlaylistService
                 return;
             }
         }
+        else
+        {
+            _stateStore.Set(user.Id, state);
+        }
 
         await _contentReplacer
             .ReplaceContentsAsync(playlist, user.Id, trackIds, ct)
@@ -169,11 +190,16 @@ public class OnRepeatPlaylistService
         _coverRefresh.Queue(playlist.Id);
 
         _logger.LogInformation(
-            "On Repeat: filled '{Title}' with {Count} track(s) for {User}.",
+            "On Repeat: filled '{Title}' with {Count} track(s) for {User} ({Current} repeating in the last {Days} days, {Carried} carried over).",
             playlist.Name,
             trackIds.Count,
-            user.Username);
+            user.Username,
+            Math.Min(current.Count, MaximumTracks),
+            WindowDays,
+            trackIds.Count - Math.Min(current.Count, MaximumTracks));
     }
+
+    private bool IsAudio(Guid itemId) => _libraryManager.GetItemById(itemId) is Audio;
 
     private Playlist? FindExistingPlaylist(UserStylePlaylistState state)
     {
