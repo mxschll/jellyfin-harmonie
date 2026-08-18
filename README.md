@@ -131,7 +131,7 @@ The shortest answer: they aim at different things. If you know Plexamp's Sonic A
 
 [AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI) has features Harmonie does not, such as chat-based playlists and text and lyrics search. Most of them need a client built against its API.
 
-Harmonie goes the other way. Everything it produces is an ordinary Jellyfin playlist. That means:
+Harmonie asks nothing new of you or your clients. It lives entirely in Jellyfin's own surfaces — the Instant Mix button, ordinary playlists, Scheduled Tasks, plugin settings — so there is no companion app and no client support to wait for:
 
 - **Works in every client.** Playlists show up in the web UI, Finamp, Symfonium, downloads, and offline sync like any other playlist. No client needs to know Harmonie exists.
 - **Playlists are the interface.** Rename a playlist to change its settings, reorder tracks to change the seeds. The plugin notices the edit and refreshes in the background.
