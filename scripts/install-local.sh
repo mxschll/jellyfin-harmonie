@@ -70,7 +70,11 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Building Harmonie $plugin_version for Jellyfin $server_version ($framework)"
-"$DOTNET" publish "$PROJECT" --configuration Release --framework "$framework" --nologo
+# TargetFrameworks is narrowed to the one being published: restore
+# otherwise walks every target in the project, and a target newer than
+# the installed SDK (net10.0) fails the whole publish.
+"$DOTNET" publish "$PROJECT" --configuration Release --framework "$framework" \
+    -p:TargetFrameworks="$framework" --nologo
 
 if [[ ! -f "$publish_dir/Jellyfin.Plugin.Harmonie.dll" ]]; then
     echo "error: publish did not produce Jellyfin.Plugin.Harmonie.dll" >&2
