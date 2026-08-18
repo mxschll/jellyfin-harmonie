@@ -21,7 +21,7 @@ The plugin provides personal mixes and On Repeat playlists built from listening 
   <img src="docs/playlists.png" alt="Covers of Harmonie playlist types: Radio, Drift, Genre, Personal Mix, and On Repeat" width="720" />
 </p>
 
-## Planned
+**Upcoming**
 
 * **Rewind:** a per-user summary of a listening period, like Spotify Wrapped.
 * **Forgotten favorites:** tracks once played heavily and unheard for a long time.
