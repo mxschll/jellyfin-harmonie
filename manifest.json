@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.12.2.1",
+        "changelog": "\n### Bug Fixes\n\n- Grow on repeat instead of sliding (#29) (6cd6145)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.2/jellyfin-harmonie_1.12.2.1.zip",
+        "checksum": "4364f7392ecc352b84b9dd1e2ae43b22",
+        "timestamp": "2026-08-18T18:21:19Z"
+      },
+      {
+        "version": "1.12.2.0",
+        "changelog": "\n### Bug Fixes\n\n- Grow on repeat instead of sliding (#29) (6cd6145)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.2/jellyfin-harmonie_1.12.2.0.zip",
+        "checksum": "dc736c7d78de872b5e19277cfba1ed78",
+        "timestamp": "2026-08-18T18:21:19Z"
+      },
+      {
         "version": "1.12.1.1",
         "changelog": "\n### Bug Fixes\n\n- Record the previous track when a session switches (#28) (aa8eca9)\n\n### Documentation\n\n- Describe the listening database (2f0f93b)",
         "targetAbi": "10.11.0.0",
