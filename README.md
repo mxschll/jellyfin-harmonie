@@ -69,7 +69,9 @@ The plugin scores each user's recent tracks from plays, completions, skips, favo
 
 ### On Repeat
 
-One playlist per user with the exact tracks they have played on loop over the last month, most-played first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the window to qualify, and the playlist first appears once five tracks do. Enabled by default and refreshed every five days; toggle it off in plugin settings.
+One playlist per user with the tracks they have played on loop, longest unplayed first. No similarity expansion — these are the user's own repeats, straight from stored listening data, so it works even when harmonie is down. A track needs at least three plays in the last 45 days to qualify, and the playlist first appears once five tracks do.
+
+The playlist grows instead of sliding. A track keeps its place after its plays age out of the window, so a quiet month leaves the playlist standing. Once the rotation reaches 30 tracks, each newly repeated track evicts the one played longest ago — which is also the track at the top, so a forgotten repeat gets heard again before it goes. Enabled by default and refreshed every five days; toggle it off in plugin settings.
 
 ## Prefix playlists
 

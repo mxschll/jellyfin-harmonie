@@ -11,10 +11,11 @@ namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 /// <summary>
 /// Rebuilds the per-user On Repeat playlists every five days.
 ///
-/// On Repeat mirrors a rolling 30-day play window from the plugin's
-/// own stored listening data — it never calls harmonie, so it runs as
-/// its own task rather than inside the prefix playlist refresh. The
-/// five-day default matches Spotify's On Repeat cycle; adjust the
+/// On Repeat is built from the plugin's own stored listening data — it
+/// never calls harmonie, so it runs as its own task rather than inside
+/// the prefix playlist refresh. Each run merges the tracks repeating in
+/// the current window into the rotation carried over from earlier runs.
+/// The five-day default matches Spotify's On Repeat cycle; adjust the
 /// schedule from Dashboard → Scheduled Tasks.
 /// </summary>
 public class RefreshOnRepeatPlaylistsTask : IScheduledTask, IConfigurableScheduledTask

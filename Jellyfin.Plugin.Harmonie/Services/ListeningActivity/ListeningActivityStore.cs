@@ -298,8 +298,8 @@ public sealed class ListeningActivityStore
     /// <paramref name="cutoffUtc"/>, most-played first. Counts raw
     /// playback events rather than the lifetime totals in
     /// user_track_metrics because On Repeat is a strict window: a track
-    /// with a thousand plays last year and none this month must not
-    /// qualify.
+    /// with a thousand plays last year and none inside the window must
+    /// not qualify.
     /// </summary>
     internal IReadOnlyList<OnRepeatTrack> GetOnRepeatTracks(
         Guid userId,

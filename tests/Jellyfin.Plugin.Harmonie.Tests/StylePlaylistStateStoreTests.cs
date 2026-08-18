@@ -40,6 +40,32 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     }
 
     /// <summary>
+    /// The On Repeat rotation only outlives its play window because it
+    /// round-trips through this file.
+    /// </summary>
+    [Fact]
+    public void Set_persists_the_on_repeat_rotation()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var lastPlayed = DateTimeOffset.Parse("2026-07-01T08:30:00Z");
+        var state = StateWithSlot(0, Guid.NewGuid(), "House");
+        state.OnRepeatTracks.Add(new OnRepeatEntry
+        {
+            ItemId = itemId,
+            PlayCount = 7,
+            LastPlayedUtc = lastPlayed,
+        });
+        CreateStore().Set(userId, state);
+
+        var entry = Assert.Single(CreateStore().Get(userId).OnRepeatTracks);
+
+        Assert.Equal(itemId, entry.ItemId);
+        Assert.Equal(7, entry.PlayCount);
+        Assert.Equal(lastPlayed, entry.LastPlayedUtc);
+    }
+
+    /// <summary>
     /// Callers mutate the state returned by Get across awaits before
     /// calling Set. Those in-progress mutations must not be visible to
     /// other readers until Set publishes them.

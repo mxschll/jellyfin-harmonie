@@ -269,8 +269,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets a value indicating whether the per-user On Repeat
     /// playlist feature is enabled. When on, a scheduled task maintains
-    /// one playlist per user holding the exact tracks that user has
-    /// played on loop over the last month.
+    /// one playlist per user holding the tracks that user has played on
+    /// loop, carried across refreshes so the playlist grows instead of
+    /// sliding with the play window.
     /// </summary>
     public bool EnableOnRepeatPlaylists { get; set; }
 

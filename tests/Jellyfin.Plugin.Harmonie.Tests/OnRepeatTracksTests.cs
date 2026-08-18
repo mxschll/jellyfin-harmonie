@@ -58,7 +58,7 @@ public sealed class OnRepeatTracksTests : IDisposable
         var store = CreateStore();
         var oldFavorite = Guid.NewGuid();
 
-        // Heavy rotation last year, two plays this month: below threshold.
+        // Heavy rotation last year, two plays inside the window: below threshold.
         Play(store, oldFavorite, daysAgo: 300, times: 50);
         Play(store, oldFavorite, daysAgo: 3, times: 2);
 

@@ -41,6 +41,45 @@ public class StylePlaylistSlot
 }
 
 /// <summary>
+/// One track held in a user's On Repeat rotation, with the play count
+/// and last play from the refresh at which it last qualified.
+/// </summary>
+/// <remarks>
+/// Persisted because the rotation grows instead of sliding: a track
+/// stays after its plays age out of the window, until a newly repeated
+/// track needs the slot. The stored values survive that transition —
+/// the window query no longer returns the track at all.
+/// </remarks>
+public class OnRepeatEntry
+{
+    /// <summary>
+    /// Jellyfin audio item id.
+    /// </summary>
+    public Guid ItemId { get; set; }
+
+    /// <summary>
+    /// Counted plays inside the window at the last refresh where the
+    /// track qualified. Decides which tracks make the cut when more
+    /// qualify than the rotation holds; it does not set playlist order.
+    /// </summary>
+    public long PlayCount { get; set; }
+
+    /// <summary>
+    /// Latest play seen while the track qualified. Sets playlist order,
+    /// longest-unplayed first, and eviction order: the stalest
+    /// carried-over track loses its slot first.
+    /// </summary>
+    public DateTimeOffset LastPlayedUtc { get; set; }
+
+    public OnRepeatEntry Clone() => new()
+    {
+        ItemId = ItemId,
+        PlayCount = PlayCount,
+        LastPlayedUtc = LastPlayedUtc,
+    };
+}
+
+/// <summary>
 /// Per-user state for the style cluster playlists.
 /// </summary>
 public class UserStylePlaylistState
@@ -56,11 +95,18 @@ public class UserStylePlaylistState
     /// </summary>
     public string OnRepeatPlaylistGuid { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The user's On Repeat rotation in playlist order. Carried across
+    /// refreshes so tracks outlive the play window they qualified in.
+    /// </summary>
+    public List<OnRepeatEntry> OnRepeatTracks { get; set; } = new();
+
     public UserStylePlaylistState Clone() => new()
     {
         Slots = Slots.Select(s => s.Clone()).ToList(),
         LastRefreshedUtc = LastRefreshedUtc,
         OnRepeatPlaylistGuid = OnRepeatPlaylistGuid,
+        OnRepeatTracks = OnRepeatTracks.Select(t => t.Clone()).ToList(),
     };
 }
 
