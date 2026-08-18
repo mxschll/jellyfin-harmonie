@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.12.3.1",
+        "changelog": "\n### Bug Fixes\n\n- Unify play counting (#30) (87b259f)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.3/jellyfin-harmonie_1.12.3.1.zip",
+        "checksum": "f4d96a838a5e699cbef8870f8bc95207",
+        "timestamp": "2026-08-18T18:41:13Z"
+      },
+      {
+        "version": "1.12.3.0",
+        "changelog": "\n### Bug Fixes\n\n- Unify play counting (#30) (87b259f)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.12.3/jellyfin-harmonie_1.12.3.0.zip",
+        "checksum": "51f358db8defc02f55f3da5d2ae74903",
+        "timestamp": "2026-08-18T18:41:13Z"
+      },
+      {
         "version": "1.12.2.1",
         "changelog": "\n### Bug Fixes\n\n- Grow on repeat instead of sliding (#29) (6cd6145)",
         "targetAbi": "10.11.0.0",
