@@ -16,11 +16,10 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
-/// Replaces Jellyfin's default <see cref="IMusicManager"/> so the
-/// built-in <c>/Songs/{id}/InstantMix</c> endpoint (Song Radio in
-/// Finamp, Instant Mix in the web UI) returns audio-similar tracks
-/// sourced from harmonie instead of random tracks matching the seed's
-/// genre tags.
+/// Replaces Jellyfin's default <see cref="IMusicManager"/> so its
+/// Instant Mix endpoints (Song Radio in Finamp) return audio-similar
+/// tracks sourced from harmonie instead of random tracks matching the
+/// source's genre tags.
 ///
 /// The override is gated on
 /// <see cref="PluginConfiguration.EnableInstantMixOverride"/> at request
@@ -31,10 +30,10 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 /// the same genre-based logic the default <c>MusicManager</c> uses, so
 /// the endpoint always returns something playable.
 ///
-/// Only <see cref="Audio"/> items go through harmonie's similarity in
-/// v1; album/artist/playlist/genre/folder requests use the genre
-/// fallback directly. Multi-seed similarity for those cases is a
-/// follow-up.
+/// Songs use one seed. Albums, artists, playlists, and music folders use a
+/// small representative seed set. Genre requests retain Jellyfin's native
+/// genre filter because a genre name is a constraint rather than a sonic
+/// seed.
 /// </summary>
 public class HarmonieMusicManager : IMusicManager
 {
@@ -64,6 +63,7 @@ public class HarmonieMusicManager : IMusicManager
     private readonly ILibraryManager _libraryManager;
     private readonly HarmonieClient _client;
     private readonly LibraryResolver _libraryResolver;
+    private readonly InstantMixSeedSelector _seedSelector;
     private readonly IHarmonieConfigProvider _configProvider;
     private readonly ILogger<HarmonieMusicManager> _logger;
 
@@ -71,12 +71,14 @@ public class HarmonieMusicManager : IMusicManager
         ILibraryManager libraryManager,
         HarmonieClient client,
         LibraryResolver libraryResolver,
+        InstantMixSeedSelector seedSelector,
         IHarmonieConfigProvider configProvider,
         ILogger<HarmonieMusicManager> logger)
     {
         _libraryManager = libraryManager ?? throw new ArgumentNullException(nameof(libraryManager));
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _libraryResolver = libraryResolver ?? throw new ArgumentNullException(nameof(libraryResolver));
+        _seedSelector = seedSelector ?? throw new ArgumentNullException(nameof(seedSelector));
         _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -86,7 +88,7 @@ public class HarmonieMusicManager : IMusicManager
         => ComputeInstantMix(item, user, dtoOptions);
 
     public List<BaseItem> GetInstantMixFromArtist(MusicArtist artist, User? user, DtoOptions dtoOptions)
-        => GenreFallback(artist?.Genres, user, dtoOptions);
+        => ComputeInstantMix(artist, user, dtoOptions);
 
     public List<BaseItem> GetInstantMixFromGenres(IEnumerable<string> genres, User? user, DtoOptions dtoOptions)
         => GenreFallback(genres, user, dtoOptions);
@@ -95,16 +97,16 @@ public class HarmonieMusicManager : IMusicManager
         => ComputeInstantMix(item, user, dtoOptions);
 
     public IReadOnlyList<BaseItem> GetInstantMixFromArtist(MusicArtist artist, User? user, DtoOptions dtoOptions)
-        => GenreFallback(artist?.Genres, user, dtoOptions);
+        => ComputeInstantMix(artist, user, dtoOptions);
 
     public IReadOnlyList<BaseItem> GetInstantMixFromGenres(IEnumerable<string> genres, User? user, DtoOptions dtoOptions)
         => GenreFallback(genres, user, dtoOptions);
 #endif
 
     /// <summary>
-    /// Common entry point. Handles the audio-similarity path for
-    /// <see cref="Audio"/> items and routes everything else through the
-    /// genre-based fallback that mirrors Jellyfin's default behaviour.
+    /// Common entry point. Selects one or more sonic seeds for supported
+    /// music sources and routes unsupported sources through the genre-based
+    /// fallback that mirrors Jellyfin's default behaviour.
     /// </summary>
     private List<BaseItem> ComputeInstantMix(BaseItem item, User? user, DtoOptions dtoOptions)
     {
@@ -115,12 +117,34 @@ public class HarmonieMusicManager : IMusicManager
 
         var config = _configProvider.GetConfiguration();
 
-        if (config.EnableInstantMixOverride && item is Audio audio)
+        if (config.EnableInstantMixOverride)
         {
-            var harmonieResult = TryHarmonieSimilarity(audio, config);
-            if (harmonieResult is not null)
+            try
             {
-                return harmonieResult;
+                var seeds = _seedSelector.Select(item, user, dtoOptions);
+                if (seeds.Count > 0)
+                {
+                    var harmonieResult = TryHarmonieSimilarity(item, seeds, user, config);
+                    if (harmonieResult is not null)
+                    {
+                        return harmonieResult;
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug(
+                        "InstantMix source '{Name}' ({Type}) produced no sonic seeds; falling back.",
+                        item.Name,
+                        item.GetType().Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "InstantMix override failed for source '{Name}' ({Type}); falling back.",
+                    item.Name,
+                    item.GetType().Name);
             }
         }
 
@@ -133,7 +157,11 @@ public class HarmonieMusicManager : IMusicManager
     /// throws — every failure logs at <c>Debug</c> and returns null so
     /// the caller can fall through.
     /// </summary>
-    private List<BaseItem>? TryHarmonieSimilarity(Audio seed, PluginConfiguration config)
+    private List<BaseItem>? TryHarmonieSimilarity(
+        BaseItem source,
+        IReadOnlyList<Audio> seeds,
+        User? user,
+        PluginConfiguration config)
     {
         try
         {
@@ -159,12 +187,19 @@ public class HarmonieMusicManager : IMusicManager
             }
 
             var pathMapper = new PathMapper(config.PathMappings);
-            var seedRef = PrefixPlaylistService.BuildSeedRef(seed, pathMapper);
-            if (seedRef is null)
+            var isTrackSource = source is Audio;
+            var seedRefs = seeds
+                .DistinctBy(seed => seed.Id)
+                .Select(seed => PrefixPlaylistService.BuildSeedRef(seed, pathMapper))
+                .Where(seedRef => seedRef is not null)
+                .Cast<SeedRef>()
+                .ToList();
+            if (seedRefs.Count == 0)
             {
                 _logger.LogDebug(
-                    "InstantMix seed '{Title}' has no tags or path; falling back.",
-                    seed.Name);
+                    "InstantMix source '{Name}' ({Type}) has no seeds with tags or paths; falling back.",
+                    source.Name,
+                    source.GetType().Name);
                 return null;
             }
 
@@ -177,8 +212,9 @@ public class HarmonieMusicManager : IMusicManager
                 harmonieResult = _client.SimilarPlaylistAsync(
                     new SimilarPlaylistRequest
                     {
-                        SeedRefs = new List<SeedRef> { seedRef },
+                        SeedRefs = seedRefs,
                         N = FallbackPoolSize,
+                        IncludeSeeds = !isTrackSource,
                         Variation = VariationSettings.ToHarmonie(config.InstantMixVariation),
                     },
                     cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -190,16 +226,18 @@ public class HarmonieMusicManager : IMusicManager
                 // seed_ref to any track. Fall back without a stack
                 // trace.
                 _logger.LogDebug(
-                    "InstantMix seed '{Title}' has no harmonie counterpart; falling back.",
-                    seed.Name);
+                    "InstantMix source '{Name}' ({Type}) has no harmonie counterparts; falling back.",
+                    source.Name,
+                    source.GetType().Name);
                 return null;
             }
 
             if (harmonieResult.Items.Count == 0)
             {
                 _logger.LogDebug(
-                    "Harmonie returned 0 matches for InstantMix seed '{Title}'; falling back.",
-                    seed.Name);
+                    "Harmonie returned 0 matches for InstantMix source '{Name}' ({Type}); falling back.",
+                    source.Name,
+                    source.GetType().Name);
                 return null;
             }
 
@@ -209,8 +247,19 @@ public class HarmonieMusicManager : IMusicManager
             // library.
             _libraryResolver.EnsureFresh(ResolverFreshness);
 
-            var picks = new List<BaseItem> { seed };
-            var seenIds = new HashSet<Guid> { seed.Id };
+            var picks = new List<BaseItem>();
+            // A track mix always starts with its source. Group mixes let their
+            // sampled seeds compete normally instead of excluding an arbitrary
+            // subset of the source.
+            var seenIds = isTrackSource
+                ? seeds.Select(seed => seed.Id).ToHashSet()
+                : new HashSet<Guid>();
+            if (isTrackSource)
+            {
+                picks.Add(source);
+            }
+
+            var resolved = new List<Audio>(harmonieResult.Items.Count);
             foreach (var match in harmonieResult.Items)
             {
                 var jfAudio = _libraryResolver.Resolve(match, pathMapper);
@@ -221,27 +270,33 @@ public class HarmonieMusicManager : IMusicManager
 
                 if (seenIds.Add(jfAudio.Id))
                 {
-                    picks.Add(jfAudio);
+                    resolved.Add(jfAudio);
                 }
             }
 
+            picks.AddRange(FilterVisible(resolved, user));
+
             // Degenerate result — harmonie returned matches but none
-            // map back to Jellyfin items (typically a path-mapping or
-            // tag-mismatch issue). Hand off to the genre fallback so
-            // the user gets something other than [seed] alone.
-            if (picks.Count <= 1)
+            // map back to visible Jellyfin items (typically a path mapping,
+            // tag mismatch, or user library restriction). Hand off to the
+            // genre fallback rather than returning an empty mix.
+            var matchCount = picks.Count - (isTrackSource ? 1 : 0);
+            if (matchCount == 0)
             {
                 _logger.LogDebug(
-                    "Resolved 0 of {Total} harmonie matches for InstantMix seed '{Title}'; falling back.",
+                    "Resolved 0 of {Total} harmonie matches for InstantMix source '{Name}' ({Type}); falling back.",
                     harmonieResult.Items.Count,
-                    seed.Name);
+                    source.Name,
+                    source.GetType().Name);
                 return null;
             }
 
             _logger.LogInformation(
-                "InstantMix served via harmonie: seed '{Title}' -> {Count} similar tracks (harmonie returned {Returned}).",
-                seed.Name,
-                picks.Count - 1,
+                "InstantMix served via harmonie: source '{Name}' ({Type}), {Seeds} seeds -> {Count} similar tracks (harmonie returned {Returned}).",
+                source.Name,
+                source.GetType().Name,
+                seedRefs.Count,
+                matchCount,
                 harmonieResult.Items.Count);
             return picks;
         }
@@ -256,6 +311,9 @@ public class HarmonieMusicManager : IMusicManager
             return null;
         }
     }
+
+    private static List<Audio> FilterVisible(List<Audio> candidates, User? user)
+        => JellyfinVisibility.Filter(candidates, user);
 
     /// <summary>
     /// Genre-based fallback that mirrors the algorithm in Jellyfin's

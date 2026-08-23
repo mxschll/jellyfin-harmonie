@@ -18,6 +18,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IHarmonieConfigProvider, DefaultHarmonieConfigProvider>();
         serviceCollection.AddHttpClient<HarmonieClient>();
         serviceCollection.AddSingleton<LibraryResolver>();
+        serviceCollection.AddSingleton<InstantMixSeedSelector>();
         serviceCollection.AddSingleton<DatabaseRecommendationProvider>();
         serviceCollection.AddSingleton<StylePlaylistStateStore>();
         serviceCollection.AddSingleton<HarmonieDatabase>();

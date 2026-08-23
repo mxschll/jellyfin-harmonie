@@ -23,6 +23,7 @@ The plugin provides personal mixes and On Repeat playlists built from listening 
 
 **Upcoming**
 
+* **Discovery Mix:** a per-user playlist of unplayed or long-unheard tracks that match recent listening.
 * **Rewind:** a per-user summary of a listening period, like Spotify Wrapped.
 * **Forgotten favorites:** tracks once played heavily and unheard for a long time.
 
@@ -66,7 +67,7 @@ Once harmonie finishes its first library scan, which can take several hours for 
 
 ### Song Radio / Instant Mix
 
-When you tap "Instant Mix" in the Jellyfin web UI (or "Song Radio" in Finamp) on a track, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Works in every Jellyfin client without setup. Toggle off in plugin settings under "Instant Mix / Song Radio".
+When you tap "Instant Mix" in the Jellyfin web UI on a track, album, artist, playlist, or music folder, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Finamp's "Song Radio" uses the same matching for tracks. Works in every Jellyfin client without setup. Toggle off in plugin settings under "Instant Mix / Song Radio".
 
 ### Personal Mix playlists
 
