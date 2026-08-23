@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.13.0.1",
+        "changelog": "\n### Documentation\n\n- Soften the upcoming features heading (ddd3155)\n- List planned playlist types (e0d1863)\n\n### Features\n\n- Extend sonic instant mix (#31) (b4e493d)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.0/jellyfin-harmonie_1.13.0.1.zip",
+        "checksum": "e88c18ca668e0711de2b9e2e4cb7e04e",
+        "timestamp": "2026-08-23T17:04:34Z"
+      },
+      {
+        "version": "1.13.0.0",
+        "changelog": "\n### Documentation\n\n- Soften the upcoming features heading (ddd3155)\n- List planned playlist types (e0d1863)\n\n### Features\n\n- Extend sonic instant mix (#31) (b4e493d)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.0/jellyfin-harmonie_1.13.0.0.zip",
+        "checksum": "c6099198e5fe874e947079ccb4808476",
+        "timestamp": "2026-08-23T17:04:34Z"
+      },
+      {
         "version": "1.12.3.1",
         "changelog": "\n### Bug Fixes\n\n- Unify play counting (#30) (87b259f)",
         "targetAbi": "10.11.0.0",
