@@ -12,12 +12,16 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 
 /// <summary>
 /// Selects a small, stable set of audio seeds for Jellyfin's Instant Mix
-/// source types. Group sources use several tracks so harmonie represents the
-/// source itself instead of one arbitrary child.
+/// source types. Group sources use several tracks from a bounded candidate
+/// window instead of one arbitrary child.
 /// </summary>
 public sealed class InstantMixSeedSelector
 {
     internal const int MaximumSeedCount = 5;
+
+    // Keep interactive artist, album, and folder requests bounded. For an
+    // artist or folder with more tracks, the stable sort means only the first
+    // 500 candidates are represented.
     private const int GroupCandidateLimit = 500;
     private const int PlaylistCandidateLimit = 50;
 
@@ -100,32 +104,24 @@ public sealed class InstantMixSeedSelector
         var sampledChildren = SelectEvenlySpaced(
             playlist.LinkedChildren,
             PlaylistCandidateLimit);
-        var candidates = new List<Audio>(sampledChildren.Count);
+        var candidates = new List<Audio>(MaximumSeedCount);
         var seenIds = new HashSet<Guid>();
-        foreach (var child in sampledChildren)
+        foreach (var child in PrioritizeEvenlySpaced(sampledChildren, MaximumSeedCount))
         {
             var item = ResolveLinkedChild(child);
-            if (item is Audio audio && seenIds.Add(audio.Id))
+            if (item is Audio audio
+                && seenIds.Add(audio.Id)
+                && JellyfinVisibility.CanAccess(audio, user))
             {
                 candidates.Add(audio);
+                if (candidates.Count == MaximumSeedCount)
+                {
+                    break;
+                }
             }
         }
 
-        if (user is null || candidates.Count == 0)
-        {
-            return SelectEvenlySpaced(candidates, MaximumSeedCount);
-        }
-
-        var visibleIds = _libraryManager.GetItemList(new InternalItemsQuery(user)
-        {
-            ItemIds = candidates.Select(candidate => candidate.Id).ToArray(),
-            IncludeItemTypes = new[] { BaseItemKind.Audio },
-            Recursive = true,
-        }).Select(item => item.Id).ToHashSet();
-        var visibleCandidates = candidates
-            .Where(candidate => visibleIds.Contains(candidate.Id))
-            .ToList();
-        return SelectEvenlySpaced(visibleCandidates, MaximumSeedCount);
+        return candidates;
     }
 
     private List<Audio> SelectFolder(
@@ -133,9 +129,8 @@ public sealed class InstantMixSeedSelector
         User? user,
         DtoOptions dtoOptions)
     {
-        var tracks = _libraryManager.GetItemList(new InternalItemsQuery(user)
+        var tracks = folder.GetItemList(new InternalItemsQuery(user)
         {
-            AncestorIds = new[] { folder.Id },
             IncludeItemTypes = new[] { BaseItemKind.Audio },
             Recursive = true,
             Limit = GroupCandidateLimit,
@@ -150,6 +145,40 @@ public sealed class InstantMixSeedSelector
             DtoOptions = dtoOptions,
         }).OfType<Audio>().ToList();
         return SelectEvenlySpaced(tracks, MaximumSeedCount).ToList();
+    }
+
+    /// <summary>
+    /// Returns the evenly spaced primary candidates first, followed by the
+    /// remaining candidates as bounded backfill. Playlist selection can stop
+    /// after resolving five valid tracks in the common case without losing
+    /// coverage across the full playlist.
+    /// </summary>
+    /// <typeparam name="T">The candidate type.</typeparam>
+    internal static IReadOnlyList<T> PrioritizeEvenlySpaced<T>(
+        IReadOnlyList<T> candidates,
+        int preferredCount)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (preferredCount <= 0 || candidates.Count == 0)
+        {
+            return candidates.ToList();
+        }
+
+        var preferredIndices = SelectEvenlySpaced(
+            Enumerable.Range(0, candidates.Count).ToList(),
+            preferredCount);
+        var preferredIndexSet = preferredIndices.ToHashSet();
+        var prioritized = new List<T>(candidates.Count);
+        prioritized.AddRange(preferredIndices.Select(index => candidates[index]));
+        for (var index = 0; index < candidates.Count; index++)
+        {
+            if (!preferredIndexSet.Contains(index))
+            {
+                prioritized.Add(candidates[index]);
+            }
+        }
+
+        return prioritized;
     }
 
     private BaseItem? ResolveLinkedChild(LinkedChild child)

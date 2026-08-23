@@ -147,15 +147,18 @@ public sealed class DatabaseRecommendationProvider
                 .Skip(offset)
                 .Take(ItemResolutionBatchSize)
                 .ToList();
-            var audioById = _libraryManager.GetItemList(new InternalItemsQuery(user)
+            var audioItems = _libraryManager.GetItemList(new InternalItemsQuery(user)
             {
                 ItemIds = batch.Select(candidate => candidate.Metrics.ItemId).ToArray(),
                 IncludeItemTypes = new[] { BaseItemKind.Audio },
-                Recursive = true,
-            }).OfType<Audio>().ToDictionary(audio => audio.Id);
+            });
+            var visibleAudioById = JellyfinVisibility.Filter(
+                    audioItems.OfType<Audio>(),
+                    user)
+                .ToDictionary(audio => audio.Id);
             foreach (var candidate in batch)
             {
-                if (audioById.TryGetValue(candidate.Metrics.ItemId, out var audio))
+                if (visibleAudioById.TryGetValue(candidate.Metrics.ItemId, out var audio))
                 {
                     resolved.Add(new ScoredRecommendationSeed(
                         audio,

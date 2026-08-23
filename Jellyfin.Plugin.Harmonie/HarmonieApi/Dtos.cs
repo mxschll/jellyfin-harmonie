@@ -130,8 +130,8 @@ public class StyleScore
 /// Body for harmonie's <c>POST /api/v1/playlists</c> with
 /// <c>mode = "similar"</c>. The plugin's "[RADIO]" playlists use this.
 /// Only the minimum fields needed by the plugin are modeled — harmonie
-/// supports more (filter, include_seeds), but the plugin keeps the
-/// surface area small on purpose.
+/// supports more filters, but the plugin keeps the surface area small on
+/// purpose.
 /// </summary>
 public class SimilarPlaylistRequest
 {
@@ -161,6 +161,13 @@ public class SimilarPlaylistRequest
 
     [JsonPropertyName("smooth_transitions")]
     public SmoothTransitions? SmoothTransitions { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether seed tracks may appear in the
+    /// generated playlist.
+    /// </summary>
+    [JsonPropertyName("include_seeds")]
+    public bool IncludeSeeds { get; set; }
 
     /// <summary>
     /// Gets or sets bounded selection variation. 0 is deterministic and 1

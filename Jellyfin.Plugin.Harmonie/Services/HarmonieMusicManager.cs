@@ -130,12 +130,19 @@ public class HarmonieMusicManager : IMusicManager
                         return harmonieResult;
                     }
                 }
+                else
+                {
+                    _logger.LogDebug(
+                        "InstantMix source '{Name}' ({Type}) produced no sonic seeds; falling back.",
+                        item.Name,
+                        item.GetType().Name);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(
                     ex,
-                    "Could not select sonic seeds for InstantMix source '{Name}' ({Type}); falling back.",
+                    "InstantMix override failed for source '{Name}' ({Type}); falling back.",
                     item.Name,
                     item.GetType().Name);
             }
@@ -180,6 +187,7 @@ public class HarmonieMusicManager : IMusicManager
             }
 
             var pathMapper = new PathMapper(config.PathMappings);
+            var isTrackSource = source is Audio;
             var seedRefs = seeds
                 .DistinctBy(seed => seed.Id)
                 .Select(seed => PrefixPlaylistService.BuildSeedRef(seed, pathMapper))
@@ -206,6 +214,7 @@ public class HarmonieMusicManager : IMusicManager
                     {
                         SeedRefs = seedRefs,
                         N = FallbackPoolSize,
+                        IncludeSeeds = !isTrackSource,
                         Variation = VariationSettings.ToHarmonie(config.InstantMixVariation),
                     },
                     cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -238,10 +247,14 @@ public class HarmonieMusicManager : IMusicManager
             // library.
             _libraryResolver.EnsureFresh(ResolverFreshness);
 
-            var includeSource = source is Audio;
             var picks = new List<BaseItem>();
-            var seenIds = seeds.Select(seed => seed.Id).ToHashSet();
-            if (includeSource)
+            // A track mix always starts with its source. Group mixes let their
+            // sampled seeds compete normally instead of excluding an arbitrary
+            // subset of the source.
+            var seenIds = isTrackSource
+                ? seeds.Select(seed => seed.Id).ToHashSet()
+                : new HashSet<Guid>();
+            if (isTrackSource)
             {
                 picks.Add(source);
             }
@@ -267,7 +280,7 @@ public class HarmonieMusicManager : IMusicManager
             // map back to visible Jellyfin items (typically a path mapping,
             // tag mismatch, or user library restriction). Hand off to the
             // genre fallback rather than returning an empty mix.
-            var matchCount = picks.Count - (includeSource ? 1 : 0);
+            var matchCount = picks.Count - (isTrackSource ? 1 : 0);
             if (matchCount == 0)
             {
                 _logger.LogDebug(
@@ -299,21 +312,8 @@ public class HarmonieMusicManager : IMusicManager
         }
     }
 
-    private List<Audio> FilterVisible(List<Audio> candidates, User? user)
-    {
-        if (user is null || candidates.Count == 0)
-        {
-            return candidates;
-        }
-
-        var visibleIds = _libraryManager.GetItemList(new InternalItemsQuery(user)
-        {
-            ItemIds = candidates.Select(candidate => candidate.Id).ToArray(),
-            IncludeItemTypes = new[] { BaseItemKind.Audio },
-            Recursive = true,
-        }).Select(item => item.Id).ToHashSet();
-        return candidates.Where(candidate => visibleIds.Contains(candidate.Id)).ToList();
-    }
+    private static List<Audio> FilterVisible(List<Audio> candidates, User? user)
+        => JellyfinVisibility.Filter(candidates, user);
 
     /// <summary>
     /// Genre-based fallback that mirrors the algorithm in Jellyfin's
