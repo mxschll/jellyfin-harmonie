@@ -209,9 +209,15 @@ public class StylePlaylistService
                 continue;
             }
 
-            // Replace state in-place.
+            // Replace state in-place and publish immediately. The cover
+            // image provider renders from the store's published
+            // snapshot (slot GUID gates Supports(); LastStyle drives
+            // the label and colour), and the queued refresh can run
+            // while later slots are still filling — publishing only
+            // after the loop leaves it rendering from stale state.
             state.Slots.RemoveAll(s => s.Slot == i);
             state.Slots.Add(slot);
+            _stateStore.Set(user.Id, state);
 
             // Cluster-specific seeds: harmonie ids for the members of
             // this cluster, in the order they came from listen history
@@ -236,6 +242,15 @@ public class StylePlaylistService
                 config,
                 pathMapper,
                 ct).ConfigureAwait(false);
+
+            // Force the cover to regenerate. The label drives the
+            // cover colour and text, so a slot rename (when the
+            // user's top style shifts) needs the image to update even
+            // when the fill itself found nothing to write.
+            if (Guid.TryParse(slot.PlaylistGuid, out var slotPlaylistId))
+            {
+                _coverRefresh.Queue(slotPlaylistId);
+            }
         }
 
         // 5. Trim excess slots — either StylePlaylistCount was reduced
@@ -399,11 +414,6 @@ public class StylePlaylistService
             playlist.Name,
             resolvedNew.Count,
             user.Username);
-
-        // Force the cover to regenerate. The label drives the cover
-        // colour and text, so a slot rename (when the user's top style
-        // shifts) needs the image to update too.
-        _coverRefresh.Queue(playlist.Id);
     }
 
     private Task TrimExcessSlotsAsync(UserStylePlaylistState state, int keepCount)
