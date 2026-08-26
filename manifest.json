@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.13.1.1",
+        "changelog": "\n### Bug Fixes\n\n- Publish slot state before queueing personal mix cover refresh (#32) (697ccd3)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.1/jellyfin-harmonie_1.13.1.1.zip",
+        "checksum": "94f00dacdaa0d5ac432861b2e2650deb",
+        "timestamp": "2026-08-26T11:24:01Z"
+      },
+      {
+        "version": "1.13.1.0",
+        "changelog": "\n### Bug Fixes\n\n- Publish slot state before queueing personal mix cover refresh (#32) (697ccd3)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.1/jellyfin-harmonie_1.13.1.0.zip",
+        "checksum": "714f26733db662444001475b7c8c1be3",
+        "timestamp": "2026-08-26T11:24:01Z"
+      },
+      {
         "version": "1.13.0.1",
         "changelog": "\n### Documentation\n\n- Soften the upcoming features heading (ddd3155)\n- List planned playlist types (e0d1863)\n\n### Features\n\n- Extend sonic instant mix (#31) (b4e493d)",
         "targetAbi": "10.11.0.0",
