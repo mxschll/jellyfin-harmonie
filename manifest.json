@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.13.3.1",
+        "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.87.1 to 2.87.21 (#36) (88f0ee4)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.9.0 to 18.10.1 (#35) (48d5483)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.3/jellyfin-harmonie_1.13.3.1.zip",
+        "checksum": "38a121504acb983c2c04cb1e49cb98bd",
+        "timestamp": "2026-10-01T11:24:51Z"
+      },
+      {
+        "version": "1.13.3.0",
+        "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.87.1 to 2.87.21 (#36) (88f0ee4)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.9.0 to 18.10.1 (#35) (48d5483)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.3/jellyfin-harmonie_1.13.3.0.zip",
+        "checksum": "b73816dae839b5d3700a094824019eee",
+        "timestamp": "2026-10-01T11:24:51Z"
+      },
+      {
         "version": "1.13.2.1",
         "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.85.13 to 2.87.1 (#33) (1292596)",
         "targetAbi": "10.11.0.0",
