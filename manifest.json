@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.13.4.1",
+        "changelog": "\n### Other\n\n- Bump SQLitePCLRaw.bundle_e_sqlite3 from 2.1.13 to 2.1.14 (#39) (dc376ac)\n- Bump Microsoft.NET.Test.Sdk from 18.10.1 to 18.11.0 (#38) (b5e4c17)\n- Bump xunit.runner.visualstudio from 4.0.0 to 4.0.1 (#37) (75c1cca)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.4/jellyfin-harmonie_1.13.4.1.zip",
+        "checksum": "39bd0a6b9c91eb266102000d4247aab9",
+        "timestamp": "2026-10-26T12:31:16Z"
+      },
+      {
+        "version": "1.13.4.0",
+        "changelog": "\n### Other\n\n- Bump SQLitePCLRaw.bundle_e_sqlite3 from 2.1.13 to 2.1.14 (#39) (dc376ac)\n- Bump Microsoft.NET.Test.Sdk from 18.10.1 to 18.11.0 (#38) (b5e4c17)\n- Bump xunit.runner.visualstudio from 4.0.0 to 4.0.1 (#37) (75c1cca)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.13.4/jellyfin-harmonie_1.13.4.0.zip",
+        "checksum": "5647e5d6c95742fa23fb72dafe825b76",
+        "timestamp": "2026-10-26T12:31:16Z"
+      },
+      {
         "version": "1.13.3.1",
         "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.87.1 to 2.87.21 (#36) (88f0ee4)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.9.0 to 18.10.1 (#35) (48d5483)",
         "targetAbi": "10.11.0.0",
