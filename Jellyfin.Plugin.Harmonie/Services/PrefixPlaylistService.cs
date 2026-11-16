@@ -1055,8 +1055,8 @@ public class PrefixPlaylistService
         var current = CaptureInputRevision(playlist);
         return string.Equals(expected.Name, current.Name, StringComparison.Ordinal)
             && expected.ChildPaths.SequenceEqual(current.ChildPaths, StringComparer.Ordinal)
-            ? playlist
-            : null;
+                ? playlist
+                : null;
     }
 
     private static PlaylistInputRevision CaptureInputRevision(Playlist playlist)

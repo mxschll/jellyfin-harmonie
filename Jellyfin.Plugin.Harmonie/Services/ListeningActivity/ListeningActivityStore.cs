@@ -840,8 +840,8 @@ public sealed class ListeningActivityStore
             CultureInfo.InvariantCulture,
             DateTimeStyles.RoundtripKind,
             out var parsed)
-            ? parsed
-            : null;
+                ? parsed
+                : null;
 
     private static DateTimeOffset? ReadDate(SqliteDataReader reader, int ordinal)
         => reader.IsDBNull(ordinal) ? null : ParseDate(reader.GetString(ordinal));

@@ -163,8 +163,8 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
             // Personal Mix covers do.
             var color = (options.Mode == HarmonieMode.Style || options.Mode == HarmonieMode.Genre)
                 && !string.IsNullOrEmpty(options.FilterValue)
-                ? CoverPalette.StyleColor(options.FilterValue)
-                : CoverPalette.ModeColor(options.Mode);
+                    ? CoverPalette.StyleColor(options.FilterValue)
+                    : CoverPalette.ModeColor(options.Mode);
 
             return new CoverSpec(
                 Title: StripBracketPrefix(playlist.Name),
