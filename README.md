@@ -152,7 +152,7 @@ Pick AudioMuse-AI if you want its breadth of discovery tools and use a client th
 
 ## Compatibility
 
-Tested on Jellyfin 10.10 and 10.11. 12 coming.
+Jellyfin 10.10, 10.11 and 12. Each release ships one build per server line; the catalog picks the right one.
 
 ## License
 

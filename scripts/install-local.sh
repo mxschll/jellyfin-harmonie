@@ -21,6 +21,8 @@ fi
 DOTNET="${DOTNET:-$(command -v dotnet || true)}"
 if [[ -z "$DOTNET" ]]; then
     for candidate in \
+        /opt/homebrew/opt/dotnet/bin/dotnet \
+        /usr/local/opt/dotnet/bin/dotnet \
         /opt/homebrew/opt/dotnet@9/bin/dotnet \
         /usr/local/opt/dotnet@9/bin/dotnet
     do
@@ -41,9 +43,10 @@ server_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString'
 case "$server_version" in
     10.10.*) framework="net8.0"; target_abi="10.10.0.0" ;;
     10.11.*) framework="net9.0"; target_abi="10.11.0.0" ;;
+    12.*)    framework="net10.0"; target_abi="12.0.0.0" ;;
     *)
         echo "error: unsupported Jellyfin version: $server_version" >&2
-        echo "This plugin currently supports Jellyfin 10.10.x and 10.11.x." >&2
+        echo "This plugin currently supports Jellyfin 10.10.x, 10.11.x and 12.x." >&2
         exit 1
         ;;
 esac
