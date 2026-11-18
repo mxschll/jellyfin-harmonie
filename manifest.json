@@ -9,6 +9,30 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.14.1.2",
+        "changelog": "\n### Build\n\n- Ship a jellyfin 12 package (#45) (c166a1d)",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.1/jellyfin-harmonie_1.14.1.2.zip",
+        "checksum": "e2d995858f044df0da416469dfe7787e",
+        "timestamp": "2026-11-18T10:11:43Z"
+      },
+      {
+        "version": "1.14.1.1",
+        "changelog": "\n### Build\n\n- Ship a jellyfin 12 package (#45) (c166a1d)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.1/jellyfin-harmonie_1.14.1.1.zip",
+        "checksum": "c8c0fea3bbea17fae85f5981a298b86c",
+        "timestamp": "2026-11-18T10:11:43Z"
+      },
+      {
+        "version": "1.14.1.0",
+        "changelog": "\n### Build\n\n- Ship a jellyfin 12 package (#45) (c166a1d)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.1/jellyfin-harmonie_1.14.1.0.zip",
+        "checksum": "9c8121c1096f465c8bde6620b04aed5a",
+        "timestamp": "2026-11-18T10:11:43Z"
+      },
+      {
         "version": "1.14.0.1",
         "changelog": "\n### Features\n\n- Add per-user unheard playlists (#44) (01d3045)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0 (#43) (5bd3db9)",
         "targetAbi": "10.11.0.0",
