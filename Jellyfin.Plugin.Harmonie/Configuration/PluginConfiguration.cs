@@ -74,6 +74,13 @@ public class PluginConfiguration : BasePluginConfiguration
         // Per-user On Repeat playlists.
         EnableOnRepeatPlaylists = true;
 
+        // Per-user Unheard playlists: never-played tracks closest to what
+        // the user plays most. 90 days reaches past a passing phase; 30
+        // tracks is a sitting's worth of new material.
+        EnableUnheardPlaylists = true;
+        UnheardPlaylistN = 30;
+        UnheardPlaylistDays = 90;
+
         // Defaults for [STYLE]/[GENRE] vibe-mode playlists. 100 tracks
         // is enough to feel like a real "browse this style" playlist
         // without filling the playlist UI; the user can override per
@@ -274,6 +281,26 @@ public class PluginConfiguration : BasePluginConfiguration
     /// sliding with the play window.
     /// </summary>
     public bool EnableOnRepeatPlaylists { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the per-user Unheard
+    /// playlist feature is enabled. When on, a scheduled task maintains
+    /// one playlist per user holding tracks the user has never played,
+    /// ranked by audio similarity to their strongest preference signals.
+    /// </summary>
+    public bool EnableUnheardPlaylists { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of tracks in each Unheard playlist. 1–500.
+    /// </summary>
+    public int UnheardPlaylistN { get; set; }
+
+    /// <summary>
+    /// Gets or sets the activity window (days) used to pick the seeds
+    /// for Unheard playlists. Favorites and playlist additions remain
+    /// eligible outside the window. 1–365.
+    /// </summary>
+    public int UnheardPlaylistDays { get; set; }
 
     /// <summary>
     /// Gets or sets the default number of tracks for <c>[STYLE]</c>

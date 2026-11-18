@@ -79,6 +79,10 @@ One playlist per user with the tracks they have played on loop, longest unplayed
 
 The playlist grows instead of sliding. A track keeps its place after its plays age out of the window, so a quiet month leaves the playlist standing. Once the rotation reaches 30 tracks, each newly repeated track evicts the one played longest ago — which is also the track at the top, so a forgotten repeat gets heard again before it goes. Enabled by default and refreshed every five days; toggle it off in plugin settings.
 
+### Unheard
+
+One playlist per user with tracks they have never played, ranked by how close they sound to the tracks they play, favorite, and add to playlists most. Each of the user's ten strongest tracks pulls in its nearest neighbours; what Jellyfin has not marked played for that user stays, with at most three tracks per artist. Played tracks leave the list at the next refresh. The playlist first appears once five tracks qualify. Enabled by default and refreshed daily; toggle it off in plugin settings.
+
 ## Prefix playlists
 
 For direct control, make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes the contents in the background.
@@ -117,11 +121,12 @@ Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation
 
 ## Refresh
 
-The plugin refreshes a playlist shortly after you edit it. Three scheduled tasks run in the background (Dashboard, Scheduled Tasks):
+The plugin refreshes a playlist shortly after you edit it. Four scheduled tasks run in the background (Dashboard, Scheduled Tasks):
 
 * **Refresh Harmonie Prefix Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
 * **Refresh Harmonie Personal Mix Playlists:** weekly. Rebuilds the per-user Personal Mix playlists.
 * **Refresh Harmonie On Repeat Playlists:** every five days. Rebuilds the per-user On Repeat playlists.
+* **Refresh Harmonie Unheard Playlists:** daily. Rebuilds the per-user Unheard playlists.
 
 Change any schedule from the same page, or run a task by hand.
 

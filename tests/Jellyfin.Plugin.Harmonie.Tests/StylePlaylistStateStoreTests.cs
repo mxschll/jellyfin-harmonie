@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Harmonie.Services;
-using MediaBrowser.Common.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -26,11 +25,11 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     }
 
     [Fact]
-    public void Set_persists_state_across_store_instances()
+    public void Update_persists_state_across_store_instances()
     {
         var userId = Guid.NewGuid();
         var playlistId = Guid.NewGuid();
-        CreateStore().Set(userId, StateWithSlot(0, playlistId, "House"));
+        CreateStore().Update(userId, s => Copy(StateWithSlot(0, playlistId, "House"), s));
 
         var reloaded = CreateStore().Get(userId);
 
@@ -44,7 +43,7 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     /// round-trips through this file.
     /// </summary>
     [Fact]
-    public void Set_persists_the_on_repeat_rotation()
+    public void Update_persists_the_on_repeat_rotation()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
@@ -56,7 +55,7 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
             PlayCount = 7,
             LastPlayedUtc = lastPlayed,
         });
-        CreateStore().Set(userId, state);
+        CreateStore().Update(userId, s => Copy(state, s));
 
         var entry = Assert.Single(CreateStore().Get(userId).OnRepeatTracks);
 
@@ -75,7 +74,7 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     {
         var store = CreateStore();
         var userId = Guid.NewGuid();
-        store.Set(userId, StateWithSlot(0, Guid.NewGuid(), "House"));
+        store.Update(userId, s => Copy(StateWithSlot(0, Guid.NewGuid(), "House"), s));
 
         var working = store.Get(userId);
         working.Slots[0].LastStyle = "Techno";
@@ -87,16 +86,39 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     }
 
     [Fact]
-    public void Set_takes_a_copy_so_later_caller_mutations_do_not_leak()
+    public void Update_takes_a_copy_so_later_caller_mutations_do_not_leak()
     {
         var store = CreateStore();
         var userId = Guid.NewGuid();
         var state = StateWithSlot(0, Guid.NewGuid(), "House");
-        store.Set(userId, state);
+        store.Update(userId, s => Copy(state, s));
 
         state.Slots[0].LastStyle = "Techno";
 
         Assert.Equal("House", Assert.Single(store.Get(userId).Slots).LastStyle);
+    }
+
+    /// <summary>
+    /// Personal Mix, On Repeat and Unheard refresh the same user record
+    /// from separate tasks. A writer that read the record before another
+    /// task's write must not put the stale copy of that task's field back.
+    /// </summary>
+    [Fact]
+    public void Update_applies_to_the_latest_record_not_the_callers_stale_copy()
+    {
+        var store = CreateStore();
+        var userId = Guid.NewGuid();
+        var slotPlaylistId = Guid.NewGuid();
+        var unheardPlaylistId = Guid.NewGuid();
+        var personalMixView = store.Get(userId);
+
+        store.Update(userId, state => state.UnheardPlaylistGuid = unheardPlaylistId.ToString("N"));
+        personalMixView.Slots.Add(new StylePlaylistSlot { Slot = 0, PlaylistGuid = slotPlaylistId.ToString("N"), LastStyle = "House" });
+        store.Update(userId, state => state.Slots = personalMixView.Slots);
+
+        var reloaded = CreateStore().Get(userId);
+        Assert.Equal(unheardPlaylistId.ToString("N"), reloaded.UnheardPlaylistGuid);
+        Assert.Equal(slotPlaylistId.ToString("N"), Assert.Single(reloaded.Slots).PlaylistGuid);
     }
 
     [Fact]
@@ -104,7 +126,7 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     {
         var store = CreateStore();
         var playlistId = Guid.NewGuid();
-        store.Set(Guid.NewGuid(), StateWithSlot(0, playlistId, "House"));
+        store.Update(Guid.NewGuid(), s => Copy(StateWithSlot(0, playlistId, "House"), s));
 
         var found = store.FindSlotByPlaylistId(playlistId);
 
@@ -128,7 +150,7 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
     {
         var store = CreateStore();
         var playlistId = Guid.NewGuid();
-        store.Set(Guid.NewGuid(), StateWithSlot(0, playlistId, "House"));
+        store.Update(Guid.NewGuid(), s => Copy(StateWithSlot(0, playlistId, "House"), s));
 
         var writer = Task.Run(() =>
         {
@@ -138,14 +160,14 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
                 // which invalidates in-flight enumerators on a shared dict.
                 var userId = Guid.NewGuid();
                 var state = StateWithSlot(0, Guid.NewGuid(), $"Style{round}");
-                store.Set(userId, state);
+                store.Update(userId, s => Copy(state, s));
 
-                // Callers mutate the state they hold after Set; with a
+                // Callers mutate the state they hold after Update; with a
                 // leaked reference this rewrites a published Slots list.
                 var working = store.Get(userId);
                 working.Slots.Add(new StylePlaylistSlot { Slot = 1 });
                 working.Slots.RemoveAll(s => s.Slot == 0);
-                store.Set(userId, working);
+                store.Update(userId, s => Copy(working, s));
             }
         });
         var readers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
@@ -159,8 +181,17 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
         await Task.WhenAll(readers.Append(writer));
     }
 
+    private static void Copy(UserStylePlaylistState from, UserStylePlaylistState to)
+    {
+        to.Slots = from.Slots;
+        to.LastRefreshedUtc = from.LastRefreshedUtc;
+        to.OnRepeatPlaylistGuid = from.OnRepeatPlaylistGuid;
+        to.OnRepeatTracks = from.OnRepeatTracks;
+        to.UnheardPlaylistGuid = from.UnheardPlaylistGuid;
+    }
+
     private StylePlaylistStateStore CreateStore()
-        => new(new FakeApplicationPaths(_directory), NullLogger<StylePlaylistStateStore>.Instance);
+        => new(new JellyfinFakes.FakeApplicationPaths(_directory), NullLogger<StylePlaylistStateStore>.Instance);
 
     private static UserStylePlaylistState StateWithSlot(int slot, Guid playlistId, string style)
         => new()
@@ -176,53 +207,4 @@ public sealed class StylePlaylistStateStoreTests : IDisposable
             },
             LastRefreshedUtc = DateTimeOffset.UtcNow,
         };
-
-    private sealed class FakeApplicationPaths : IApplicationPaths
-    {
-        private readonly string _root;
-
-        public FakeApplicationPaths(string root)
-        {
-            _root = root;
-        }
-
-        public string ProgramDataPath => _root;
-
-        public string WebPath => _root;
-
-        public string ProgramSystemPath => _root;
-
-        public string DataPath => _root;
-
-        public string ImageCachePath => _root;
-
-        public string PluginsPath => _root;
-
-        public string PluginConfigurationsPath => Path.Combine(_root, "plugin-configs");
-
-        public string LogDirectoryPath => _root;
-
-        public string ConfigurationDirectoryPath => _root;
-
-        public string SystemConfigurationFilePath => Path.Combine(_root, "system.xml");
-
-        public string CachePath => _root;
-
-        public string TempDirectory => _root;
-
-        public string VirtualDataPath => _root;
-
-        public string TrickplayPath => _root;
-
-        public string BackupPath => _root;
-
-        // Added to IApplicationPaths in Jellyfin 12.
-        public void MakeSanityCheckOrThrow()
-        {
-        }
-
-        public void CreateAndCheckMarker(string path, string markerName, bool recursive = false)
-        {
-        }
-    }
 }

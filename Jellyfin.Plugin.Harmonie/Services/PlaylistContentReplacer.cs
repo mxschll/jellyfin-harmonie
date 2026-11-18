@@ -50,7 +50,7 @@ public class PlaylistContentReplacer
     /// <param name="newItems">Ordered list of audio item ids to set
     /// as the playlist's contents.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    public async Task ReplaceContentsAsync(
+    public virtual async Task ReplaceContentsAsync(
         Playlist playlist,
         Guid ownerId,
         IReadOnlyList<Guid> newItems,

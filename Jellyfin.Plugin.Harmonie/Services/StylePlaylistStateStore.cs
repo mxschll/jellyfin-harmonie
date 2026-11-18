@@ -101,12 +101,19 @@ public class UserStylePlaylistState
     /// </summary>
     public List<OnRepeatEntry> OnRepeatTracks { get; set; } = new();
 
+    /// <summary>
+    /// Jellyfin playlist GUID of the user's Unheard playlist, or empty if
+    /// it hasn't been created.
+    /// </summary>
+    public string UnheardPlaylistGuid { get; set; } = string.Empty;
+
     public UserStylePlaylistState Clone() => new()
     {
         Slots = Slots.Select(s => s.Clone()).ToList(),
         LastRefreshedUtc = LastRefreshedUtc,
         OnRepeatPlaylistGuid = OnRepeatPlaylistGuid,
         OnRepeatTracks = OnRepeatTracks.Select(t => t.Clone()).ToList(),
+        UnheardPlaylistGuid = UnheardPlaylistGuid,
     };
 }
 
@@ -116,12 +123,17 @@ public class UserStylePlaylistState
 /// </summary>
 /// <remarks>
 /// Thread safety: readers (<see cref="Get"/>, <see cref="FindSlotByPlaylistId"/>)
-/// may be called concurrently with <see cref="Set"/> — e.g. the cover image
+/// may be called concurrently with writers — e.g. the cover image
 /// provider looks up slots while a Personal Mix refresh writes. The store
 /// uses copy-on-write: <see cref="_cache"/> always references an immutable
 /// snapshot, writers publish a new snapshot under <see cref="_lock"/>, and
 /// state objects are cloned at the API boundary so callers can never mutate
 /// a published snapshot.
+///
+/// Several scheduled tasks write different fields of the same user's
+/// record and can run at the same time. Writers use <see cref="Update"/>,
+/// which applies the change to the latest stored record under the lock,
+/// so one task's write cannot carry a stale copy of another task's field.
 /// </remarks>
 public class StylePlaylistStateStore
 {
@@ -155,14 +167,25 @@ public class StylePlaylistStateStore
             : new UserStylePlaylistState();
     }
 
-    public void Set(Guid userId, UserStylePlaylistState state)
+    /// <summary>
+    /// Applies <paramref name="mutate"/> to the latest stored record for
+    /// <paramref name="userId"/> and persists the result. Only touch the
+    /// fields the calling feature owns.
+    /// </summary>
+    public void Update(Guid userId, Action<UserStylePlaylistState> mutate)
     {
-        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(mutate);
         lock (_lock)
         {
-            var next = new Dictionary<string, UserStylePlaylistState>(Load(), StringComparer.Ordinal)
+            var key = userId.ToString("N");
+            var current = Load();
+            var state = current.TryGetValue(key, out var existing)
+                ? existing.Clone()
+                : new UserStylePlaylistState();
+            mutate(state);
+            var next = new Dictionary<string, UserStylePlaylistState>(current, StringComparer.Ordinal)
             {
-                [userId.ToString("N")] = state.Clone(),
+                [key] = state.Clone(),
             };
             Save(next);
         }
@@ -193,16 +216,36 @@ public class StylePlaylistStateStore
     }
 
     /// <summary>
+    /// True if <paramref name="playlistId"/> is any playlist the plugin
+    /// fills on a user's behalf: a Personal Mix slot, On Repeat or Unheard.
+    /// Their contents are not the user's own choices, so preference
+    /// tracking ignores them.
+    /// </summary>
+    public bool IsManagedPlaylist(Guid playlistId)
+        => FindSlotByPlaylistId(playlistId) is not null
+            || IsOnRepeatPlaylist(playlistId)
+            || IsUnheardPlaylist(playlistId);
+
+    /// <summary>
     /// True if <paramref name="playlistId"/> is any user's On Repeat
     /// playlist. Used by the cover image provider.
     /// </summary>
     public bool IsOnRepeatPlaylist(Guid playlistId)
+        => IsPlaylistOfKind(playlistId, state => state.OnRepeatPlaylistGuid);
+
+    /// <summary>
+    /// True if <paramref name="playlistId"/> is any user's Unheard
+    /// playlist. Used by the cover image provider.
+    /// </summary>
+    public bool IsUnheardPlaylist(Guid playlistId)
+        => IsPlaylistOfKind(playlistId, state => state.UnheardPlaylistGuid);
+
+    private bool IsPlaylistOfKind(Guid playlistId, Func<UserStylePlaylistState, string> playlistGuid)
     {
         var key = playlistId.ToString("N");
-        var dict = Load();
-        foreach (var state in dict.Values)
+        foreach (var state in Load().Values)
         {
-            if (string.Equals(state.OnRepeatPlaylistGuid, key, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(playlistGuid(state), key, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
