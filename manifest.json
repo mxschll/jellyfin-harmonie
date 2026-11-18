@@ -9,6 +9,22 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.14.0.1",
+        "changelog": "\n### Features\n\n- Add per-user unheard playlists (#44) (01d3045)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0 (#43) (5bd3db9)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.0/jellyfin-harmonie_1.14.0.1.zip",
+        "checksum": "78a97012009818676070259e09462603",
+        "timestamp": "2026-11-18T09:52:40Z"
+      },
+      {
+        "version": "1.14.0.0",
+        "changelog": "\n### Features\n\n- Add per-user unheard playlists (#44) (01d3045)\n\n### Other\n\n- Bump Microsoft.NET.Test.Sdk from 18.11.0 to 18.12.0 (#43) (5bd3db9)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.0/jellyfin-harmonie_1.14.0.0.zip",
+        "checksum": "b1ae324be77c6aec7389a4ead5521613",
+        "timestamp": "2026-11-18T09:52:40Z"
+      },
+      {
         "version": "1.13.5.1",
         "changelog": "\n### Build\n\n- Bump taiki-e/install-action from 2.87.21 to 2.88.0 (#41) (649d023)",
         "targetAbi": "10.11.0.0",
