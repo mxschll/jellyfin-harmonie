@@ -16,13 +16,13 @@ JELLYFIN_DATA_DIR=/path/to/jellyfin-data \
 ./scripts/install-local.sh
 ```
 
-The script finds `dotnet` on `PATH` or a Homebrew `dotnet@9` installation. Set `DOTNET` to override it.
+The script finds `dotnet` on `PATH` or a Homebrew `dotnet` / `dotnet@9` installation. Set `DOTNET` to override it. The SDK must be at least as new as the target framework for the installed server (.NET 10 for Jellyfin 12).
 
 ## Multi-targeting
 
-The plugin targets `net8.0` (Jellyfin 10.10.x) and `net9.0` (Jellyfin 10.11.x) from a single source tree. Each release publishes one ZIP per ABI; `manifest.json` carries one version entry per ABI. The version string encodes the target ABI in its fourth component: `X.Y.Z.0` is 10.10, `X.Y.Z.1` is 10.11.
+The plugin targets `net8.0` (Jellyfin 10.10.x), `net9.0` (Jellyfin 10.11.x) and `net10.0` (Jellyfin 12.x) from a single source tree. Each release publishes one ZIP per ABI; `manifest.json` carries one version entry per ABI, and Jellyfin installs the highest version whose `targetAbi` it satisfies. The version string encodes the target ABI in its fourth component: `X.Y.Z.0` is 10.10, `X.Y.Z.1` is 10.11, `X.Y.Z.2` is 12.
 
-Cross-version differences live in `#if NET8_0` blocks, mostly for namespace moves between Jellyfin's data and database packages.
+Namespace moves between Jellyfin's data and database packages are handled by per-target `Using` aliases in `Directory.Build.props`; the few remaining API differences live in `#if` blocks and in `JellyfinCompat`, which probes the host at runtime for changes within the 10.11 line.
 
 ## REST endpoints
 
@@ -71,4 +71,4 @@ git push origin v2.0.0
 
 The Actions UI's **Run workflow** button takes a `level` input (`patch` / `minor` / `major`) for ad-hoc bumps without a code change.
 
-The git tag is three-octet semver (`v1.0.0`); the per-ABI build appends a fourth octet for the Jellyfin manifest convention: `X.Y.Z.0` for net8.0/10.10, `X.Y.Z.1` for net9.0/10.11.
+The git tag is three-octet semver (`v1.0.0`); the per-ABI build appends a fourth octet for the Jellyfin manifest convention: `X.Y.Z.0` for net8.0/10.10, `X.Y.Z.1` for net9.0/10.11, `X.Y.Z.2` for net10.0/12.
