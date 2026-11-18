@@ -22,9 +22,10 @@ namespace Jellyfin.Plugin.Harmonie.Services.Cover;
 ///
 ///   1. Title-prefixed playlists ([RADIO], [DRIFT], [MIX]). Identified
 ///      by name via <see cref="HarmoniePlaylistFilter.TryGetOptions"/>.
-///   2. Personal Mix playlists. These have no name prefix; we look up
-///      the playlist GUID in <see cref="StylePlaylistStateStore"/> to
-///      decide whether they're plugin-managed.
+///   2. Personal Mix, On Repeat and Unheard playlists. These have no
+///      name prefix; we look up the playlist GUID in
+///      <see cref="StylePlaylistStateStore"/> to decide whether they're
+///      plugin-managed.
 /// </summary>
 public class HarmoniePlaylistImageProvider : IDynamicImageProvider
 {
@@ -47,6 +48,7 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
         Prefix,
         PersonalMix,
         OnRepeat,
+        Unheard,
     }
 
     public string Name => "Harmonie";
@@ -60,7 +62,8 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
 
         return HarmoniePlaylistFilter.TryGetOptions(playlist) is not null
             || _styleStore.FindSlotByPlaylistId(playlist.Id) is not null
-            || _styleStore.IsOnRepeatPlaylist(playlist.Id);
+            || _styleStore.IsOnRepeatPlaylist(playlist.Id)
+            || _styleStore.IsUnheardPlaylist(playlist.Id);
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
@@ -150,6 +153,15 @@ public class HarmoniePlaylistImageProvider : IDynamicImageProvider
                 Badge: "AUTO",
                 Color: new SKColor(0xB5, 0x5C, 0x22),
                 Kind: CoverKind.OnRepeat);
+        }
+
+        if (_styleStore.IsUnheardPlaylist(playlist.Id))
+        {
+            return new CoverSpec(
+                Title: "Unheard",
+                Badge: "AUTO",
+                Color: new SKColor(0x2C, 0x6E, 0x6A),
+                Kind: CoverKind.Unheard);
         }
 
         // Title-prefixed playlists go through the parser so we honour

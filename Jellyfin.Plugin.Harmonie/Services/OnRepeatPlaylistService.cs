@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -136,14 +137,13 @@ public class OnRepeatPlaylistService
 
         var rotation = OnRepeatRotation.Merge(current, carried, MaximumTracks);
         var trackIds = rotation.Select(e => e.ItemId).ToList();
-        state.OnRepeatTracks = rotation;
 
         if (trackIds.Count == 0)
         {
             // Nothing has ever qualified, or every track in the rotation
             // is gone from the library. Never create an empty playlist;
             // empty an existing one so it doesn't list missing tracks.
-            _stateStore.Set(user.Id, state);
+            SaveRotation(user, rotation);
             if (playlist is not null)
             {
                 await _contentReplacer
@@ -164,7 +164,7 @@ public class OnRepeatPlaylistService
             {
                 // Persist anyway: the rotation accumulates across
                 // refreshes until it reaches the floor.
-                _stateStore.Set(user.Id, state);
+                SaveRotation(user, rotation);
                 _logger.LogDebug(
                     "On Repeat: only {Count} track(s) in the rotation for {User} (need {Min} to create); skipping.",
                     rotation.Count,
@@ -173,16 +173,14 @@ public class OnRepeatPlaylistService
                 return;
             }
 
-            playlist = await CreatePlaylistAsync(user, state).ConfigureAwait(false);
+            playlist = await CreatePlaylistAsync(user).ConfigureAwait(false);
             if (playlist is null)
             {
                 return;
             }
         }
-        else
-        {
-            _stateStore.Set(user.Id, state);
-        }
+
+        SaveRotation(user, rotation);
 
         await _contentReplacer
             .ReplaceContentsAsync(playlist, user.Id, trackIds, ct)
@@ -201,6 +199,9 @@ public class OnRepeatPlaylistService
 
     private bool IsAudio(Guid itemId) => _libraryManager.GetItemById(itemId) is Audio;
 
+    private void SaveRotation(User user, List<OnRepeatEntry> rotation)
+        => _stateStore.Update(user.Id, state => state.OnRepeatTracks = rotation);
+
     private Playlist? FindExistingPlaylist(UserStylePlaylistState state)
     {
         if (!Guid.TryParse(state.OnRepeatPlaylistGuid, out var playlistId))
@@ -211,7 +212,7 @@ public class OnRepeatPlaylistService
         return _libraryManager.GetItemById(playlistId) as Playlist;
     }
 
-    private async Task<Playlist?> CreatePlaylistAsync(User user, UserStylePlaylistState state)
+    private async Task<Playlist?> CreatePlaylistAsync(User user)
     {
         var title = $"{Possessive.Format(user.Username)} On Repeat";
         var creation = await _playlistManager.CreatePlaylist(new PlaylistCreationRequest
@@ -231,8 +232,7 @@ public class OnRepeatPlaylistService
             return null;
         }
 
-        state.OnRepeatPlaylistGuid = playlistId.ToString("N");
-        _stateStore.Set(user.Id, state);
+        _stateStore.Update(user.Id, state => state.OnRepeatPlaylistGuid = playlistId.ToString("N"));
 
         return _libraryManager.GetItemById(playlistId) as Playlist;
     }

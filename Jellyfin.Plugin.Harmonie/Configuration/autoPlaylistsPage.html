@@ -92,6 +92,29 @@
                         </div>
                     </div>
 
+                    <h3>Unheard</h3>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableUnheardPlaylists" name="EnableUnheardPlaylists" type="checkbox" is="emby-checkbox" />
+                            <span>Enable Unheard playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            One playlist per user with tracks they have never played, closest in sound to what they listen to most. A track leaves the list once it has been played. Refreshed daily.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="UnheardPlaylistN">Tracks per playlist</label>
+                        <input id="UnheardPlaylistN" name="UnheardPlaylistN" type="number" is="emby-input" min="1" max="500" />
+                        <div class="fieldDescription">1&ndash;500.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="UnheardPlaylistDays">Listening window (days)</label>
+                        <input id="UnheardPlaylistDays" name="UnheardPlaylistDays" type="number" is="emby-input" min="1" max="365" />
+                        <div class="fieldDescription">How far back to look for the tracks the playlist is built around. Favorites and playlist additions count regardless of age. 1&ndash;365.</div>
+                    </div>
+
                     <div style="margin-top: 2.5em;">
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -140,6 +163,10 @@
                             document.querySelector('#StylePlaylistDays').value = config.StylePlaylistDays || 30;
                             document.querySelector('#StylePlaylistN').value = config.StylePlaylistN || 20;
                             document.querySelector('#PersonalMixVariation').value = readVariation(config, 'PersonalMixVariation');
+                            document.querySelector('#EnableUnheardPlaylists').checked =
+                                config.EnableUnheardPlaylists === undefined ? true : !!config.EnableUnheardPlaylists;
+                            document.querySelector('#UnheardPlaylistN').value = config.UnheardPlaylistN || 30;
+                            document.querySelector('#UnheardPlaylistDays').value = config.UnheardPlaylistDays || 90;
                             Dashboard.hideLoadingMsg();
                         });
                     });
@@ -162,6 +189,11 @@
                             config.StylePlaylistN =
                                 parseInt(document.querySelector('#StylePlaylistN').value, 10) || 20;
                             config.PersonalMixVariation = parseVariation('PersonalMixVariation');
+                            config.EnableUnheardPlaylists = document.querySelector('#EnableUnheardPlaylists').checked;
+                            config.UnheardPlaylistN =
+                                parseInt(document.querySelector('#UnheardPlaylistN').value, 10) || 30;
+                            config.UnheardPlaylistDays =
+                                parseInt(document.querySelector('#UnheardPlaylistDays').value, 10) || 90;
                             ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
                                 Dashboard.processPluginConfigurationUpdateResult(result);
                             });

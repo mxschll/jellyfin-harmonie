@@ -17,7 +17,7 @@ public sealed class JellyfinPreferenceSnapshotSourceTests
 
         Assert.True(JellyfinPreferenceSnapshotSource.ShouldTrack(
             playlist,
-            isPersonalMixPlaylist: _ => false));
+            isManagedPlaylist: _ => false));
     }
 
     [Fact]
@@ -25,20 +25,20 @@ public sealed class JellyfinPreferenceSnapshotSourceTests
     {
         Assert.False(JellyfinPreferenceSnapshotSource.ShouldTrack(
             Playlist("Shared", Guid.Empty),
-            isPersonalMixPlaylist: _ => false));
+            isManagedPlaylist: _ => false));
         Assert.False(JellyfinPreferenceSnapshotSource.ShouldTrack(
             Playlist("[RADIO] Test", Guid.NewGuid()),
-            isPersonalMixPlaylist: _ => false));
+            isManagedPlaylist: _ => false));
     }
 
     [Fact]
-    public void Personal_mix_playlist_is_not_tracked()
+    public void Plugin_managed_playlist_is_not_tracked()
     {
-        var playlist = Playlist("Alice's Mix · House", Guid.NewGuid());
+        var playlist = Playlist("Alice's Unheard", Guid.NewGuid());
 
         Assert.False(JellyfinPreferenceSnapshotSource.ShouldTrack(
             playlist,
-            isPersonalMixPlaylist: id => id == playlist.Id));
+            isManagedPlaylist: id => id == playlist.Id));
     }
 
     [Fact]

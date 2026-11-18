@@ -13,15 +13,11 @@ using Jellyfin.Plugin.Harmonie.Services;
 using Jellyfin.Plugin.Harmonie.Services.Cover;
 using Jellyfin.Plugin.Harmonie.Services.ListeningActivity;
 using Jellyfin.Plugin.Harmonie.Services.Storage;
-using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Playlists;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -57,7 +53,7 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
     public async Task Cover_refresh_sees_the_published_slot_even_when_the_fill_is_empty()
     {
         var user = new User("alice", "test-auth", "test-reset") { Id = Guid.NewGuid() };
-        var track = new VisibleAudio
+        var track = new JellyfinFakes.VisibleAudio
         {
             Id = Guid.NewGuid(),
             Name = "Track",
@@ -70,16 +66,16 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
             new HarmonieDatabase(Path.Combine(_directory, "jellyfin-harmonie.db")));
         for (var i = 0; i < 3; i++)
         {
-            activityStore.RecordPlayback(Play(user.Id, track.Id, DateTimeOffset.UtcNow.AddHours(-1 - i)));
+            activityStore.RecordPlayback(JellyfinFakes.Play(user.Id, track.Id, DateTimeOffset.UtcNow.AddHours(-1 - i)));
         }
 
         var stateStore = new StylePlaylistStateStore(
-            new FakeApplicationPaths(_directory),
+            new JellyfinFakes.FakeApplicationPaths(_directory),
             NullLogger<StylePlaylistStateStore>.Instance);
 
         var playlists = new Dictionary<Guid, Playlist>();
         var libraryManager = CreateLibraryManager(track, playlists);
-        var playlistManager = CreatePlaylistManager(user, playlists);
+        var playlistManager = JellyfinFakes.PlaylistManager(playlists);
 
         // Snapshot what the cover provider would see at the exact moment
         // the refresh is queued. With a stale snapshot the provider
@@ -87,10 +83,10 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
         // and the cover never regenerates.
         var queued = new List<(Guid PlaylistId, StylePlaylistSlot? Slot)>();
         var coverRefresh = new CoverRefreshQueuer(
-            CreateProviderManager(id => queued.Add((id, stateStore.FindSlotByPlaylistId(id)))),
-            DispatchProxy.Create<IFileSystem, NotSupportedProxy>());
+            JellyfinFakes.ProviderManager(id => queued.Add((id, stateStore.FindSlotByPlaylistId(id)))),
+            DispatchProxy.Create<IFileSystem, JellyfinFakes.NotSupportedProxy>());
 
-        var configProvider = new TestConfigProvider(new PluginConfiguration
+        var configProvider = new JellyfinFakes.TestConfigProvider(new PluginConfiguration
         {
             HarmonieUrl = "http://harmonie.test",
             EnableStylePlaylists = true,
@@ -101,7 +97,7 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
             configProvider,
             NullLogger<HarmonieClient>.Instance);
 
-        var errors = new CollectingLogger<StylePlaylistService>();
+        var errors = new JellyfinFakes.CollectingLogger<StylePlaylistService>();
         var service = new StylePlaylistService(
             client,
             new LibraryResolver(libraryManager, NullLogger<LibraryResolver>.Instance),
@@ -115,7 +111,7 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
             coverRefresh,
             configProvider,
             libraryManager,
-            CreateUserManager(user),
+            JellyfinFakes.UserManager(user),
             errors);
 
         await service.RefreshAllAsync(CancellationToken.None);
@@ -135,27 +131,6 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
     // Harness.
     // ---------------------------------------------------------------
 
-    private static ListeningActivityEvent Play(Guid userId, Guid itemId, DateTimeOffset stoppedAt)
-        => new(
-            userId,
-            itemId,
-            StartedUtc: stoppedAt.AddMinutes(-3),
-            StoppedUtc: stoppedAt,
-            StartPositionTicks: 0,
-            EndPositionTicks: TimeSpan.FromMinutes(3).Ticks,
-            MaxPositionTicks: TimeSpan.FromMinutes(3).Ticks,
-            ActiveListenTicks: TimeSpan.FromMinutes(3).Ticks,
-            SeekForwardCount: 0,
-            SeekBackwardCount: 0,
-            PauseCount: 0,
-            IsEarlySkip: false,
-            DurationTicks: TimeSpan.FromMinutes(3).Ticks,
-            PlayedToCompletion: true,
-            CountedAsPlay: true,
-            PlaySessionId: Guid.NewGuid().ToString("N"),
-            ClientName: "test",
-            DeviceId: "test");
-
     private static ILibraryManager CreateLibraryManager(
         Audio track,
         Dictionary<Guid, Playlist> playlists)
@@ -165,74 +140,6 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
         impl.Track = track;
         impl.Playlists = playlists;
         return proxy;
-    }
-
-    private static IPlaylistManager CreatePlaylistManager(
-        User owner,
-        Dictionary<Guid, Playlist> playlists)
-    {
-        var proxy = DispatchProxy.Create<IPlaylistManager, PlaylistManagerProxy>();
-        var impl = (PlaylistManagerProxy)(object)proxy;
-        impl.Owner = owner;
-        impl.Playlists = playlists;
-        return proxy;
-    }
-
-    private static IUserManager CreateUserManager(User user)
-    {
-        var proxy = DispatchProxy.Create<IUserManager, UserManagerProxy>();
-        ((UserManagerProxy)(object)proxy).User = user;
-        return proxy;
-    }
-
-    private static IProviderManager CreateProviderManager(Action<Guid> onQueueRefresh)
-    {
-        var proxy = DispatchProxy.Create<IProviderManager, ProviderManagerProxy>();
-        ((ProviderManagerProxy)(object)proxy).OnQueueRefresh = onQueueRefresh;
-        return proxy;
-    }
-
-    private sealed class VisibleAudio : Audio
-    {
-        // The real check walks library folders and user policy, which
-        // needs a running server. Everything is visible in this harness.
-        public override bool IsVisibleStandalone(User user) => true;
-    }
-
-    private sealed class TestConfigProvider : IHarmonieConfigProvider
-    {
-        private readonly PluginConfiguration _configuration;
-
-        public TestConfigProvider(PluginConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
-        public PluginConfiguration GetConfiguration() => _configuration;
-    }
-
-    private sealed class CollectingLogger<T> : ILogger<T>
-    {
-        public List<string> Errors { get; } = new();
-
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull
-            => null;
-
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Error;
-
-        public void Log<TState>(
-            LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            if (logLevel >= LogLevel.Error)
-            {
-                Errors.Add($"{formatter(state, exception)}: {exception}");
-            }
-        }
     }
 
     public class LibraryManagerProxy : DispatchProxy
@@ -257,66 +164,6 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
 
             throw new NotSupportedException(targetMethod?.Name);
         }
-    }
-
-    public class PlaylistManagerProxy : DispatchProxy
-    {
-        public User Owner { get; set; } = null!;
-
-        public Dictionary<Guid, Playlist> Playlists { get; set; } = null!;
-
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            if (targetMethod?.Name == nameof(IPlaylistManager.CreatePlaylist)
-                && args is [PlaylistCreationRequest request])
-            {
-                var playlist = new Playlist { Id = Guid.NewGuid(), Name = request.Name };
-                Playlists[playlist.Id] = playlist;
-                return Task.FromResult(new PlaylistCreationResult(playlist.Id.ToString("N")));
-            }
-
-            throw new NotSupportedException(targetMethod?.Name);
-        }
-    }
-
-    public class UserManagerProxy : DispatchProxy
-    {
-        public User User { get; set; } = null!;
-
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            // Property on 10.10/10.11.0-8, method on 10.11.9+/12 —
-            // see JellyfinCompat.
-            if (targetMethod?.Name is "get_Users" or "GetUsers")
-            {
-                return new[] { User };
-            }
-
-            throw new NotSupportedException(targetMethod?.Name);
-        }
-    }
-
-    public class ProviderManagerProxy : DispatchProxy
-    {
-        public Action<Guid> OnQueueRefresh { get; set; } = null!;
-
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            if (targetMethod?.Name == nameof(IProviderManager.QueueRefresh)
-                && args is [Guid itemId, ..])
-            {
-                OnQueueRefresh(itemId);
-                return null;
-            }
-
-            throw new NotSupportedException(targetMethod?.Name);
-        }
-    }
-
-    public class NotSupportedProxy : DispatchProxy
-    {
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-            => throw new NotSupportedException(targetMethod?.Name);
     }
 
     /// <summary>
@@ -363,55 +210,6 @@ public sealed class StylePlaylistCoverRefreshTests : IDisposable
             {
                 Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
             });
-        }
-    }
-
-    private sealed class FakeApplicationPaths : IApplicationPaths
-    {
-        private readonly string _root;
-
-        public FakeApplicationPaths(string root)
-        {
-            _root = root;
-        }
-
-        public string ProgramDataPath => _root;
-
-        public string WebPath => _root;
-
-        public string ProgramSystemPath => _root;
-
-        public string DataPath => _root;
-
-        public string ImageCachePath => _root;
-
-        public string PluginsPath => _root;
-
-        public string PluginConfigurationsPath => Path.Combine(_root, "plugin-configs");
-
-        public string LogDirectoryPath => _root;
-
-        public string ConfigurationDirectoryPath => _root;
-
-        public string SystemConfigurationFilePath => Path.Combine(_root, "system.xml");
-
-        public string CachePath => _root;
-
-        public string TempDirectory => _root;
-
-        public string VirtualDataPath => _root;
-
-        public string TrickplayPath => _root;
-
-        public string BackupPath => _root;
-
-        // Added to IApplicationPaths in Jellyfin 12.
-        public void MakeSanityCheckOrThrow()
-        {
-        }
-
-        public void CreateAndCheckMarker(string path, string markerName, bool recursive = false)
-        {
         }
     }
 }

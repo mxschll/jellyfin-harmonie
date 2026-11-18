@@ -86,20 +86,23 @@ internal sealed class JellyfinPreferenceSnapshotSource : IListeningPreferenceSna
     internal bool ShouldTrack(Playlist playlist)
     {
         ArgumentNullException.ThrowIfNull(playlist);
-        return ShouldTrack(
-            playlist,
-            playlistId => _stylePlaylistState.FindSlotByPlaylistId(playlistId) is not null);
+        return ShouldTrack(playlist, _stylePlaylistState.IsManagedPlaylist);
     }
 
+    /// <summary>
+    /// A playlist counts as a preference signal only when its contents are
+    /// the user's own choices: it has an owner and the plugin does not fill
+    /// it (no prefix, not a Personal Mix, On Repeat or Unheard playlist).
+    /// </summary>
     internal static bool ShouldTrack(
         Playlist playlist,
-        Func<Guid, bool> isPersonalMixPlaylist)
+        Func<Guid, bool> isManagedPlaylist)
     {
         ArgumentNullException.ThrowIfNull(playlist);
-        ArgumentNullException.ThrowIfNull(isPersonalMixPlaylist);
+        ArgumentNullException.ThrowIfNull(isManagedPlaylist);
         return playlist.OwnerUserId != Guid.Empty
             && HarmoniePlaylistFilter.TryGetOptions(playlist) is null
-            && !isPersonalMixPlaylist(playlist.Id);
+            && !isManagedPlaylist(playlist.Id);
     }
 
     public bool TryCreatePlaylistSnapshot(

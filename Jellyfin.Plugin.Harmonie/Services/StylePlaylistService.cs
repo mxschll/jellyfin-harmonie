@@ -217,7 +217,7 @@ public class StylePlaylistService
             // after the loop leaves it rendering from stale state.
             state.Slots.RemoveAll(s => s.Slot == i);
             state.Slots.Add(slot);
-            _stateStore.Set(user.Id, state);
+            SaveSlots(user, state);
 
             // Cluster-specific seeds: harmonie ids for the members of
             // this cluster, in the order they came from listen history
@@ -259,8 +259,15 @@ public class StylePlaylistService
 
         state.LastRefreshedUtc = DateTimeOffset.UtcNow;
         state.Slots = state.Slots.OrderBy(s => s.Slot).ToList();
-        _stateStore.Set(user.Id, state);
+        SaveSlots(user, state);
     }
+
+    private void SaveSlots(User user, UserStylePlaylistState slots)
+        => _stateStore.Update(user.Id, state =>
+        {
+            state.Slots = slots.Slots;
+            state.LastRefreshedUtc = slots.LastRefreshedUtc;
+        });
 
     /// <summary>
     /// Ensures slot <paramref name="slotIndex"/> has a Jellyfin
