@@ -9,6 +9,30 @@
     "imageUrl": "https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/Jellyfin.Plugin.Harmonie/banner.png",
     "versions": [
       {
+        "version": "1.14.2.2",
+        "changelog": "\n### Bug Fixes\n\n- Schedule playlist refresh tasks by wall clock so restarts cannot postpone them (8c33f6f)",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.2/jellyfin-harmonie_1.14.2.2.zip",
+        "checksum": "ee1de5fad9bdc0a79bce5bbe5a0709b0",
+        "timestamp": "2026-11-23T10:44:46Z"
+      },
+      {
+        "version": "1.14.2.1",
+        "changelog": "\n### Bug Fixes\n\n- Schedule playlist refresh tasks by wall clock so restarts cannot postpone them (8c33f6f)",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.2/jellyfin-harmonie_1.14.2.1.zip",
+        "checksum": "6230b5b57f495e9ef6d6eac4d5662c4b",
+        "timestamp": "2026-11-23T10:44:46Z"
+      },
+      {
+        "version": "1.14.2.0",
+        "changelog": "\n### Bug Fixes\n\n- Schedule playlist refresh tasks by wall clock so restarts cannot postpone them (8c33f6f)",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/mxschll/jellyfin-harmonie/releases/download/v1.14.2/jellyfin-harmonie_1.14.2.0.zip",
+        "checksum": "72dcd36b1be8a1d09a3f6691b362151e",
+        "timestamp": "2026-11-23T10:44:46Z"
+      },
+      {
         "version": "1.14.1.2",
         "changelog": "\n### Build\n\n- Ship a jellyfin 12 package (#45) (c166a1d)",
         "targetAbi": "12.0.0.0",
