@@ -9,14 +9,13 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Harmonie.ScheduledTasks;
 
 /// <summary>
-/// Rebuilds the per-user On Repeat playlists every five days.
+/// Rebuilds the per-user On Repeat playlists twice a week.
 ///
 /// On Repeat is built from the plugin's own stored listening data — it
 /// never calls harmonie, so it runs as its own task rather than inside
 /// the prefix playlist refresh. Each run merges the tracks repeating in
 /// the current window into the rotation carried over from earlier runs.
-/// The five-day default matches Spotify's On Repeat cycle; adjust the
-/// schedule from Dashboard → Scheduled Tasks.
+/// Adjust the schedule from Dashboard → Scheduled Tasks.
 /// </summary>
 public class RefreshOnRepeatPlaylistsTask : IScheduledTask, IConfigurableScheduledTask
 {
@@ -48,7 +47,8 @@ public class RefreshOnRepeatPlaylistsTask : IScheduledTask, IConfigurableSchedul
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        HarmonieTriggers.Interval(TimeSpan.FromDays(5)),
+        HarmonieTriggers.Weekly(DayOfWeek.Monday, new TimeSpan(3, 30, 0)),
+        HarmonieTriggers.Weekly(DayOfWeek.Thursday, new TimeSpan(3, 30, 0)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

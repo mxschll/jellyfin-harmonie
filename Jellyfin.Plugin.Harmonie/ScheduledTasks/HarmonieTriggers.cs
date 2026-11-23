@@ -25,7 +25,27 @@ internal static class HarmonieTriggers
     };
 
     /// <summary>
+    /// Fires once per week on the given weekday at the given time of day.
+    /// </summary>
+    public static TaskTriggerInfo Weekly(DayOfWeek dayOfWeek, TimeSpan timeOfDay) => new()
+    {
+#if NET8_0
+        Type = TaskTriggerInfo.TriggerWeekly,
+#else
+        Type = TaskTriggerInfoType.WeeklyTrigger,
+#endif
+        DayOfWeek = dayOfWeek,
+        TimeOfDayTicks = timeOfDay.Ticks,
+    };
+
+    /// <summary>
     /// Fires repeatedly with the given interval between runs.
+    ///
+    /// Jellyfin re-arms this timer at every server start to
+    /// <c>max(last run end, now) + interval</c>, so a server that restarts
+    /// more often than the interval never fires it. Only use it for
+    /// intervals well below the typical uptime; longer cadences belong
+    /// on <see cref="Daily"/> or <see cref="Weekly"/>.
     /// </summary>
     public static TaskTriggerInfo Interval(TimeSpan interval) => new()
     {

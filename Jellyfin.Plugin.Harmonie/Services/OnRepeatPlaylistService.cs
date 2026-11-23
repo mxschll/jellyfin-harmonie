@@ -36,9 +36,9 @@ namespace Jellyfin.Plugin.Harmonie.Services;
 public class OnRepeatPlaylistService
 {
     /// <summary>
-    /// Playback window a track must repeat inside to qualify. Wider than
-    /// Spotify's month so a repeat spread over six or seven weeks still
-    /// counts as one.
+    /// Playback window a track must repeat inside to qualify. Wide
+    /// enough that a repeat spread over six or seven weeks still counts
+    /// as one.
     /// </summary>
     internal const int WindowDays = 45;
 

@@ -45,7 +45,7 @@ public class RefreshUnheardPlaylistsTask : IScheduledTask, IConfigurableSchedule
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        HarmonieTriggers.Interval(TimeSpan.FromDays(1)),
+        HarmonieTriggers.Daily(new TimeSpan(3, 15, 0)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

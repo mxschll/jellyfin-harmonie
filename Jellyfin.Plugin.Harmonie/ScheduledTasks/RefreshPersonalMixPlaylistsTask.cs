@@ -53,7 +53,7 @@ public class RefreshPersonalMixPlaylistsTask : IScheduledTask, IConfigurableSche
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => new[]
     {
-        HarmonieTriggers.Interval(TimeSpan.FromDays(7)),
+        HarmonieTriggers.Weekly(DayOfWeek.Monday, new TimeSpan(3, 45, 0)),
     };
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
