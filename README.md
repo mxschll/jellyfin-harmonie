@@ -31,17 +31,17 @@ The plugin requires [harmonie](https://github.com/mxschll/harmonie) 1.5.0 or new
 
 ### 1. Install harmonie
 
-Install pipx, then harmonie itself:
+Run it with Docker, mounting the same music directories Jellyfin reads:
 
 ```bash
-sudo apt install pipx
-pipx ensurepath
-
-pipx install --pip-args='--pre' 'git+https://github.com/mxschll/harmonie.git'
-HARMONIE_LIBRARIES=/path/to/music harmonie serve
+docker run -d --name harmonie --init --restart unless-stopped \
+  -p 127.0.0.1:8842:8842 \
+  -v ./harmonie-data:/data \
+  -v /path/to/music:/music:ro \
+  ghcr.io/mxschll/harmonie:latest
 ```
 
-Point it at the same music directories Jellyfin reads. The first scan starts automatically. See the [harmonie README](https://github.com/mxschll/harmonie#install) for everything else.
+The first scan starts automatically. If Jellyfin runs on another machine or in its own container, publish on `0.0.0.0:8842` instead so it can reach harmonie. See the [harmonie README](https://github.com/mxschll/harmonie#install) for compose, pipx, and hardware requirements.
 
 ### 2. Install the plugin
 
