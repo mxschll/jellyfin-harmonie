@@ -13,9 +13,7 @@
 > [!NOTE]
 > **Feedback wanted.** If anything in the install steps, settings, or playlist behaviour gets in your way, please open an issue. I want setup to be as painless as possible.
 
-Jellyfin Harmonie generates playlists from your music library using audio similarity and stored listening data. It replaces Jellyfin's genre- and tag-based Instant Mix selection with tracks matched by the audio itself.
-
-The plugin provides personal mixes and On Repeat playlists built from listening habits, plus seeded radio and drift playlists, daily mixes, and genre and style playlists. The [harmonie](https://github.com/mxschll/harmonie) service does the audio analysis.
+Jellyfin Harmonie generates playlists from your music library using audio similarity and listening data. Instant Mix returns tracks matched by the audio itself, and per-user playlists follow each listener's habits. The [harmonie](https://github.com/mxschll/harmonie) service does the audio analysis.
 
 <p align="center">
   <img src="docs/playlists.png" alt="Covers of Harmonie playlist types: Radio, Drift, Genre, Personal Mix, and On Repeat" width="720" />
@@ -53,9 +51,9 @@ In Jellyfin go to Dashboard > Catalog > Repositories (gear icon), and add this U
 https://raw.githubusercontent.com/mxschll/jellyfin-harmonie/main/manifest.json
 ```
 
-Open the Catalog tab, find Harmonie under Music, and click Install. **Restart Jellyfin**. Then open Plugins > Harmonie, and point the plugin at your harmonie server. Harmonie listens on port `8842` by default, so if you ran it on the same machine as Jellyfin the URL is `http://localhost:8842`. Save the form.
+Open the Catalog tab, find Harmonie under Music, and click Install. **Restart Jellyfin**. Then open Dashboard > Plugins > Harmonie and enter your harmonie server URL. Harmonie listens on port `8842` by default, so on the same machine as Jellyfin the URL is `http://localhost:8842`. Save the form.
 
-The plugin's settings page shows live harmonie scan progress:
+The settings page shows live harmonie scan progress:
 
 <p align="center">
   <img src="docs/scan-progress.png" alt="Harmonie scan progress in the Jellyfin plugin settings, showing state, phase, and per-stage counters" width="720" />
@@ -63,39 +61,37 @@ The plugin's settings page shows live harmonie scan progress:
 
 ## Use it
 
-Once harmonie finishes its first library scan, which can take several hours for a large library, Instant Mix works from the first tap. The personal playlists build themselves from listening data, so they appear and grow over the first days of use, as the scheduled tasks run and listening habits accumulate. Run the tasks by hand or change their schedule under Dashboard → Scheduled Tasks; tune the playlists in the plugin settings.
+Once harmonie finishes its first library scan, which can take several hours for a large library, Instant Mix works from the first tap. The per-user playlists build from listening data, so they appear and grow over the first days of use. Scheduled tasks under Dashboard > Scheduled Tasks rebuild them; run a task by hand or change its schedule there. Each playlist type is on by default and can be toggled and tuned in the plugin settings.
 
 ### Song Radio / Instant Mix
 
-When you tap "Instant Mix" in the Jellyfin web UI on a track, album, artist, playlist, or music folder, the plugin returns tracks matched from their audio instead of Jellyfin's genre- and tag-based selection. Finamp's "Song Radio" uses the same matching for tracks. Works in every Jellyfin client without setup. Toggle off in plugin settings under "Instant Mix / Song Radio".
+Tap "Instant Mix" on a track, album, artist, playlist, or music folder and the plugin returns tracks matched from their audio. Finamp's "Song Radio" uses the same matching. Works in every Jellyfin client.
 
-### Personal Mix playlists
+### Personal Mix
 
-A private mix per style each user listens to most. The number of playlists adapts to the available data. Enabled by default and refreshed every Monday; both behavior and schedule are configurable.
+A private mix per style each user listens to most. The number of playlists follows the available listening data.
 
 ### On Repeat
 
-One playlist per user with the tracks they have played on loop, longest unplayed first. A track needs at least three plays in the last 45 days to qualify, and the playlist first appears once five tracks do.
-
-The playlist grows instead of sliding. A track keeps its place after its plays age out of the window, so a quiet month leaves the playlist standing. Once the rotation reaches 30 tracks, each newly repeated track evicts the one played longest ago — which is also the track at the top, so a forgotten repeat gets heard again before it goes. Enabled by default and refreshed on Mondays and Thursdays; toggle it off in plugin settings.
+One playlist per user with the tracks they play on loop, longest unplayed first. A track qualifies after three plays in 45 days, and the playlist appears once five tracks qualify. Tracks stay after their plays age out of the window. Once the playlist holds 30 tracks, each new repeat replaces the one played longest ago.
 
 ### Unheard
 
-One playlist per user with tracks they have never played, ranked by how close they sound to the tracks they play, favorite, and add to playlists most. Each of the user's ten strongest tracks pulls in its nearest neighbours; what Jellyfin has not marked played for that user stays, with at most three tracks per artist. Played tracks leave the list at the next refresh. The playlist first appears once five tracks qualify. Enabled by default and refreshed daily at 03:15; toggle it off in plugin settings.
+One playlist per user with tracks they have never played, ranked by how close they sound to the tracks they play, favorite, and add to playlists most. At most three tracks per artist. Played tracks leave at the next refresh, and the playlist appears once five tracks qualify.
 
 ## Prefix playlists
 
-For direct control, make a normal Jellyfin playlist with one of these prefixes. The plugin refreshes the contents in the background.
+For direct control, make a normal Jellyfin playlist with one of these prefixes. The plugin fills it and refreshes it after each edit.
 
 | Prefix | Result |
 | --- | --- |
-| `[RADIO]` | Similar tracks based on the first five tracks by default. Earlier seeds have more influence. Reorder or remove tracks to change the seeds. |
+| `[RADIO]` | Similar tracks based on the first five tracks. Earlier seeds have more influence. Reorder or remove tracks to change the seeds. |
 | `[DRIFT]` | An evolving mix starting from the first track. Each group of results becomes the seed for the next. |
-| `[MIX]` | A mix seeded from the user's recent plays, favorites, and playlist additions. Manually added tracks are removed. |
+| `[MIX]` | A mix seeded from the user's recent plays, favorites, and playlist additions. The plugin replaces tracks you add by hand at the next refresh. |
 | <code>[GENRE]&nbsp;X</code> | Tracks classified under a [Discogs genre](docs/discogs-styles.md#genres), such as `[GENRE] Hip Hop`. |
 | <code>[STYLE]&nbsp;X</code> | Tracks classified under a [Discogs style](docs/discogs-styles.md#styles), such as `[STYLE] House`. |
 
-Genre and style playlists regenerate daily. See [the supported Discogs genres and styles](docs/discogs-styles.md).
+See [the supported Discogs genres and styles](docs/discogs-styles.md).
 
 Override settings with tokens inside the brackets:
 
@@ -119,36 +115,23 @@ Examples:
 
 Radio, Drift, Mix, Personal Mix, and Instant Mix each have a `0`–`1` variation setting. Higher values produce more varied results while keeping songs similar to the seeds; `0` keeps results deterministic.
 
-## Refresh
-
-The plugin refreshes a playlist shortly after you edit it. Four scheduled tasks run in the background (Dashboard, Scheduled Tasks):
-
-* **Refresh Harmonie Prefix Playlists:** daily at 03:00. Rebuilds every `[RADIO]`, `[DRIFT]`, `[MIX]`, `[STYLE]`, and `[GENRE]` playlist.
-* **Refresh Harmonie Personal Mix Playlists:** Mondays at 03:45. Rebuilds the per-user Personal Mix playlists.
-* **Refresh Harmonie On Repeat Playlists:** Mondays and Thursdays at 03:30. Rebuilds the per-user On Repeat playlists.
-* **Refresh Harmonie Unheard Playlists:** daily at 03:15. Rebuilds the per-user Unheard playlists.
-
-Change any schedule from the same page, or run a task by hand.
-
 ## Listening data
 
-The plugin records each listen in a local database: when it started and stopped, how much of the track was actually heard, pauses and seeks, whether it completed or was skipped early, and which client played it. It also tracks favorites and playlist memberships. [docs/database.md](docs/database.md) describes every table and column.
+The plugin records each listen in a local database: when it started and stopped, how much of the track was heard, pauses and seeks, whether it completed or was skipped early, and which client played it. It also tracks favorites and playlist memberships. [docs/database.md](docs/database.md) describes every table and column.
 
-The plugin imports Jellyfin's play totals once at install. It cannot recover activity from periods when the plugin was disabled or uninstalled.
+The plugin imports Jellyfin's play totals once at install and records listens from then on.
 
 ## How does this compare to AudioMuse-AI?
 
-The shortest answer: they aim at different things. If you know Plexamp's Sonic Analysis or Spotify's Song Radio and Daily Mixes, Harmonie is that for Jellyfin. Radio from a seed track, per-user mixes built from listening history, surfacing forgotten songs. AudioMuse-AI is a broader discovery toolbox.
+They aim at different things. If you know Plexamp's Sonic Analysis or Spotify's Song Radio and Daily Mixes, Harmonie is that for Jellyfin: radio from a seed track, per-user mixes built from listening history, forgotten songs brought back. [AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI) is a broader discovery toolbox with chat-based playlists and text and lyrics search, most of which need a client built against its API.
 
-[AudioMuse-AI](https://github.com/NeptuneHub/AudioMuse-AI) has features Harmonie does not, such as chat-based playlists and text and lyrics search. Most of them need a client built against its API.
+Harmonie lives in Jellyfin's own surfaces: the Instant Mix button, ordinary playlists, Scheduled Tasks, plugin settings.
 
-Harmonie asks nothing new of you or your clients. It lives entirely in Jellyfin's own surfaces — the Instant Mix button, ordinary playlists, Scheduled Tasks, plugin settings — so there is no companion app and no client support to wait for:
+- **Works in every client.** Playlists show up in the web UI, Finamp, Symfonium, downloads, and offline sync like any other playlist.
+- **Playlists are the interface.** Rename a playlist to change its settings, reorder tracks to change the seeds. The plugin refreshes it in the background.
+- **Personal, from listening.** Per-user playlists that rename and refill themselves as taste shifts.
 
-- **Works in every client.** Playlists show up in the web UI, Finamp, Symfonium, downloads, and offline sync like any other playlist. No client needs to know Harmonie exists.
-- **Playlists are the interface.** Rename a playlist to change its settings, reorder tracks to change the seeds. The plugin notices the edit and refreshes in the background.
-- **Personal, from listening.** Per-user Personal Mixes that rename and refill themselves as taste shifts.
-
-Pick AudioMuse-AI if you want its breadth of discovery tools and use a client that integrates them. Pick Harmonie if you want similarity-based playlists that live natively in Jellyfin and follow each user's listening.
+Pick AudioMuse-AI for its breadth of discovery tools with a client that integrates them. Pick Harmonie for similarity-based playlists that live in Jellyfin and follow each user's listening.
 
 ## Compatibility
 
